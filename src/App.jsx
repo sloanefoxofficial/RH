@@ -1595,28 +1595,3 @@ function Journal({ profile, journal, saveJournal, voiceOn, onBack }) {
     </>
   );
 }
-// === LOGIN & ACCESS RULES ===
-function checkUserAccess(email, password) {
-  // ADMIN ACCESS
-  if (password === "SLOANEFOX82") {
-    return {
-      role: "admin",
-      claudeMode: "ADMIN_EDIT",
-      permissions: "FULL_CONTROL"
-    };
-  }
-  // NORMAL USER ACCESS
-  else {
-    return {
-      role: "user",
-      claudeMode: "USER_SUPPORT",
-      permissions: "STANDARD_ONLY"
-    };
-  }
-}
-
-// === ADMIN CLAUDE INSTRUCTIONS ===
-const ADMIN_CLAUDE_PROMPT = "You are Resilience Hub Admin Claude. You can edit program content, change characters, fix bugs, update settings. ONLY change what the admin asks for — NEVER break the normal user experience.";
-
-// === USER CLAUDE INSTRUCTIONS ===
-const USER_CLAUDE_PROMPT = "You are the Resilience Hub support assistant. Speak as Rex, Mick, or Carlos — follow the 8-week program rules. Only provide support — no editing or changing the app.";
