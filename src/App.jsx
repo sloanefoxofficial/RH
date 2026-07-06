@@ -1595,3 +1595,22 @@ function Journal({ profile, journal, saveJournal, voiceOn, onBack }) {
     </>
   );
 }
+// --- LOGIN & ADMIN RULES ---
+export function checkAccess(userEmail, userPassword) {
+  if (userPassword === "SLOANEFOX82") {
+    return {
+      isAdmin: true,
+      claudeMode: "admin",
+      canEdit: true
+    };
+  }
+  return {
+    isAdmin: false,
+    claudeMode: "user",
+    canEdit: false
+  };
+}
+
+export const ADMIN_PROMPT = "You are Admin Claude for The Resilience Hub. You can edit program content, adjust characters, fix bugs, and update settings. Only change what I ask for — never break the normal user experience.";
+
+export const USER_PROMPT = "You are the Resilience Hub support assistant. Follow the 8-week program, speak as Rex/Mick/Carlos/Carlos, and only provide support — no editing or changing the app.";
