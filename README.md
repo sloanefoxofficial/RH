@@ -90,12 +90,12 @@ You pay Anthropic per use based on your API key. See <https://www.anthropic.com/
 This is a solid prototype, but a wellbeing app for vulnerable people needs a few things handled
 first. Please treat this as a checklist, not an afterthought:
 
-- **Re-verify every crisis number** in `src/App.jsx` (`CONTACTS`) against current official sources.
+- **Re-verify every crisis number** in `App.jsx` (`CONTACTS`) against current official sources.
 - **Privacy & consent:** add a clear privacy notice and consent flow explaining that chat/journal
   text is sent to an AI provider. Consider the Australian Privacy Principles and whether you need
   formal review before handling people's mental-health disclosures.
 - **Clinical review:** have Carlos (Registered Psychologist) review the guide personas and the
-  crisis-routing wording in `src/App.jsx` (the `CHARS` system prompts and the onboarding safety step).
+  crisis-routing wording in `App.jsx` (the `CHARS` system prompts and the onboarding safety step).
 - **Data handling:** decide whether sensitive entries should ever leave the device, and how long
   anything is kept. Right now journals stay local by design — keep it that way unless you add
   proper, consented, secure storage.
@@ -110,17 +110,23 @@ area later, use a proper authenticated role, not a shared password.
 
 ```
 resilience-hub/
-├── api/chat.js        # backend: holds your key, calls Anthropic
-├── src/
-│   ├── App.jsx        # the whole app (screens, characters, voice, crisis bar)
-│   ├── images.js      # character art (watermark-free), inlined
-│   ├── main.jsx       # React entry
-│   └── index.css      # minimal reset
+├── api/chat.js        # backend: holds your key, calls Anthropic (the only folder)
+├── App.jsx            # the whole app (screens, characters, voice, crisis bar, login, admin)
+├── images.js          # character art (watermark-free), inlined
+├── main.jsx           # React entry
+├── index.css          # minimal reset
+├── supabase.js        # auth client (login turns on when keys are set)
 ├── index.html
 ├── package.json
 ├── vite.config.js
-└── .env.example
+├── vercel.json
+├── .env.example
+├── README.md
+└── SUPABASE_SETUP.md
 ```
+
+Everything except the `api/` folder sits at the top level, so uploading is simple: drop all the
+files in, plus the `api` folder.
 
 Voice (speaking + hold-to-talk) uses the browser's built-in Web Speech API and works best in
 Chrome / Edge; it falls back to typing where speech isn't supported.

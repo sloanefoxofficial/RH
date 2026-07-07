@@ -1,5 +1,7 @@
-// Serverless chat endpoint. Holds your Anthropic API key server-side so it is
-// never exposed to the browser. Works on Vercel (and most Node serverless hosts).
+// Single shared chat endpoint for the WHOLE app — every guide (Rex, Juan,
+// Carlos, Mick, Lila), the plan generator, the journal helper, and the admin
+// assistant all call this one function, using the one ANTHROPIC_API_KEY held
+// server-side. The key is never exposed to the browser.
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     res.status(405).json({ error: "Method not allowed" });
@@ -16,10 +18,25 @@ export default async function handler(req, res) {
   try {
     const body =
       typeof req.body === "string" ? JSON.parse(req.body || "{}") : req.body || {};
-    const { system, messages, max_tokens } = body;
+    const { system, max_tokens } = body;
 
-    if (!Array.isArray(messages) || messages.length === 0) {
-      res.status(400).json({ error: "messages must be a non-empty array" });
+    // Normalise messages so a malformed history can never cause an error for
+    // one guide while another works: keep only valid turns, merge consecutive
+    // same-role turns, and ensure the conversation starts on a user turn.
+    const clean = [];
+    for (const m of Array.isArray(body.messages) ? body.messages : []) {
+      if (!m || (m.role !== "user" && m.role !== "assistant")) continue;
+      const content = typeof m.content === "string" ? m.content.trim() : "";
+      if (!content) continue;
+      if (clean.length && clean[clean.length - 1].role === m.role) {
+        clean[clean.length - 1].content += "\n\n" + content;
+      } else {
+        clean.push({ role: m.role, content });
+      }
+    }
+    while (clean.length && clean[0].role !== "user") clean.shift();
+    if (clean.length === 0) {
+      res.status(400).json({ error: "No message to send." });
       return;
     }
 
@@ -34,7 +51,7 @@ export default async function handler(req, res) {
         model,
         max_tokens: max_tokens || 1000,
         ...(system ? { system } : {}),
-        messages,
+        messages: clean,
       }),
     });
 

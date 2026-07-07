@@ -110,7 +110,7 @@ normal experience. To make Carlos an admin too, run the same line with his email
   or safety wording by itself.
 - **Welcome note** — a short message you can edit, saved to Supabase.
 - **Crisis contacts** — shown read-only on purpose; change those in the code (`CONTACTS` in
-  `src/App.jsx`) with care and re-verification, not from a text box.
+  `App.jsx`) with care and re-verification, not from a text box.
 
 ## Notes
 
