@@ -1,50 +1,45 @@
-// Google Cloud Text-to-Speech. Uses GOOGLE_TTS_KEY (server-side only).
-// Falls back to the browser voice automatically if the key is missing or a call fails.
 export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    res.status(405).json({ error: "Method not allowed" });
-    return;
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
   }
-  const key = process.env.GOOGLE_TTS_KEY;
-  if (!key) {
-    res.status(503).json({ error: "tts_not_configured" });
-    return;
+
+  const { text } = req.body;
+
+  if (!text) {
+    return res.status(400).json({ error: 'Missing text parameter' });
   }
+
   try {
-    const body =
-      typeof req.body === "string" ? JSON.parse(req.body || "{}") : req.body || {};
-    let text = body.text;
-    const voiceName = body.voiceId; // e.g. "en-AU-Neural2-B"
-    if (!text || !voiceName) {
-      res.status(400).json({ error: "missing_text_or_voice" });
-      return;
-    }
-    text = String(text).slice(0, 2500);
+    const response = await fetch('https://api.fish.audio/v1/tts', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.FISH_AUDIO_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        text: text,
+        reference_id: process.env.JUAN_VOICE_ID,
+        format: 'mp3',
+        mp3_bitrate: 128,
+        latency: 'normal'
+      }),
+    });
 
-    const r = await fetch(
-      `https://texttospeech.googleapis.com/v1beta1/text:synthesize?key=${key}`,
-      {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          input: { text },
-          voice: { languageCode: "en-AU", name: voiceName },
-          audioConfig: { audioEncoding: "MP3" },
-        }),
-      }
-    );
-
-    const data = await r.json();
-    if (!r.ok || !data.audioContent) {
-      res.status(r.status === 200 ? 500 : r.status).json({ error: "tts_failed" });
-      return;
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Fish Audio API error:', errorText);
+      return res.status(response.status).json({ error: 'Failed to generate speech' });
     }
 
-    const buf = Buffer.from(data.audioContent, "base64");
-    res.setHeader("Content-Type", "audio/mpeg");
-    res.setHeader("Cache-Control", "no-store");
-    res.status(200).send(buf);
-  } catch (e) {
-    res.status(500).json({ error: "tts_error" });
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    res.setHeader('Content-Type', 'audio/mpeg');
+    res.setHeader('Content-Length', buffer.length);
+    return res.status(200).send(buffer);
+
+  } catch (error) {
+    console.error('TTS Server Error:', error);
+    return res.status(500).json({ error: 'Internal Server Error' });
   }
 }
