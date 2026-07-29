@@ -87,9 +87,9 @@
 
   <div class="hud hidden" id="hud">
     <div class="hudrow">
-      <div class="panel"><div class="pn p1c" id="p1lab">P1 · MALE FOX</div><div class="hbar"><div class="hfill" id="hp1" style="width:100%"></div></div><div class="sbar"><div class="sfill" id="sp1"></div></div></div>
+      <div class="panel"><div class="pn p1c" id="p1lab">P1 · MALE FOX</div><div class="pn p1c" id="lives1" style="margin:-2px 0 3px;letter-spacing:1px">❤❤❤</div><div class="hbar"><div class="hfill" id="hp1" style="width:100%"></div></div><div class="sbar"><div class="sfill" id="sp1"></div></div></div>
       <div class="mid"><div class="lvtag" id="lvTag">LEVEL 1</div><div class="lvname brand" id="lvName">ANXIETY</div><div class="score" id="scoreLine">SCORE 0</div></div>
-      <div class="panel p2 hidden" id="p2panel"><div class="pn p2c">P2 · FEMALE FOX</div><div class="hbar"><div class="hfill" id="hp2" style="width:100%"></div></div><div class="sbar"><div class="sfill" id="sp2" style="margin-left:auto"></div></div></div>
+      <div class="panel p2 hidden" id="p2panel"><div class="pn p2c">P2 · FEMALE FOX</div><div class="pn p2c" id="lives2" style="margin:-2px 0 3px;letter-spacing:1px">❤❤❤</div><div class="hbar"><div class="hfill" id="hp2" style="width:100%"></div></div><div class="sbar"><div class="sfill" id="sp2" style="margin-left:auto"></div></div></div>
     </div>
   </div>
 
@@ -116,6 +116,34 @@
   <div class="ov hidden" id="pause"><div class="tag">HOLDING POSITION</div><h1 class="big brand" style="font-size:clamp(26px,6vw,44px)">PAUSED</h1><button class="btn" id="resumeBtn">Resume</button><button class="btn blue" id="quitBtn">Quit to Title</button></div>
   <div class="ov hidden" id="over"><div class="tag" style="border-color:var(--red);color:#ffb0b0">DOWN BUT NOT OUT</div><h1 class="big brand" style="font-size:clamp(26px,7vw,48px)">YOU FELL BACK</h1><p class="line">Even the toughest fronts knock you down. That's not the end of the fight.</p><p class="score" style="font-size:15px" id="overScore">SCORE 0</p><button class="btn" id="retryBtn">Try Again</button></div>
   <div class="ov hidden" id="win"><div class="tag" style="border-color:var(--gold);color:var(--gold)">MISSION COMPLETE</div><h1 class="big brand" style="font-size:clamp(26px,7vw,48px)">STILL STANDING</h1><p class="line">They all came back — and you still stood together. You still won.</p><p class="score" style="font-size:15px" id="winScore">SCORE 0</p><button class="btn" id="againBtn">Run It Back</button></div>
+
+  <div class="ov hidden" id="howto">
+    <div class="tag">HOW TO STAND</div>
+    <h1 class="big brand" style="font-size:clamp(24px,6vw,44px)">INSTRUCTIONS</h1>
+    <p class="line">You don't fight people — you fight the struggles. Clear each area, beat its boss, and survive the Death gauntlet at the end. Grab glowing <span style="color:var(--purple)">★</span> to charge your Super and <span style="color:var(--pink)">❤</span> to heal.</p>
+    <div style="text-align:left;max-width:560px;font-size:clamp(12px,2.4vw,15px);line-height:1.8;color:#dfe6e2">
+      <b style="color:var(--gold)">MOVE</b> — D-pad / WASD &nbsp;(P2: Arrows) — walk any direction<br>
+      <b style="color:var(--gold)">JUMP</b> — JUMP button / G &nbsp;(P2: /)<br>
+      <b style="color:var(--gold)">FIRE</b> — FIRE button / F &nbsp;(P2: .) — <i>hold to CHARGE a heavy shot</i><br>
+      <b style="color:var(--gold)">ROLL</b> — ROLL button / H &nbsp;(P2: R-Shift) — cartwheel dodge (brief invincibility)<br>
+      <b style="color:var(--gold)">JUMP + FIRE</b> — press FIRE while in the air = <b>JUMP KICK</b><br>
+      <b style="color:var(--gold)">SUPER</b> — SP button / T &nbsp;(P2: ,) — 3 tiers: ⅓ small blast · ⅔ heavy · <b>FULL = MAX POWER</b> wipes the screen<br>
+      <b style="color:var(--gold)">LIVES</b> — you have 3. Lose them all and it's Game Over (you can Continue).
+    </div>
+    <button class="btn" id="howtoBtn">Start</button>
+  </div>
+
+  <div class="ov hidden" id="hiscore">
+    <div class="tag" id="hsTag">HIGH SCORE</div>
+    <h1 class="big brand" id="hsTitle" style="font-size:clamp(24px,6vw,42px)">ENTER INITIALS</h1>
+    <p class="score" id="hsScore" style="font-size:16px">SCORE 0</p>
+    <div id="hsEntry" style="display:flex;gap:10px;align-items:center;justify-content:center">
+      <input id="hsInput" maxlength="3" placeholder="JC" autocomplete="off" style="width:130px;text-transform:uppercase;text-align:center;font-family:'Arial Black',Arial;font-size:28px;letter-spacing:8px;background:#0c1a1a;border:2px solid var(--gold);color:#fff;border-radius:6px;padding:6px 4px">
+      <button class="btn" id="hsSave">Save</button>
+    </div>
+    <table id="hsTable" style="border-collapse:collapse;margin-top:4px;font-size:14px;color:#dfe6e2"></table>
+    <div id="hsButtons" style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center"></div>
+  </div>
 
   <footer>SLOANE FOX · THE RESILIENCE HUB</footer>
 
@@ -189,6 +217,8 @@ function noise(d,v,cut){ if(!actx)return; try{ const t=actx.currentTime,b=actx.c
 const SFX={ shoot:()=>beep(660,0.05,'square',0.03), blast:()=>{ beep(150,0.25,'sawtooth',0.12); noise(0.3,0.12,1600); },
   hit:()=>beep(150,0.08,'sawtooth',0.05), kill:()=>{ noise(0.18,0.1,1100); beep(140,0.16,'sawtooth',0.06); }, hurt:()=>beep(110,0.18,'sawtooth',0.06),
   jump:()=>beep(320,0.1,'square',0.04), roll:()=>beep(420,0.14,'sine',0.04), pickup:()=>beep(900,0.12,'sine',0.05),
+  grunt:()=>{ beep(210,0.09,'sawtooth',0.09); setTimeout(()=>beep(150,0.08,'sawtooth',0.07),70); },
+  kick:()=>{ beep(180,0.08,'square',0.06); noise(0.12,0.08,1200); },
   special:()=>{ beep(300,0.1,'sawtooth',0.1); setTimeout(()=>beep(700,0.3,'sawtooth',0.1),80); noise(0.4,0.12,1800); },
   boss:()=>{ beep(90,0.5,'sawtooth',0.1); noise(0.5,0.08,900); }, win:()=>{ beep(523,0.12,'square',0.08); setTimeout(()=>beep(784,0.2,'square',0.08),120); } };
 const CRIES=["We stand together!","Not today!","You won't break us!","Bring it on!","Stay standing!","We don't quit!","Push forward!","Never give up!"];
@@ -201,6 +231,9 @@ function battleCry(px,py){ const txt=CRIES[Math.floor(Math.random()*CRIES.length
   beep(500,0.08,'square',0.05); setTimeout(()=>beep(760,0.12,'square',0.05),90); }
 function showCry(txt,px,py){ const el=document.createElement('div'); el.className='cry'; el.textContent=txt; el.style.left=(px-camX)+'px'; el.style.top=(py-120)+'px'; el.style.transform='translate(-50%,0)'; document.getElementById('stage').appendChild(el);
   let t=0; const iv=setInterval(()=>{ t++; el.style.top=(parseFloat(el.style.top)-1.2)+'px'; el.style.opacity=String(Math.max(0,1-t/40)); if(t>40){ clearInterval(iv); el.remove(); } },16); }
+let lastPain=0;
+function painVoice(){ const now=Date.now(); if(now-lastPain<450)return; lastPain=now;
+  try{ if(typeof speechSynthesis!=='undefined'){ const u=new SpeechSynthesisUtterance('Ah!'); u.rate=1.35; u.pitch=1.1; u.volume=0.9; if(cryVoice)u.voice=cryVoice; speechSynthesis.speak(u); } }catch(e){} }
 
 /* ========== LEVELS (real-place themes) ========== */
 const LEVELS=[
@@ -214,21 +247,22 @@ const LEVELS=[
  { key:'death',    img:'b8', name:'DEATH',               place:'The Stadium',                  msg:'The final test. Weaken it — and they all return. NEVER give up.', sky:['#1c1430','#0a0616'], ground:'#160f26', accent:'#a06bff', kills:20 },
 ];
 const MIN_TYPES=[
- { t:'rum',    img:'m_rum',    name:'RUMINATOR',       hp:22, spd:104, dmg:8,  col:'#e0762a', ranged:false },
- { t:'worry',  img:'m_worry',  name:'WORRY SPORE',     hp:16, spd:78,  dmg:6,  col:'#ffb23f', ranged:true  },
- { t:'geist',  img:'m_geist',  name:'SELF-DOUBT GEIST',hp:30, spd:54,  dmg:7,  col:'#6aa0ff', ranged:false, drain:true },
- { t:'burden', img:'m_burden', name:'BURDEN IMP',      hp:52, spd:44,  dmg:14, col:'#9a9a9a', ranged:false, heavy:true },
+ { t:'rum',    img:'m_rum',    name:'RUMINATOR',       hp:30, spd:120, dmg:11, col:'#e0762a', ranged:false },
+ { t:'worry',  img:'m_worry',  name:'WORRY SPORE',     hp:22, spd:92,  dmg:9,  col:'#ffb23f', ranged:true  },
+ { t:'geist',  img:'m_geist',  name:'SELF-DOUBT GEIST',hp:44, spd:66,  dmg:11, col:'#6aa0ff', ranged:false, drain:true },
+ { t:'burden', img:'m_burden', name:'BURDEN IMP',      hp:78, spd:54,  dmg:21, col:'#9a9a9a', ranged:false, heavy:true },
 ];
 
 /* ========== STATE ========== */
 let state='title', numPlayers=1, levelIdx=0, camX=0, running=false, lastT=0;
 let score=0, kills=0, levelKills=0, bossActive=false, boss=null, gauntlet=null, spawnCd=0, screenShake=0;
 let P=[], E={ enemies:[], pbul:[], ebul:[], items:[], fx:[] };
+let hurtFlash=0, freezeT=0, pendingMax=null, hiScores=[], hiWin=false;
 
 function makePlayer(id,char){ const pre=id===1?'p1':'p2';
   return { id, char, pre, x:camX+120+(id-1)*70, z:0.5, yj:0, vy:0, facing:1, aimx:1, aimy:0,
     health:100, maxHealth:100, special:0, alive:true, invuln:1.0, fireCd:0, chargeT:0, charging:false,
-    rolling:0, rollCd:0, recoil:0, hitFlash:0, step:0, w:44, streak:0 }; }
+    rolling:0, rollCd:0, recoil:0, hitFlash:0, step:0, w:44, streak:0, lives:3, out:false, kicking:0, kickHit:false, _spHeld:false }; }
 function alivePlayers(){ return P.filter(p=>p.alive); }
 function nearestPlayer(x,z){ let b=null,bd=1e9; alivePlayers().forEach(p=>{ const d=Math.hypot(p.x-x,(p.z-z)*260); if(d<bd){ bd=d; b=p; } }); return b; }
 
@@ -265,12 +299,18 @@ function playerFire(p,charged){ const mz=muzzle(p), col=p.char==='male'?'#9be15d
     E.pbul.push({ x:mz.x,y:mz.y,vx:mz.dx*760,vy:mz.dy*760,w:24+pw*20,h:14+pw*8,dmg:24+pw*40,life:1.5,pierce:true,hits:new Set(),charged:true,col:p.char==='male'?'#8fd0ff':'#ffd23f',owner:p.id });
     SFX.blast(); screenShake=Math.max(screenShake,9); p.recoil=10; for(let i=0;i<10;i++)fx(mz.x,mz.y,col); }
   else { E.pbul.push({ x:mz.x,y:mz.y,vx:mz.dx*720,vy:mz.dy*720,w:13,h:5,dmg:11+levelIdx*1.3,life:1.2,col,owner:p.id }); SFX.shoot(); p.recoil=5; fx(mz.x,mz.y,'#fff',3); } }
-function useSpecial(p){ if(p.special<100)return; p.special=0; SFX.special(); screenShake=Math.max(screenShake,16); battleCry(p.x,feetY(p));
-  // screen-clear nova
+function useSpecial(p){ let lvl=0; if(p.special>=100)lvl=3; else if(p.special>=66)lvl=2; else if(p.special>=33)lvl=1; if(lvl===0)return;
+  if(lvl===3){ p.special=0; SFX.special(); freezeT=1.0; pendingMax=p; flashBanner('MAX POWER','UNLEASH'); battleCry(p.x,feetY(p)); return; }
+  const cost=lvl===2?66:33, dmg=lvl===2?(160+levelIdx*14):(85+levelIdx*10); p.special-=cost; SFX.special(); screenShake=Math.max(screenShake,12); battleCry(p.x,feetY(p));
   E.fx.push({ nova:true, x:p.x, y:feetY(p)-40, r:10, life:0.5, col:p.char==='male'?'#8fd0ff':'#ff8fb0' });
-  E.enemies.forEach(e=>{ if(!e.dead){ e.hp-=70+levelIdx*10; e.hitFlash=0.2; if(e.hp<=0){ e.dead=true; onKill(e,p); } } });
-  if(boss&&boss.vuln!==false)damageBoss(90+levelIdx*12,boss.x,zToY(boss.z)-40,p);
-  if(gauntlet&&gauntlet.active){ gauntlet.active.hp-=90; if(gauntlet.active.hp<=0){ score+=300; gauntlet.active=null; } } }
+  E.enemies.forEach(e=>{ if(!e.dead){ e.hp-=dmg; e.hitFlash=0.2; if(e.hp<=0){ e.dead=true; onKill(e,p); } } });
+  if(boss&&boss.vuln!==false)damageBoss(dmg*1.1,boss.x,zToY(boss.z)-40,p);
+  if(gauntlet&&gauntlet.active){ gauntlet.active.hp-=dmg; if(gauntlet.active.hp<=0){ score+=300; gauntlet.active=null; } } }
+function maxUnleash(p){ SFX.special(); screenShake=Math.max(screenShake,22);
+  E.fx.push({ nova:true, x:p.x, y:feetY(p)-40, r:10, life:0.8, col:'#ffffff' });
+  E.enemies.forEach(e=>{ if(!e.dead){ e.dead=true; onKill(e,p); } });
+  if(boss&&boss.vuln!==false)damageBoss(420+levelIdx*30,boss.x,zToY(boss.z)-40,p);
+  if(gauntlet&&gauntlet.active){ gauntlet.active.hp-=420; if(gauntlet.active.hp<=0){ score+=300; gauntlet.active=null; } } }
 function updatePlayer(p,dt){ if(!p.alive)return; const g=p.pre;
   p.rollCd-=dt;
   if(keys[g+'roll']&&p.rollCd<=0&&p.rolling<=0&&p.yj<=0){ p.rolling=0.38; p.rollCd=0.9; p.invuln=Math.max(p.invuln,0.4); SFX.roll(); }
@@ -292,11 +332,15 @@ function updatePlayer(p,dt){ if(!p.alive)return; const g=p.pre;
   // clamp x to camera view
   p.x=Math.max(camX+22, Math.min(camX+W-22, p.x));
   if(p.invuln>0)p.invuln-=dt; if(p.recoil>0)p.recoil-=dt*40; if(p.hitFlash>0)p.hitFlash-=dt;
-  // special key
-  if(keys[g+'special'])useSpecial(p);
-  // fire + charge
+  // special (edge-triggered so a tier isn't drained instantly)
+  if(keys[g+'special']&&!p._spHeld)useSpecial(p); p._spHeld=keys[g+'special'];
+  if(p.kicking>0)p.kicking-=dt;
+  // fire + charge  (JUMP + FIRE in the air = JUMP KICK)
   p.fireCd-=dt;
-  if(keys[g+'fire']){ p.chargeT+=dt; if(p.chargeT>=0.35)p.charging=true; else if(p.fireCd<=0&&!p.charging&&p.rolling<=0){ playerFire(p,false); p.fireCd=0.17; } }
+  if(keys[g+'fire']){
+    if(p.yj>0){ if(p.kicking<=0){ p.kicking=0.34; p.kickHit=false; SFX.kick(); } }
+    else { p.chargeT+=dt; if(p.chargeT>=0.35)p.charging=true; else if(p.fireCd<=0&&!p.charging&&p.rolling<=0){ playerFire(p,false); p.fireCd=0.17; } }
+  }
   else { if(p.charging)playerFire(p,true); p.charging=false; p.chargeT=0; } }
 
 /* ========== HELPERS ========== */
@@ -320,13 +364,13 @@ function updateEnemies(dt){
     let sp=e.spd; if(e.t%3<0.05&&e.name==='RUMINATOR')sp*=1.6;
     if(Math.abs(dx)>36){ e.x+=Math.sign(dx)*sp*dt; }
     if(Math.abs(dz)>0.02){ e.z+=Math.sign(dz)*(sp*0.5)/260*dt; e.z=Math.max(0,Math.min(1,e.z)); }
-    if(e.ranged&&Math.abs(dx)<560){ e.fireCd-=dt; if(e.fireCd<=0){ e.fireCd=1.4+Math.random(); const m=Math.hypot(dx,(feetY(tgt)-40)-(zToY(e.z)-40))||1;
+    if(e.ranged&&Math.abs(dx)<560){ e.fireCd-=dt*1.3; if(e.fireCd<=0){ e.fireCd=1.4+Math.random(); const m=Math.hypot(dx,(feetY(tgt)-40)-(zToY(e.z)-40))||1;
       E.ebul.push({ x:e.x,y:zToY(e.z)-40,vx:dx/Math.abs(dx||1)*300,vy:0,w:11,h:11,life:2.6,dmg:e.dmg,col:'#ff6b6b' }); } }
   });
   E.enemies=E.enemies.filter(e=>!e.dead); }
 
 /* ========== BOSS ========== */
-function bossStats(i){ return { hp: i===7?1500:(220+i*120), def: LEVELS[i].key==='hardship'?0.5:1, touch:14+i*2 }; }
+function bossStats(i){ return { hp: i===7?2100:(300+i*160), def: LEVELS[i].key==='hardship'?0.5:1, touch:20+i*3 }; }
 function spawnBoss(i){ const L=LEVELS[i], st=bossStats(i);
   boss={ key:L.key, name:L.name, img:L.img, x:camX+W-150, z:0.5, yj:0, hp:st.hp, maxHp:st.hp, def:st.def, touch:st.touch, facing:-1, t:0, atkCd:1.4, hitFlash:0, vuln:true, w:100 };
   bossActive=true; SFX.boss(); screenShake=12; document.getElementById('bossNm').textContent=(i===7?'FINAL · ':'')+L.name;
@@ -346,7 +390,7 @@ function updateBoss(dt){ if(!boss)return; boss.t+=dt; if(boss.hitFlash>0)boss.hi
   if(gauntlet&&gauntlet.active){ const g=gauntlet.active; g.t+=dt; if(g.hitFlash>0)g.hitFlash-=dt; const t2=nearestPlayer(g.x,g.z);
     if(t2){ const dx=t2.x-g.x; g.facing=dx<0?-1:1; if(Math.abs(dx)>130)g.x+=Math.sign(dx)*60*dt; g.atkCd-=dt; if(g.atkCd<=0){ g.atkCd=1.3; const dy=(feetY(t2)-40)-(zToY(g.z)-60),m=Math.hypot(dx,dy)||1; bFire(g.x,zToY(g.z)-60,dx/m*380,dy/m*380,10,'#c060ff'); } } }
   // attacks
-  if(!(k==='death'&&gauntlet&&!gauntlet.done)){ boss.atkCd-=dt; if(boss.atkCd<=0&&tgt){ const px=tgt.x,py=feetY(tgt)-40, ox=boss.x, oy=zToY(boss.z)-70;
+  if(!(k==='death'&&gauntlet&&!gauntlet.done)){ boss.atkCd-=dt*1.25; if(boss.atkCd<=0&&tgt){ const px=tgt.x,py=feetY(tgt)-40, ox=boss.x, oy=zToY(boss.z)-70;
     if(k==='anxiety'){ boss.atkCd=0.8; for(let a=-2;a<=2;a++)bFire(ox,oy,(px<ox?-1:1)*420,a*80,9,'#ffd23f'); }
     else if(k==='depress'){ boss.atkCd=1.7; if(!boss._aura||boss._aura<=0){ boss._aura=1.0; } boss._aura-=dt; const m=Math.hypot(px-ox,py-oy)||1; bFire(ox,oy,(px-ox)/m*240,(py-oy)/m*240,16,'#6aa0ff',{w:20,h:20}); }
     else if(k==='toxic'){ boss.atkCd=1.3; const m=Math.hypot(px-ox,py-oy)||1; bFire(ox,oy,(px-ox)/m*360,(py-oy)/m*360,12,'#ff4d4d',{homing:true}); if(tgt)tgt.x+=Math.sign(ox-tgt.x)*30; }
@@ -367,8 +411,10 @@ function defeatBoss(){ score+=700+levelIdx*150; SFX.boss(); screenShake=18; cons
   flashBanner(nm+' DEFEATED', last?'YOU STILL STAND':'FRONT CLEARED');
   setTimeout(()=>{ if(last)winGame(); else startLevel(levelIdx+1); },1600); }
 
-function damagePlayer(p,amt){ if(!p.alive||p.invuln>0||p.rolling>0)return; p.health-=amt; p.invuln=0.8; p.hitFlash=0.3; p.streak=0; SFX.hurt(); screenShake=Math.max(screenShake,6); fx(p.x,feetY(p)-40,'#ff4d4d',10);
-  if(p.health<=0&&p.alive){ p.health=0; p.alive=false; } }
+function damagePlayer(p,amt){ if(!p.alive||p.invuln>0||p.rolling>0)return; amt*=1.5; p.health-=amt; p.invuln=0.85; p.hitFlash=0.5; p.streak=0; SFX.hurt(); SFX.grunt(); painVoice(); screenShake=Math.max(screenShake,11); hurtFlash=0.5;
+  for(let i=0;i<14;i++)E.fx.push({ x:p.x,y:feetY(p)-40,vx:(Math.random()-0.5)*300,vy:(Math.random()-1.1)*300,life:0.5+Math.random()*0.4,col:Math.random()<0.7?'#c81e1e':'#ff4d4d' });
+  if(p.health<=0&&p.alive){ p.health=0; playerDown(p); } }
+function playerDown(p){ p.lives--; if(p.lives>0){ p.alive=true; p.health=p.maxHealth; p.invuln=2.2; p.x=Math.max(camX+40,Math.min(camX+W-40,camX+W*0.4)); p.z=0.5; p.yj=0; p.vy=0; fx(p.x,feetY(p)-40,'#8fd0ff',20); flashBanner('STAND BACK UP','LIFE LOST'); } else { p.alive=false; p.out=true; } }
 
 function collisions(dt){
   // player bullets
@@ -385,6 +431,11 @@ function collisions(dt){
   E.enemies.forEach(e=>{ if(e.dead)return; P.forEach(p=>{ if(!p.alive||p.invuln>0)return; if(near(e,p,40,60)&&Math.abs(feetY(p)-zToY(e.z))<70) damagePlayer(p, e.dmg*dt*3.2); }); });
   if(boss)P.forEach(p=>{ if(!p.alive||p.invuln>0)return; if(near(boss,p,60,70)) damagePlayer(p, boss.touch*dt*3); });
   if(gauntlet&&gauntlet.active)P.forEach(p=>{ if(!p.alive||p.invuln>0)return; if(near(gauntlet.active,p,54,66)) damagePlayer(p, gauntlet.active.touch*dt*3); });
+  // jump-kick hits (JUMP + FIRE in air)
+  P.forEach(p=>{ if(p.kicking>0&&!p.kickHit){
+    E.enemies.forEach(e=>{ if(e.dead)return; if(Math.abs(e.x-p.x)<74&&Math.abs(e.z-p.z)<0.36){ e.hp-=36+levelIdx*4; e.hitFlash=0.15; fx(e.x,zToY(e.z)-30,'#ffd23f',8); if(e.hp<=0)onKill(e,p); p.kickHit=true; } });
+    if(boss&&boss.vuln!==false&&Math.abs(boss.x-p.x)<94&&Math.abs(boss.z-p.z)<0.42){ damageBoss(44+levelIdx*5,boss.x,zToY(boss.z)-40,p); p.kickHit=true; }
+    if(gauntlet&&gauntlet.active&&Math.abs(gauntlet.active.x-p.x)<90&&Math.abs(gauntlet.active.z-p.z)<0.42){ damageBoss(44+levelIdx*5,gauntlet.active.x,zToY(gauntlet.active.z)-40,p); p.kickHit=true; } } });
   // items
   E.items.forEach(it=>{ it.t+=dt; P.forEach(p=>{ if(!p.alive)return; if(Math.abs(p.x-it.x)<34&&Math.abs(p.z-it.z)<0.28){ it.dead=true; SFX.pickup();
     if(it.kind==='health')p.health=Math.min(p.maxHealth,p.health+26); else p.special=Math.min(100,p.special+40); } }); });
@@ -392,7 +443,7 @@ function collisions(dt){
   E.fx.forEach(f=>{ if(f.nova){ f.r+=900*dt; f.life-=dt; } }); }
 
 /* ========== FLOW ========== */
-function showOnly(n){ ['title','intro','pause','over','win'].forEach(id=>document.getElementById(id).classList.add('hidden')); if(n)document.getElementById(n).classList.remove('hidden'); }
+function showOnly(n){ ['title','howto','intro','pause','over','win','hiscore'].forEach(id=>document.getElementById(id).classList.add('hidden')); if(n)document.getElementById(n).classList.remove('hidden'); }
 function flashBanner(a,b){ const bn=document.getElementById('banner'); document.getElementById('b1').textContent=a; document.getElementById('b2').textContent=b||'';
   bn.classList.remove('hidden'); bn.classList.remove('fade'); void bn.offsetWidth; bn.classList.add('fade'); clearTimeout(flashBanner._t); flashBanner._t=setTimeout(()=>bn.classList.add('hidden'),1500); }
 function updateSpawning(dt){ if(bossActive)return; const L=LEVELS[levelIdx]; spawnCd-=dt;
@@ -404,18 +455,45 @@ function updateCamera(dt){ const ap=alivePlayers(); if(!ap.length)return; let ax
 function updateParticles(dt){ E.fx.forEach(f=>{ if(f.nova)return; f.x+=f.vx*dt; f.y+=f.vy*dt; f.vy+=520*dt; f.life-=dt; }); E.fx=E.fx.filter(f=>f.life>0); }
 
 function togglePause(){ if(state==='playing'){ state='paused'; showOnly('pause'); } else if(state==='paused'){ state='playing'; showOnly(null); } }
-function winGame(){ state='win'; document.getElementById('hud').classList.add('hidden'); document.getElementById('bossWrap').classList.add('hidden'); document.getElementById('khint').classList.add('hidden'); rhReport(score); document.getElementById('winScore').textContent='SCORE '+score+rhBestLine(score); SFX.win(); showOnly('win'); }
-function loseGame(){ state='over'; document.getElementById('hud').classList.add('hidden'); document.getElementById('bossWrap').classList.add('hidden'); document.getElementById('khint').classList.add('hidden'); rhReport(score); document.getElementById('overScore').textContent='SCORE '+score+rhBestLine(score); showOnly('over'); }
+function winGame(){ state='win'; SFX.win(); endRun(true); }
+function loseGame(){ state='over'; endRun(false); }
+function endRun(win){ hiWin=win; running=true; // keep loop alive but state isn't 'playing'
+  document.getElementById('hud').classList.add('hidden'); document.getElementById('bossWrap').classList.add('hidden'); document.getElementById('khint').classList.add('hidden');
+  rhReport(score); showHiscore(win); }
+
+/* ----- high score table (initials) ----- */
+function loadHi(){ if(hiScores.length)return; try{ const raw=localStorage.getItem('rh_sloanefox_hi'); if(raw)hiScores=JSON.parse(raw)||[]; }catch(e){} }
+function persistHi(){ try{ localStorage.setItem('rh_sloanefox_hi',JSON.stringify(hiScores)); }catch(e){} }
+function renderHiTable(hi){ const t=document.getElementById('hsTable'); let html='<tr style="color:#8fa6a2"><th style="padding:2px 12px">#</th><th style="padding:2px 12px;text-align:left">INI</th><th style="padding:2px 12px;text-align:right">SCORE</th><th style="padding:2px 12px">LV</th></tr>';
+  hiScores.forEach((h,i)=>{ const st=i===hi?'color:var(--gold);font-weight:900':'color:#dfe6e2'; html+='<tr style="'+st+'"><td style="padding:2px 12px">'+(i+1)+'</td><td style="padding:2px 12px;text-align:left;letter-spacing:3px">'+h.ini+'</td><td style="padding:2px 12px;text-align:right">'+h.score+'</td><td style="padding:2px 12px">'+(h.lvl||'-')+'</td></tr>'; });
+  if(!hiScores.length)html+='<tr><td colspan="4" style="padding:8px;color:#7f9490">Be the first on the board!</td></tr>';
+  t.innerHTML=html; }
+function showHiscore(win){ loadHi(); document.getElementById('hsTag').textContent=win?'VICTORY':'GAME OVER';
+  document.getElementById('hsTitle').textContent='ENTER YOUR INITIALS'; document.getElementById('hsScore').textContent='SCORE '+score+rhBestLine(score);
+  document.getElementById('hsEntry').style.display='flex'; document.getElementById('hsInput').value=''; document.getElementById('hsButtons').innerHTML='';
+  renderHiTable(-1); showOnly('hiscore'); setTimeout(()=>{ try{ document.getElementById('hsInput').focus(); }catch(e){} },60); }
+function commitHi(){ let ini=(document.getElementById('hsInput').value||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,3)||'AAA';
+  hiScores.push({ ini, score, lvl:levelIdx+1 }); hiScores.sort((a,b)=>b.score-a.score); hiScores=hiScores.slice(0,8); persistHi();
+  const idx=hiScores.findIndex(h=>h.ini===ini&&h.score===score); document.getElementById('hsEntry').style.display='none'; renderHiTable(idx);
+  const btns=document.getElementById('hsButtons'); btns.innerHTML='';
+  if(!hiWin){ const c=document.createElement('button'); c.className='btn'; c.textContent='Continue (−1 life)'; c.onclick=continueGame; btns.appendChild(c); }
+  const r=document.createElement('button'); r.className='btn blue'; r.textContent=hiWin?'Run It Back':'Restart'; r.onclick=restart; btns.appendChild(r);
+  const tt=document.createElement('button'); tt.className='btn'; tt.style.background='#2a3438'; tt.style.color='#dfe6e2'; tt.style.borderColor='#3a4a4e'; tt.textContent='Title'; tt.onclick=()=>{ running=false; state='title'; showOnly('title'); }; btns.appendChild(tt); }
+function continueGame(){ initAudio(); P.forEach(p=>{ p.lives=2; p.out=false; p.alive=true; p.health=p.maxHealth; p.special=Math.max(0,p.special); }); hurtFlash=0; freezeT=0; pendingMax=null;
+  document.getElementById('hud').classList.remove('hidden'); startLevel(levelIdx); if(!running){ running=true; requestAnimationFrame(t=>{ lastT=t; loop(t); }); } }
 
 /* ========== MAIN LOOP ========== */
 function loop(ts){ if(!running)return; const dt=Math.min(0.033,(ts-lastT)/1000||0.016); lastT=ts;
-  if(state==='playing'){ if(screenShake>0)screenShake*=0.85;
+  if(state==='playing'){
+    if(freezeT>0){ freezeT-=dt; if(freezeT<=0&&pendingMax){ maxUnleash(pendingMax); pendingMax=null; } render(); requestAnimationFrame(loop); return; }
+    if(screenShake>0)screenShake*=0.85; if(hurtFlash>0)hurtFlash-=dt;
     P.forEach(p=>updatePlayer(p,dt)); updateBullets(dt); updateEnemies(dt); updateBoss(dt); updateParticles(dt); collisions(dt); updateSpawning(dt); updateCamera(dt);
     if(boss)document.getElementById('bossFill').style.width=Math.max(0,boss.hp/boss.maxHp*100)+'%';
     document.getElementById('hp1').style.width=Math.max(0,P[0].health)+'%'; document.getElementById('sp1').style.width=P[0].special+'%';
-    if(P[1]){ document.getElementById('hp2').style.width=Math.max(0,P[1].health)+'%'; document.getElementById('sp2').style.width=P[1].special+'%'; }
+    document.getElementById('lives1').textContent=' ❤'.repeat(Math.max(0,P[0].lives));
+    if(P[1]){ document.getElementById('hp2').style.width=Math.max(0,P[1].health)+'%'; document.getElementById('sp2').style.width=P[1].special+'%'; document.getElementById('lives2').textContent='❤'.repeat(Math.max(0,P[1].lives))+' '; }
     document.getElementById('scoreLine').textContent='SCORE '+score;
-    if(alivePlayers().length===0)loseGame();
+    if(P.every(p=>p.out))loseGame();
     render(); }
   requestAnimationFrame(loop); }
 
@@ -424,10 +502,9 @@ function drawChar(img,cx,fy,baseH,facing,z,opts){ opts=opts||{}; if(!img)return 
   const s=(zToY(z)/zToY(1))*zScale(z), dh=baseH*s, ar=img.width/img.height, dw=dh*ar;
   ctx.save(); ctx.translate(cx,fy); if(opts.rot)ctx.rotate(opts.rot); ctx.scale(facing<0?-1:1,1);
   if(opts.flash)ctx.filter='brightness(2.4) saturate(0.6)'; ctx.globalAlpha=opts.alpha!=null?opts.alpha:1;
-  // shadow
-  ctx.filter==='none'||0; ctx.globalAlpha*=1;
-  ctx.drawImage(img,-dw/2,-dh+(opts.yj||0),dw,dh);
-  ctx.filter='none'; ctx.globalAlpha=1; ctx.restore(); return true; }
+  ctx.drawImage(img,-dw/2,-dh+(opts.yj||0),dw,dh); ctx.filter='none';
+  if(opts.tint){ ctx.globalCompositeOperation='source-atop'; ctx.fillStyle=opts.tint; ctx.fillRect(-dw/2,-dh+(opts.yj||0),dw,dh); ctx.globalCompositeOperation='source-over'; }
+  ctx.globalAlpha=1; ctx.restore(); return true; }
 function shadow(cx,fy,w){ ctx.save(); ctx.fillStyle='rgba(0,0,0,0.4)'; ctx.beginPath(); ctx.ellipse(cx,fy,w,w*0.3,0,0,7); ctx.fill(); ctx.restore(); }
 
 function drawBG(){ const L=LEVELS[levelIdx]; const g=ctx.createLinearGradient(0,0,0,fieldTop()); g.addColorStop(0,L.sky[0]); g.addColorStop(1,L.sky[1]); ctx.fillStyle=g; ctx.fillRect(0,0,W,fieldTop()+20);
@@ -460,9 +537,16 @@ function drawBossSprite(b,baseH,label){ const cx=b.x-camX, fy=zToY(b.z)-(b.yj||0
   if(b.vuln===false&&label){ ctx.fillStyle='rgba(160,120,255,0.9)'; ctx.font='bold 11px Arial'; ctx.textAlign='center'; ctx.fillText('INVULNERABLE',cx,fy-baseH*0.9-20); } }
 function drawPlayer(p){ const cx=p.x-camX, fy=feetY(p); shadow(cx,zToY(p.z),24*pscale(p)*1.2);
   const flick=p.invuln>0&&Math.floor(p.invuln*30)%2===0, rec=(p.recoil>2?-p.facing*4:0);
-  drawChar(IMG[p.char],cx+rec,fy,PH,p.facing,p.z,{flash:p.hitFlash>0,alpha:(!p.alive?0.25:(flick?0.5:1)),rot:p.rolling>0?p.facing*(0.4-p.rolling)*2.6:0});
+  let rot=0, bobY=0;
+  if(p.rolling>0)rot=p.facing*(1-p.rolling/0.38)*Math.PI*2;      // cartwheel spin
+  else if(p.kicking>0)rot=p.facing*0.85;                        // jump-kick lunge
+  else if(p.yj<=0)bobY=Math.abs(Math.sin(p.step))*6*pscale(p);  // step bob (reduces the 'sliding' look)
+  const hurt=p.hitFlash>0;
+  const tint=(p.invuln>0&&!p.out&&!hurt)?('rgba(220,40,40,'+Math.min(0.55,p.invuln*0.4)+')'):null;  // stays tinted red while hurt
+  drawChar(IMG[p.char],cx+rec,fy-bobY,PH,p.facing,p.z,{flash:hurt,tint:tint,alpha:(p.out?0:(!p.alive?0.2:(flick?0.6:1))),rot:rot});
   if(p.charging){ const mz=muzzle(p),pw=Math.min(1,p.chargeT/1.0); ctx.save(); ctx.globalAlpha=0.7; const cg=ctx.createRadialGradient(mz.x-camX,mz.y,2,mz.x-camX,mz.y,10+pw*20); cg.addColorStop(0,'#eaffff'); cg.addColorStop(0.5,p.char==='male'?'#8fd0ff':'#ffd23f'); cg.addColorStop(1,'transparent'); ctx.fillStyle=cg; ctx.beginPath(); ctx.arc(mz.x-camX,mz.y,10+pw*20,0,7); ctx.fill(); ctx.restore(); }
-  if(p.recoil>2){ const mz=muzzle(p); ctx.save(); ctx.globalAlpha=0.9; ctx.fillStyle='#fff6c0'; ctx.beginPath(); ctx.arc(mz.x-camX,mz.y,6,0,7); ctx.fill(); ctx.restore(); } }
+  if(p.recoil>2){ const mz=muzzle(p); ctx.save(); ctx.globalAlpha=0.9; ctx.fillStyle='#fff6c0'; ctx.beginPath(); ctx.arc(mz.x-camX,mz.y,6,0,7); ctx.fill(); ctx.restore(); }
+  if(p.kicking>0){ const s=pscale(p); ctx.save(); ctx.globalAlpha=0.5; ctx.strokeStyle='#ffd23f'; ctx.lineWidth=3; ctx.beginPath(); ctx.arc(cx+p.facing*30*s,fy-30*s,26*s,0,7); ctx.stroke(); ctx.restore(); } }
 
 function render(){ ctx.clearRect(0,0,W,H); drawBG();
   ctx.save(); if(screenShake>0.5)ctx.translate((Math.random()-0.5)*screenShake,(Math.random()-0.5)*screenShake);
@@ -482,14 +566,22 @@ function render(){ ctx.clearRect(0,0,W,H); drawBG();
   // fx + nova
   E.fx.forEach(f=>{ const x=f.x-camX; if(f.nova){ ctx.save(); ctx.globalAlpha=Math.max(0,f.life*2); ctx.strokeStyle=f.col; ctx.lineWidth=6; ctx.shadowColor=f.col; ctx.shadowBlur=20; ctx.beginPath(); ctx.arc(x,f.y,f.r,0,7); ctx.stroke(); ctx.restore(); }
     else { ctx.globalAlpha=Math.max(0,f.life); ctx.fillStyle=f.col; ctx.fillRect(x-2,f.y-2,4,4); ctx.globalAlpha=1; } });
-  ctx.restore(); }
+  ctx.restore();
+  if(hurtFlash>0){ ctx.save(); ctx.globalAlpha=Math.min(0.4,hurtFlash*0.7); ctx.fillStyle='#c81e1e'; ctx.fillRect(0,0,W,H); ctx.restore(); }
+  if(freezeT>0){ ctx.save(); ctx.globalAlpha=0.22+0.18*Math.abs(Math.sin(Date.now()/70)); ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,W,H);
+    ctx.globalAlpha=1; ctx.textAlign='center'; ctx.font='900 '+Math.round(Math.min(W*0.11,74))+'px Arial Black,Arial'; ctx.strokeStyle='#a06bff'; ctx.lineWidth=5;
+    ctx.strokeText('MAX POWER',W/2,H*0.42); ctx.fillStyle='#fff'; ctx.fillText('MAX POWER',W/2,H*0.42); ctx.restore(); }
+}
 
 /* ========== MENUS / WIRING ========== */
 function beginGame(np){ initAudio(); numPlayers=np; document.getElementById('p1lab').textContent=np===2?'P1 · MALE FOX':'MALE FOX';
   document.getElementById('p2panel').classList.toggle('hidden',np!==2); document.getElementById('p2hint').style.display=np===2?'':'none';
-  resetGame(); document.getElementById('hud').classList.remove('hidden'); startLevel(0); }
+  resetGame(); showOnly('howto'); state='howto'; }
 document.getElementById('start1').addEventListener('click',()=>beginGame(1));
 document.getElementById('start2').addEventListener('click',()=>beginGame(2));
+document.getElementById('howtoBtn').addEventListener('click',()=>{ initAudio(); document.getElementById('hud').classList.remove('hidden'); startLevel(0); });
+document.getElementById('hsSave').addEventListener('click',commitHi);
+document.getElementById('hsInput').addEventListener('keydown',e=>{ if(e.key==='Enter')commitHi(); });
 document.getElementById('introBtn').addEventListener('click',()=>{ initAudio(); showOnly(null); state='playing'; document.getElementById('khint').classList.remove('hidden'); if(!running){ running=true; requestAnimationFrame(t=>{ lastT=t; loop(t); }); } });
 document.getElementById('resumeBtn').addEventListener('click',togglePause);
 document.getElementById('quitBtn').addEventListener('click',()=>{ running=false; state='title'; document.getElementById('hud').classList.add('hidden'); document.getElementById('bossWrap').classList.add('hidden'); document.getElementById('khint').classList.add('hidden'); showOnly('title'); });
