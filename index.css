@@ -1,0 +1,16 @@
+:root { color-scheme: light; }
+* { box-sizing: border-box; }
+html, body, #root { margin: 0; min-height: 100%; }
+body { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+
+/* Game view: go truly fullscreen when a phone is held in landscape,
+   so the play area isn't stuck in a short portrait strip. */
+.rh-game-wrap { position: relative; }
+@media (orientation: landscape) and (max-height: 600px) {
+  .rh-game-wrap {
+    position: fixed; inset: 0; z-index: 99999;
+    border-radius: 0 !important; border: none !important; box-shadow: none !important;
+    background: #07070c;
+  }
+  .rh-game-frame { height: 100vh !important; height: 100dvh !important; }
+}
