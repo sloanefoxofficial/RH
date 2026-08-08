@@ -698,7 +698,7 @@ function drawPlayer(p){ const cx=p.x-camX, fy=feetY(p); shadow(cx,zToY(p.z),24*p
 }
 
 function render(){ ctx.clearRect(0,0,W,H); drawBG();
-  ctx.save(); ctx.fillStyle='rgba(130,240,160,0.95)'; ctx.font='bold 13px monospace'; ctx.textAlign='left'; ctx.fillText(BUILD, 8, fieldTop()+34); ctx.restore();
+  
   ctx.save(); if(screenShake>0.5)ctx.translate((Math.random()-0.5)*screenShake,(Math.random()-0.5)*screenShake);
   // items (under characters)
   E.items.forEach(it=>{ const cx=it.x-camX, fy=zToY(it.z)-20+Math.sin(it.t*4)*4; ctx.save(); ctx.shadowColor=it.col; ctx.shadowBlur=12; ctx.fillStyle=it.col; ctx.beginPath(); ctx.arc(cx,fy,10,0,7); ctx.fill(); ctx.shadowBlur=0; ctx.fillStyle='#0a0a12'; ctx.font='bold 8px Arial'; ctx.textAlign='center'; ctx.fillText(it.kind==='health'?'+':'★',cx,fy+3); ctx.restore(); });
