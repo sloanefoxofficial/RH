@@ -3,7 +3,7 @@ import {
   Phone, LifeBuoy, X, Mic, Send, Square, Volume2, VolumeX,
   ArrowLeft, LogOut, BookOpen, CheckCircle2, Circle, ChevronRight,
   ChevronLeft, Sparkles, Heart, Wind, Anchor, Play, Pause, RotateCcw, Wrench,
-  Shield, Eye, EyeOff, User, Megaphone, Youtube, ExternalLink, Radio, Paperclip, MessageCircle, Share2, Flame, HelpCircle, Plus, Search, Settings as SettingsIcon, CalendarCheck, Users, ShoppingBag, Gamepad2, Zap,
+  Shield, Eye, EyeOff, User, Megaphone, Youtube, ExternalLink, Radio, Paperclip, MessageCircle, Share2, Flame, HelpCircle, Plus, Search, Settings as SettingsIcon, CalendarCheck, Users, ShoppingBag, Gamepad2, Zap, Download, FileText,
 } from "lucide-react";
 import { IMG } from "./images.js";
 import { supabase, authEnabled } from "./supabase.js";
@@ -5339,6 +5339,15 @@ function ProgramInfoCard({ title, children }) {
   );
 }
 
+const INTAKE_PACK = [
+  { title: "Client Intake & Health Assessment", sub: "Your details, medical background & program goals", file: "/forms/rh-form-01-client-intake-health-assessment.pdf" },
+  { title: "Informed Consent & Participation Agreement", sub: "How the program works & what's expected", file: "/forms/rh-form-02-informed-consent-participation-agreement.pdf" },
+  { title: "Privacy & Confidentiality Notice", sub: "How your information is collected & protected", file: "/forms/rh-form-03-privacy-confidentiality-notice.pdf" },
+  { title: "Personal Profile, Skills & Wellbeing Assessment", sub: "About you, your strengths & wellbeing", file: "/forms/rh-form-05-personal-profile-skills-wellbeing-assessment.pdf" },
+  { title: "Daily Living, Budget & Independence Assessment", sub: "Everyday routine, money & independence", file: "/forms/rh-form-06-daily-living-budget-independence-assessment.pdf" },
+  { title: "Consent to Share Between Medical Professionals", sub: "Sharing info with your GP & care team", file: "/forms/rh-form-10-consent-share-medical-professionals.pdf" },
+];
+
 function ProgramInfo({ onBack, onMessageJuan }) {
   return (
     <>
@@ -5394,6 +5403,30 @@ function ProgramInfo({ onBack, onMessageJuan }) {
           If the court sent you? That's OK. We're still here to help you succeed.<br /><br />
           You do not have to get it right the first time — we help you keep trying.
         </ProgramInfoCard>
+      </ProgramInfoSection>
+
+      <ProgramInfoSection title="Download the intake pack">
+        <p style={{ fontSize: 13, color: T.sub, margin: "0 0 12px", lineHeight: 1.5 }}>
+          Fill these out at your own pace and bring them along to your first appointment — it'll help things move
+          quickly and give you time to think everything through beforehand.
+        </p>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {INTAKE_PACK.map((f) => (
+            <a key={f.file} href={f.file} download target="_blank" rel="noopener noreferrer"
+              style={{ display: "flex", alignItems: "center", gap: 12, background: T.card, borderRadius: 14, padding: 12,
+                textDecoration: "none", color: T.ink, boxShadow: T.soft }}>
+              <div style={{ width: 38, height: 38, borderRadius: 11, background: "#e9f5ee", display: "grid",
+                placeItems: "center", flexShrink: 0 }}>
+                <FileText size={17} color={T.greenDk} />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: 700, fontSize: 13.5 }}>{f.title}</div>
+                <div style={{ fontSize: 12, color: T.sub }}>{f.sub}</div>
+              </div>
+              <Download size={17} color={T.sub} style={{ flexShrink: 0 }} />
+            </a>
+          ))}
+        </div>
       </ProgramInfoSection>
 
       <ProgramInfoSection title="Get in touch">
