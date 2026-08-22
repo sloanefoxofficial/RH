@@ -4263,7 +4263,7 @@ const MERCH_ITEMS = [
   { name: "Choose Your Edition Tee", price: "$65", img: "/merch/choose-your-edition.jpg", url: "https://sloanefox.myshopify.com/products/sloane-fox-pick-your-style-heavyweight-tee" },
   { name: "Vixen Edition Tee", price: "$65", img: "/merch/vixen-edition.jpg", url: "https://sloanefox.myshopify.com/products/sloane-fox-heavyweight-women-s-tee" },
   { name: "Gold Edition Tee", price: "$65", img: "/merch/gold-edition.jpg", url: "https://sloanefox.myshopify.com/products/sloane-fox-gold-edition-heavyweight-tee" },
-  { name: "Premium 400GSM Hoodie", price: "$85", img: "/merch/hoodie-400gsm.jpg", url: "https://sloanefox.myshopify.com/products/sloane-fox-400gsm-hoodie" },
+  { name: "Premium 400GSM Hoodie", price: "$105", img: "/merch/hoodie-400gsm.jpg", url: "https://sloanefox.myshopify.com/products/sloane-fox-400gsm-hoodie" },
   { name: "Premium 320GSM Track Pants", price: "$70", img: "/merch/track-pants-320gsm.jpg", url: "https://sloanefox.myshopify.com/products/sloane-fox-track-pants" },
   { name: "Built Not Bought Edition Tee", price: "$65", img: "/merch/built-not-bought.jpg", url: "https://sloanefox.myshopify.com/products/sloane-fox-built-not-bought-heavyweight-tee" },
   { name: "Sloane Fox OG Edition Tee", price: "$65", img: "/merch/og-edition.jpg", url: "https://sloanefox.myshopify.com/products/sloane-fox-you-been-passed-by-the-fox-premium-280gsm-heavyweight-tee" },
