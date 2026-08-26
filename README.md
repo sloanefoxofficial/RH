@@ -1,163 +1,71 @@
-# The Resilience Hub
+# Sloane Fox — Stand Together
 
-A warm, voice-enabled wellbeing companion with cloud-mascot guides (Rex, Juan, Carlos, Mick, Lila).
-_You never have to walk it alone._
+This package contains the upgraded standalone browser game. Open `public/sloanefox.html` in a modern desktop or mobile browser to play. The game has no build step, package installation, server dependency, or external API requirement for its core combat loop.
 
-This is the **hosted** version: a React front end plus a tiny backend (`/api/chat`) that
-holds your Anthropic API key **server-side**, so the guides can chat for anyone, on any device —
-your key is never exposed to the browser.
+## What changed
 
-> This is a **support tool**, not a replacement for a doctor, psychologist, or emergency service.
+| Area | Upgrade delivered |
+| --- | --- |
+| Villains | The Ruminator, Worry Spore, Burden Imp, and Self-Doubt Geist now use clean background-free character assets with live movement, idle motion, telegraphs, attacks, hit recoil, and defeat motion. Burden’s chain attack is now visibly rendered as a swinging chain and projectile strike. |
+| Bosses | All eight level bosses now use clean transparent character portraits and the live boss-motion system: pursuit bob, attack wind-up, cast/strike thrust, hit recoil, projectiles, and defeat motion. |
+| Brawler structure | Each level now has three combat fronts before the boss. The HUD announces the current front, and the arena advances after the active enemies are cleared. |
+| Lane-brawler interaction | The existing up/down depth movement is used as a multi-lane battlefield. Wooden crates and barrels appear in different lanes, can be broken by shots or jump kicks, and release rewards. |
+| Rewards | Breakables can drop first-aid kits and power banks that restore health or charge Super attacks. |
+| Controls | The two main heroes use movement, fire, jump, and Super only. Roll and chain actions have been removed from controls and touch UI. |
+| Testing | A built-in `?demo` mode runs an automated one-player playthrough for visual review of fronts, enemies, breakables, pickups, and the first boss. |
 
-**Includes:** Rex's welcome, a guided onboarding, a personalised 8-week plan, per-character AI chat
-with voice, a voice-first journal, an always-on crisis bar, and a **Toolkit** of self-guided anxiety
-aids — animated box-breathing, 5-4-3-2-1 grounding, affirmations, and quick-calm tips (all work
-offline, no AI needed). During a chat, a guide can also suggest the right tool for the moment (e.g.
-Carlos offering breathing when someone mentions a panic spike) as a tap-to-open button.
+## Controls
 
-**Login & admin (optional):** add your Supabase keys and everyone signs in (Google or email/password).
-Full admin/owner control is locked to a single address (`sloanefox.official@gmail.com`, set as
-`OWNER_EMAIL` in `App.jsx`) — you get an admin area with a Claude assistant that drafts content and
-helps with fixes (you review and apply) plus an editable welcome note. There is **no** hardcoded
-password or backdoor: admin is tied to that signed-in identity, so no one else can reach it. Setup
-steps: see `SUPABASE_SETUP.md`.
+| Player | Movement | Fire | Jump | Super |
+| --- | --- | --- | --- | --- |
+| P1 | WASD | F | G | T |
+| P2 | Arrow keys | . | / | , |
 
----
+On touch devices, use the on-screen D-pad plus Fire, Jump, and Super action buttons. Roll and Chain are not available to either main hero.
 
-## What you need
+## Automated visual review
 
-- [Node.js](https://nodejs.org) 18 or newer
-- An **Anthropic API key** — create one at <https://console.anthropic.com> → *API Keys*
-- A free **GitHub** account and a free **Vercel** account (easiest host; others work too)
+Open `public/sloanefox.html?demo` to begin the deterministic demonstration. It starts in Level 1 and automatically fights through the three fronts toward the Anxiety boss. This mode is provided for repeatable testing; normal play remains unchanged at `public/sloanefox.html`.
 
----
+## Notes
 
-## Deploy it (≈10 minutes)
+The project preserves the existing static HTML/Canvas deployment style so it is easy to host. The `public/` directory is the complete browser-ready game. Design and audit notes are also included in the package root for future development continuity.
 
-1. **Put this folder in a GitHub repo.** Create a new repo and upload these files (or `git push`).
-2. **Import it into Vercel.** Go to <https://vercel.com/new>, pick the repo. Vercel auto-detects
-   **Vite** — leave the build settings as they are.
-3. **Add your key.** In the import screen (or *Project → Settings → Environment Variables*) add:
-   - `ANTHROPIC_API_KEY` = your key
-   - *(optional)* `ANTHROPIC_MODEL` = `claude-sonnet-5` (the default) or `claude-haiku-4-5` (cheaper/faster)
-4. **Deploy.** You get a public URL like `https://resilience-hub.vercel.app`.
-   Send that link to Carlos or anyone else — the chat works for them, no sign-in, on phone or desktop.
 
-Any time you push changes to GitHub, Vercel redeploys automatically.
+## Fantasy fallback update
 
----
+The latest pass changes **only non-hero presentation**. It replaces the modern city/grid gameplay scene with a warm fantasy landscape: a sunset sky, distant ruins, dead trees, cracked-earth ground, rocks, and a shallow side-scrolling combat band. Enemies, bosses, crates, barrels, and pickups now use direct ground-contact offsets and oval shadows so they read as firmly planted rather than floating.
 
-## Run it locally
+> **Hero protection verified:** `hero-male.png` and `fox-female.png` are byte-for-byte identical to the original files in the supplied archive. Their source files were not edited or replaced during this pass.
 
-```bash
-npm install
-npm run dev        # UI only — the chat needs the /api function (see below)
-```
 
-`npm run dev` serves the interface, but the guides won't reply because `/api/chat` isn't running.
-To test chat locally, use the Vercel CLI, which runs the function too:
 
-```bash
-npm i -g vercel
-vercel dev         # then create a .env from .env.example with your key
-```
+## City route and Super update
 
----
+The game now travels through a side-scrolling town route with low-rise buildings, lit windows, shop awnings, streetlights, bins, pavement, curbs, drains, cracked asphalt, and a warm city sky. The background is intentionally fuller than the earlier plain field while retaining the level ground plane used by the brawler.
 
-## What's in this build
+Break crates and barrels to reveal a **red first-aid kit** or **blue power bank**. First aid restores **35 health**. A power bank adds **34 Super charge**. Enemy defeats can also drop the same city pickups, while score remains awarded for every defeat.
 
-- **Meditation finder** (Toolkit) — describe how you're feeling, get 3-5 tailored guided-meditation
-  searches that open on YouTube. Videos aren't made or vetted by the Hub.
-- **Installable app (PWA)** — "Add to Home Screen" on phone or "Install" in desktop Chrome gives it
-  an app icon and its own window, no browser chrome. Icons/manifest live in `public/`.
-- **Hands-free voice conversation** (in each chat) — tap the radio icon to talk back and forth with
-  a guide without touching the screen, including basic "barge-in" (start talking and the guide stops
-  and listens). This only works while the app is open on screen — phones cut microphone access when
-  the screen locks or the browser is backgrounded, so true always-on/background voice would need a
-  native app, not a website.
-- **Notifications** — the owner can message every registered member from the admin panel; members see
-  an unread badge on the bell. This is in-app (seen next time they open the Hub), not a push alert to
-  a closed app — that's a bigger separate feature.
-- **Photo attachments** in chat — attach a photo and a guide can see and respond to it. Video/other
-  files aren't supported (the model can't watch video).
+| Super charge | Trigger | Attack |
+| --- | --- | --- |
+| 33+ | P1 `T`, P2 `,`, or `SP` | **Grenade** — a local ground explosion damages nearby enemies. |
+| 66+ | P1 `T`, P2 `,`, or `SP` | **Bazooka** — a heavy rocket travels across the lane and detonates on impact. |
+| 100 | P1 `T`, P2 `,`, or `SP` | **Air Strike** — radio call, aircraft flyover, bomb strikes, screen shake and flash, then a full standard-enemy clear. |
 
-## Natural voices (ElevenLabs)
+For repeatable checks, open `public/sloanefox.html?demo&super=33`, `?demo&super=66`, or `?demo&super=100` to start the automated game with the respective Super tier precharged.
 
-The guides can speak in warm, natural ElevenLabs voices instead of the robotic
-browser voice. It's optional and cost-controlled:
 
-- Add `ELEVENLABS_API_KEY` in Vercel (Settings -> Environment Variables), then redeploy.
-- Each guide already has its own voice ID wired in (Rex, Juan, Carlos, Mick, Lila).
-- **No key = no change:** if the key isn't set, guides quietly use the free browser voice, so nothing breaks.
-- ElevenLabs bills **per character** of speech. The free tier is small (~10 min/month); paid starts around US$5/mo. To manage spend you can switch `ELEVENLABS_MODEL` to a cheaper model, or remove the key to fall back to the free browser voice.
+## 16-bit arcade finishing pass
 
-To change a guide's voice later, swap its `voiceId` near the top of `App.jsx` (in the `CHARS` block).
+The final pass keeps the existing two fox heroes, recurring pressures, and boss roster exactly in place. It makes the existing roster feel more like a fast arcade lane-brawler through changing encounter rhythm rather than by replacing character art.
 
-## Choosing the model / cost
+| Arcade moment | What now happens |
+| --- | --- |
+| **Racing Thoughts** | A short, signposted reinforcement surge pushes in from both sides using the existing small enemies. |
+| **Hold the Line** | A front sends pressure in small successive waves instead of presenting one static group. |
+| **Breakthrough** | The final front rewards a clear with a resilience cache, health recovery, Super charge, and a visible power-bank payoff. |
+| **Resolve and Focus** | Quick consecutive defeats build Resolve. A four-clear chain triggers Focus, grants a small Super boost, and gives the player’s shots a temporary damage lift. Getting hit breaks the chain. |
+| **Boss warning** | A short final wave announces the existing boss before its entry, rather than ending the final front abruptly. |
+| **Boss escalation** | At roughly half health, each existing boss visibly escalates, speeds up its existing pattern, and grants a small Super-charge buffer to help the player hold the line. Defeating a boss restores some health and Super charge for the next stage. |
 
-The backend defaults to **`claude-sonnet-5`** — a strong balance of warmth, quality, and cost,
-which suits sensitive conversations. To change it, set `ANTHROPIC_MODEL`:
-
-- `claude-sonnet-5` — recommended default.
-- `claude-haiku-4-5` — noticeably cheaper and faster; good if costs add up, slightly less nuanced.
-
-You pay Anthropic per use based on your API key. See <https://www.anthropic.com/pricing> for current rates.
-
----
-
-## How data is stored
-
-- **Journal entries, chat history, plan progress** are saved in the **user's own browser**
-  (`localStorage`). They stay on that device and are **not** sent to any server you run.
-- **Chat messages and "help me unpack" journal text** are sent to Anthropic (through your key)
-  so the guides can respond. Nothing else leaves the device.
-- On **first launch**, users see a short consent screen explaining this and must agree before
-  continuing (their choice is remembered on the device).
-
----
-
-## Before you put this in front of real users
-
-This is a solid prototype, but a wellbeing app for vulnerable people needs a few things handled
-first. Please treat this as a checklist, not an afterthought:
-
-- **Re-verify every crisis number** in `App.jsx` (`CONTACTS`) against current official sources.
-- **Privacy & consent:** add a clear privacy notice and consent flow explaining that chat/journal
-  text is sent to an AI provider. Consider the Australian Privacy Principles and whether you need
-  formal review before handling people's mental-health disclosures.
-- **Clinical review:** have Carlos (Registered Psychologist) review the guide personas and the
-  crisis-routing wording in `App.jsx` (the `CHARS` system prompts and the onboarding safety step).
-- **Data handling:** decide whether sensitive entries should ever leave the device, and how long
-  anything is kept. Right now journals stay local by design — keep it that way unless you add
-  proper, consented, secure storage.
-- **Rate limiting / abuse:** add basic limits on `/api/chat` before a public launch.
-
-There is intentionally **no hidden developer/admin backdoor** in this app. If you want an admin
-area later, use a proper authenticated role, not a shared password.
-
----
-
-## Project structure
-
-```
-resilience-hub/
-├── api/chat.js        # backend: holds your key, calls Anthropic (the only folder)
-├── App.jsx            # the whole app (screens, characters, voice, crisis bar, login, admin)
-├── images.js          # character art (watermark-free), inlined
-├── main.jsx           # React entry
-├── index.css          # minimal reset
-├── supabase.js        # auth client (login turns on when keys are set)
-├── index.html
-├── package.json
-├── vite.config.js
-├── vercel.json
-├── .env.example
-├── README.md
-└── SUPABASE_SETUP.md
-```
-
-Everything except the `api/` folder sits at the top level, so uploading is simple: drop all the
-files in, plus the `api` folder.
-
-Voice (speaking + hold-to-talk) uses the browser's built-in Web Speech API and works best in
-Chrome / Edge; it falls back to typing where speech isn't supported.
+The `?demo` mode remains available for repeatable visual review. It now taps Fire as a player would, rather than holding it, so it can demonstrate the expanded combat rhythm correctly.
