@@ -1,71 +1,79 @@
 # Sloane Fox — Stand Together
 
-This package contains the upgraded standalone browser game. Open `public/sloanefox.html` in a modern desktop or mobile browser to play. The game has no build step, package installation, server dependency, or external API requirement for its core combat loop.
+This package contains the revised standalone HTML/Canvas browser game. Open `public/sloanefox.html` in a current desktop or mobile browser. It has no build step, server dependency, or external API requirement.
 
-## What changed
+> **Protected character assets verified.** `hero-male.png` and `fox-female.png` match the supplied original archive byte-for-byte. The existing four recurring-pressure characters and all eight existing boss declarations remain present.
 
-| Area | Upgrade delivered |
-| --- | --- |
-| Villains | The Ruminator, Worry Spore, Burden Imp, and Self-Doubt Geist now use clean background-free character assets with live movement, idle motion, telegraphs, attacks, hit recoil, and defeat motion. Burden’s chain attack is now visibly rendered as a swinging chain and projectile strike. |
-| Bosses | All eight level bosses now use clean transparent character portraits and the live boss-motion system: pursuit bob, attack wind-up, cast/strike thrust, hit recoil, projectiles, and defeat motion. |
-| Brawler structure | Each level now has three combat fronts before the boss. The HUD announces the current front, and the arena advances after the active enemies are cleared. |
-| Lane-brawler interaction | The existing up/down depth movement is used as a multi-lane battlefield. Wooden crates and barrels appear in different lanes, can be broken by shots or jump kicks, and release rewards. |
-| Rewards | Breakables can drop first-aid kits and power banks that restore health or charge Super attacks. |
-| Controls | The two main heroes use movement, fire, jump, and Super only. Roll and chain actions have been removed from controls and touch UI. |
-| Testing | A built-in `?demo` mode runs an automated one-player playthrough for visual review of fronts, enemies, breakables, pickups, and the first boss. |
+## The revised arcade journey
+
+The game is now structured as a **long-form nine-front arcade level**. Every existing boss level uses a different pixel-art location, a compact arcade moment, more mixed pressure after the moment, a boss-warning wave, and the existing boss. Difficulty rises through enemy mixtures, lane control, sustain, and Super-charge decisions—not through traps or forced animations.
+
+| Level | Location | Arcade moment |
+| --- | --- | --- |
+| 1 — Anxiety | Sunset Side Street | **Skateboard Rush** — Jump on, steer through cones, then auto-dismount at a safe curb. |
+| 2 — Depression | Underground Train Station | **Platform Dash** — Fire the turnstile and jump the platform gap. |
+| 3 — Toxic Relationship | City Park Forest Path | **Fallen Tree Vault** — Jump the low trunk. |
+| 4 — Grief | Rainy Memorial Square | **Puddle Run** — Jump a flooded pavement section. |
+| 5 — Hardship | Industrial Loading Yard | **Forklift Crossing** — Fire the bridge switch. |
+| 6 — Financial Stress | Night Market Car Park | **Barrier Dash** — Jump the parking arm. |
+| 7 — Trauma | Emergency District | **Motorbike Escape** — Fire to start and steer through an open lane, then auto-dismount safely. |
+| 8 — Death | Rail Bridge at Dawn | **Last Signal** — Jump the rail break and fire the signal box. |
+
+Each stage now uses hard-edged tile geometry, layered facade and structure detail, stepped kerbs, shallow 3/4 pavement perspective, rooftop and storefront depth, and a clear lower combat lane. Props remain on the horizon or lane edges so they frame rather than obscure combat. The heroes are rendered larger for arcade readability while their source PNG files remain unchanged.
 
 ## Controls
 
-| Player | Movement | Fire | Jump | Super |
+| Player | Move | Fire | Jump | Super |
 | --- | --- | --- | --- | --- |
 | P1 | WASD | F | G | T |
 | P2 | Arrow keys | . | / | , |
 
-On touch devices, use the on-screen D-pad plus Fire, Jump, and Super action buttons. Roll and Chain are not available to either main hero.
+Touch controls provide a D-pad plus **Fire**, **Jump**, and **SP**. The two heroes have no roll or chain action. When an arcade moment appears, use the on-screen prompt; every action finishes in a safe position and normal movement returns automatically.
 
-## Automated visual review
+## Super progression
 
-Open `public/sloanefox.html?demo` to begin the deterministic demonstration. It starts in Level 1 and automatically fights through the three fronts toward the Anxiety boss. This mode is provided for repeatable testing; normal play remains unchanged at `public/sloanefox.html`.
-
-## Notes
-
-The project preserves the existing static HTML/Canvas deployment style so it is easy to host. The `public/` directory is the complete browser-ready game. Design and audit notes are also included in the package root for future development continuity.
-
-
-## Fantasy fallback update
-
-The latest pass changes **only non-hero presentation**. It replaces the modern city/grid gameplay scene with a warm fantasy landscape: a sunset sky, distant ruins, dead trees, cracked-earth ground, rocks, and a shallow side-scrolling combat band. Enemies, bosses, crates, barrels, and pickups now use direct ground-contact offsets and oval shadows so they read as firmly planted rather than floating.
-
-> **Hero protection verified:** `hero-male.png` and `fox-female.png` are byte-for-byte identical to the original files in the supplied archive. Their source files were not edited or replaced during this pass.
-
-
-
-## City route and Super update
-
-The game now travels through a side-scrolling town route with low-rise buildings, lit windows, shop awnings, streetlights, bins, pavement, curbs, drains, cracked asphalt, and a warm city sky. The background is intentionally fuller than the earlier plain field while retaining the level ground plane used by the brawler.
-
-Break crates and barrels to reveal a **red first-aid kit** or **blue power bank**. First aid restores **35 health**. A power bank adds **34 Super charge**. Enemy defeats can also drop the same city pickups, while score remains awarded for every defeat.
-
-| Super charge | Trigger | Attack |
-| --- | --- | --- |
-| 33+ | P1 `T`, P2 `,`, or `SP` | **Grenade** — a local ground explosion damages nearby enemies. |
-| 66+ | P1 `T`, P2 `,`, or `SP` | **Bazooka** — a heavy rocket travels across the lane and detonates on impact. |
-| 100 | P1 `T`, P2 `,`, or `SP` | **Air Strike** — radio call, aircraft flyover, bomb strikes, screen shake and flash, then a full standard-enemy clear. |
-
-For repeatable checks, open `public/sloanefox.html?demo&super=33`, `?demo&super=66`, or `?demo&super=100` to start the automated game with the respective Super tier precharged.
-
-
-## 16-bit arcade finishing pass
-
-The final pass keeps the existing two fox heroes, recurring pressures, and boss roster exactly in place. It makes the existing roster feel more like a fast arcade lane-brawler through changing encounter rhythm rather than by replacing character art.
-
-| Arcade moment | What now happens |
+| Charge | Super |
 | --- | --- |
-| **Racing Thoughts** | A short, signposted reinforcement surge pushes in from both sides using the existing small enemies. |
-| **Hold the Line** | A front sends pressure in small successive waves instead of presenting one static group. |
-| **Breakthrough** | The final front rewards a clear with a resilience cache, health recovery, Super charge, and a visible power-bank payoff. |
-| **Resolve and Focus** | Quick consecutive defeats build Resolve. A four-clear chain triggers Focus, grants a small Super boost, and gives the player’s shots a temporary damage lift. Getting hit breaks the chain. |
-| **Boss warning** | A short final wave announces the existing boss before its entry, rather than ending the final front abruptly. |
-| **Boss escalation** | At roughly half health, each existing boss visibly escalates, speeds up its existing pattern, and grants a small Super-charge buffer to help the player hold the line. Defeating a boss restores some health and Super charge for the next stage. |
+| 33+ | **Grenade** — labelled arc, local blast, warm flash, and small shake. |
+| 66+ | **Rocket Launcher** — labelled heavy projectile, exhaust, wide impact, stronger shake. |
+| 100 | **Air Strike** — labelled radio call, recognisable plane, five falling bombs, staggered blasts, maximum impact. |
 
-The `?demo` mode remains available for repeatable visual review. It now taps Fire as a player would, rather than holding it, so it can demonstrate the expanded combat rhythm correctly.
+The HUD now announces readiness before activation with a full-size, tier-coloured panel: **● GRENADE READY — PRESS SP** at 33, **▶ ROCKET LAUNCHER READY — PRESS SP** at 66, and **▲ AIR STRIKE READY — PRESS SP** at 100. Each readiness tier has its own orange, red, or gold panel and gauge colour.
+
+Power banks appear after every cleared front, plus selected breakables, enemy drops, and wrecked curb-side cars. First-aid kits restore health.
+
+## Living stage hazards
+
+The active stages now include readable environmental pressure without forced traps. City, market, and square stages periodically give a short route warning then send a large bus through the marked back road lane; staying in the near lane avoids it. The park has nesting magpies that show a nest/shadow warning, then swoop through a defined space. Parked cars remain curb-side breakables rather than blocking the fight.
+
+## Original arcade events
+
+The level route now alternates compact fights with short original interaction beats: **Pressure Cases** can be shot or kicked for a power bank or first-aid reward; **Community Boards** briefly protect the team and drop a bank; **Support Runners** cross an edge lane for a few seconds and drop an aid reward when hit; and a designated relief front grants a recovery cache after pressure. These systems use the existing Fire, Jump, movement, pickup, and Super controls. They are original Sloane Fox world interactions, not copied characters or stages.
+
+The combat route also uses tighter left-centre player framing and denser, stage-specific ground material—cracked asphalt/grit in the city, leaves and roots in the park, worn tile/rail material at the station, and rough industrial wear in the yard.
+
+## Deterministic review URLs
+
+Add the following suffixes after `public/sloanefox.html`.
+
+| URL suffix | Review target |
+| --- | --- |
+| `?demo&inspect=walk` | Grounded visible stride for an existing Burden Imp. |
+| `?demo&inspect=grenade` | Grenade Super tier. |
+| `?demo&inspect=rocket` | Rocket Launcher Super tier. |
+| `?demo&inspect=airstrike` | Plane-and-five-bomb Air Strike proof frame. |
+| `?demo&stage=0&inspect=setpiece` | Level 1 Skateboard Rush. |
+| `?demo&stage=1&inspect=setpiece` | Level 2 train-station Platform Dash. |
+| `?demo&stage=2&inspect=setpiece` | Level 3 park Fallen Tree Vault. |
+| `?demo&stage=6&inspect=setpiece` | Level 7 Emergency District Motorbike Escape. |
+| `?demo&stage=0` | Normal automated play preview from Level 1. |
+| `?demo&stage=0&inspect=bus` | Held city bus-pass review scene. |
+| `?demo&stage=2&inspect=bird` | Held park magpie-swoop review scene. |
+| `?demo&inspect=ready33` | Held Grenade readiness panel. |
+| `?demo&inspect=ready66` | Held Rocket Launcher readiness panel. |
+| `?demo&inspect=ready100` | Held Air Strike readiness panel. |
+| `?demo&stage=0&inspect=runner` | Held Support Runner reward interaction. |
+| `?demo&stage=0&inspect=case` | Held Pressure Case interaction. |
+| `?demo&stage=0&inspect=board` | Held Community Board interaction. |
+
+The project root includes the journey and difficulty design documents together with validation scripts for future maintenance.

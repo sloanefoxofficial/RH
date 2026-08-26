@@ -28,9 +28,9 @@ for key in ['rum','worry','geist','burden']:
     if f"t:'{key}'" not in minions.group(1): raise SystemExit(f'FAIL: existing minor enemy missing: {key}')
 print('PASS: existing boss and recurring-pressure rosters preserved')
 
-features=['currentFronts.length','GRENADE READY','ROCKET READY','AIR STRIKE READY','CROSSINGS','CITY ROPE SWING','carFrom','damageCar','drawCarProp','drawTrafficCar','superImpact','type:\'rocket\'','a.bombs','INSPECT','inspectWalk','WALK TEST','WALKING · ','modes=[\'surge\',\'hold\',\'breakthrough\',\'hold\',\'surge\',\'breakthrough\',\'hold\']','p.traversing','CITY TREE','preview:true','FIVE BOMBS']
+features=['currentFronts.length','GRENADE READY','ROCKET LAUNCHER READY','AIR STRIKE READY','CROSSINGS','SKATEBOARD RUSH','PLATFORM DASH','FALLEN TREE VAULT','MOTORBIKE ESCAPE','Sunset Side Street','Underground Train Station','City Park Forest Path','Emergency District','carFrom','damageCar','superImpact','type:\'rocket\'','a.bombs','INSPECT','DEMO_STAGE','inspectWalk','WALK TEST','WALKING · ','p.setpiece','pixelRect','drawStageSilhouette','drawSetpieceWorld','drawPerspectiveLane','drawArcadeDetails','drawGroundTexture','stageHazards','MAGPIE SWOOP','BUS HIT','SUPPORT RUNNER','PRESSURE CASE OPEN','COMMUNITY BOARD','spawnSupportRunner','collectSupportRunner','ROCKET LAUNCHER READY','AIR STRIKE READY','preview:true','FIVE BOMBS']
 for feature in features:
-    if feature not in text: raise SystemExit(f'FAIL: visible-repair feature missing: {feature}')
-if "return [" not in text or text.count("{ enemies:pack(") < 7:
-    raise SystemExit('FAIL: seven-front route declaration is incomplete')
-print('PASS: extended seven-front route, grounded walk proof, set-piece traversal, city cars, and tiered Super spectacle present')
+    if feature not in text: raise SystemExit(f'FAIL: long-journey feature missing: {feature}')
+if "return [" not in text or text.count("{ enemies:pack(") < 9:
+    raise SystemExit('FAIL: nine-front route declaration is incomplete')
+print('PASS: nine-front multi-location journey, grounded walk proof, fair arcade set pieces, and tiered Super spectacle present')
