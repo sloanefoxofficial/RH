@@ -5621,10 +5621,11 @@ function UserFeedback({ session, onBack }) {
           </div>
           <div style={{ fontWeight: 800, fontSize: 18, marginBottom: 8 }}>Thank you for your feedback!</div>
           <p style={{ fontSize: 14.5, color: T.sub, lineHeight: 1.55 }}>
-            Your feedback has been sent to the Resilience Hub team. It helps us keep improving the app for everyone.
+            Your feedback has been received, and will be reviewed by a human. The feedback you share with us, good or bad, is invaluable and we take every
+            comment, critique or suggestion on board, and use it to keep the app updated for the best user experience.
           </p>
           <div style={{ marginTop: 20 }}>
-            <Btn onClick={onBack}>Back to Extras</Btn>
+            <Btn onClick={onBack}>Back to Settings</Btn>
           </div>
         </div>
       </>
@@ -5639,7 +5640,7 @@ function UserFeedback({ session, onBack }) {
         <h2 style={{ fontSize: 18, margin: 0 }}>Share feedback</h2>
       </div>
       <p style={{ fontSize: 13.5, color: T.sub, margin: "0 2px 16px", lineHeight: 1.5 }}>
-        Have an idea, suggestion, or something you would like us to improve? We would love to hear it.
+        Have an idea, suggestion, or something you would like us to improve? We would love to hear it!
       </p>
       <div style={{ background: T.card, borderRadius: 20, padding: 18, boxShadow: T.soft }}>
         <label style={{ fontSize: 13, fontWeight: 700, display: "block", marginBottom: 6 }}>Your name</label>
