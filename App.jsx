@@ -5614,7 +5614,7 @@ function UserFeedback({ session, onBack }) {
   if (sent) {
     return (
       <>
-        <Brand right={<BackBtn onBack={onBack} label="Extras" />} />
+        <Brand right={<BackBtn onBack={onBack} label="Settings" />} />
         <div style={{ background: T.card, borderRadius: 20, padding: 24, boxShadow: T.soft, marginTop: 20, textAlign: "center" }}>
           <div style={{ width: 56, height: 56, borderRadius: "50%", background: "#e9f5ee", display: "grid", placeItems: "center", margin: "0 auto 16px" }}>
             <CheckCircle2 size={28} color={T.greenDk} />
@@ -5634,7 +5634,7 @@ function UserFeedback({ session, onBack }) {
 
   return (
     <>
-      <Brand right={<BackBtn onBack={onBack} label="Extras" />} />
+      <Brand right={<BackBtn onBack={onBack} label="Settings" />} />
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6, marginBottom: 4 }}>
         <MessageCircle size={18} color={T.greenDk} />
         <h2 style={{ fontSize: 18, margin: 0 }}>Share feedback</h2>
