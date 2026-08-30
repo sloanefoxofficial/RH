@@ -5004,10 +5004,10 @@ function ProgramPage({ profile, plan, progress, saveProgress, journalCount, chat
 function GuidesPage({ onOpenChat, onBack }) {
   const [filter, setFilter] = useState("all");
   const specialists = [
-    { char: CHARS.juan, tag: "Your main mate", filter: "support", forWhat: "General support, encouragement, and anything that's on your mind.", tip: "Nothing's too big or too small to bring to Juan.", accent: "#e5f3eb" },
-    { char: CHARS.carlos, tag: "Clinical tools", filter: "clinical", forWhat: "Stress, low mood, coping, and calming tools.", tip: "Tell Carlos what's weighing on you and choose one small tool to try.", note: "Carlos is an AI guide inspired by psychologist Carlos Camacho — he offers supportive tools, not therapy or diagnosis.", accent: "#e8f0fb" },
-    { char: CHARS.mick, tag: "Practical life", filter: "practical", forWhat: "Housing, bills, Centrelink, tenancy, and day-to-day logistics.", tip: "Bring the letter, deadline, or form and Mick will help find the next step.", accent: "#e8eef8" },
-    { char: CHARS.lila, tag: "People & relationships", filter: "relationships", forWhat: "Family, partners, friendships, and healthy boundaries.", tip: "Talk through what happened and what you want the relationship to look like.", accent: "#fae9df" },
+    { char: CHARS.juan, tag: "Your main mate", filter: "support", forWhat: "General support, encouragement, and anything that's on your mind.", tip: "I've had a rough day, can I vent to you about it?", accent: "#e5f3eb" },
+    { char: CHARS.carlos, tag: "Clinical tools", filter: "clinical", forWhat: "Stress, low mood, coping, and calming tools.", tip: "I've been feeling on edge — can you help me find one calming tool to try?", note: "Carlos is an AI guide inspired by psychologist Carlos Camacho — he offers supportive tools, not therapy or diagnosis.", accent: "#e8f0fb" },
+    { char: CHARS.mick, tag: "Practical life", filter: "practical", forWhat: "Housing, bills, Centrelink, tenancy, and day-to-day logistics.", tip: "I've got a letter or bill I don't understand — can you help me work out the next step?", accent: "#e8eef8" },
+    { char: CHARS.lila, tag: "People & relationships", filter: "relationships", forWhat: "Family, partners, friendships, and healthy boundaries.", tip: "I'm having a difficult conversation with someone — can you help me find the right words?", accent: "#fae9df" },
   ];
   const filters = [
     { key: "all", label: "All guides", Icon: Users },
@@ -5046,7 +5046,7 @@ function GuidesPage({ onOpenChat, onBack }) {
               <div style={{ flex: 1, minWidth: 0 }}><div style={{ display: "inline-flex", alignItems: "center", gap: 5, color: T.greenDk, fontSize: 10.5, fontWeight: 800, letterSpacing: 0.6, textTransform: "uppercase", marginBottom: 4 }}><span style={{ width: 6, height: 6, borderRadius: "50%", background: T.green }} /> {tag}</div><div style={{ fontWeight: 800, fontSize: 18 }}>{char.name}</div><div style={{ fontSize: 12.5, color: T.sub, marginTop: 2 }}>{char.role}</div></div>
               <div style={{ width: 35, height: 35, borderRadius: "50%", background: char.tint, color: T.greenDk, display: "grid", placeItems: "center", flexShrink: 0 }}><ChevronRight size={19} /></div>
             </div>
-            <div style={{ background: accent, borderRadius: 14, padding: "11px 12px", marginTop: 12 }}><div style={{ fontSize: 13, color: T.ink, lineHeight: 1.48 }}><strong>Best for</strong> · {forWhat}</div><div style={{ fontSize: 12.5, color: T.sub, lineHeight: 1.45, marginTop: 6 }}><strong>Try saying</strong> · “{tip}”</div></div>
+            <div style={{ background: accent, borderRadius: 14, padding: "11px 12px", marginTop: 12 }}><div style={{ fontSize: 13, color: T.ink, lineHeight: 1.48 }}><strong>Best for</strong> · {forWhat}</div><div style={{ fontSize: 12.5, color: T.sub, lineHeight: 1.45, marginTop: 6 }}><strong>Try saying:</strong> “{tip}”</div></div>
             <button onClick={() => onOpenChat(char.slug)} aria-label={`Chat with ${char.name}`} style={{ width: "100%", marginTop: 10, border: "none", borderRadius: 13, padding: "10px 12px", background: `linear-gradient(100deg, ${T.greenDk}, ${T.green})`, color: "#fff", fontWeight: 800, fontSize: 13, cursor: "pointer" }}>Start a chat with {char.name} <span style={{ opacity: 0.8 }}>→</span></button>
           </div>
           {note && <div style={{ background: "#eef4fb", border: `1px solid #d3e3f5`, borderRadius: 14, padding: 12, marginTop: 8 }}><p style={{ fontSize: 12, color: T.sub, lineHeight: 1.5, margin: 0 }}>{note}</p></div>}
@@ -5230,6 +5230,18 @@ function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, set
             <ExternalLink size={18} color={T.sub} />
           </a>
         ))}
+        <a href="https://resiliencehub.s.gy/website" target="_blank" rel="noopener noreferrer" aria-label="Visit The Resilience Hub website"
+          style={{ display: "flex", alignItems: "center", gap: 12, background: "linear-gradient(135deg, #e5f5ea 0%, #f7fbf8 62%, #fff1e5 100%)", border: "1px solid rgba(78, 158, 103, 0.18)", borderRadius: 20, padding: 14,
+            boxShadow: T.soft, textDecoration: "none", color: T.ink }}>
+          <div style={{ width: 46, height: 46, borderRadius: 14, background: "linear-gradient(145deg, #1d6b4b, #79b852)", display: "grid", placeItems: "center", flexShrink: 0, boxShadow: "0 6px 14px rgba(38, 111, 76, 0.18)" }}>
+            <span style={{ color: "#fff", fontWeight: 900, fontSize: 22, lineHeight: 1 }}>RH</span>
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontWeight: 800, fontSize: 16 }}>The Resilience Hub website</div>
+            <div style={{ fontSize: 13, color: T.sub, lineHeight: 1.4 }}>Meet the team, learn more, and stay connected</div>
+          </div>
+          <ExternalLink size={18} color={T.greenDk} />
+        </a>
         <button onClick={onOpenMensGroup} style={{ width: "100%", background: T.card, borderRadius: 20, padding: 12,
           boxShadow: T.soft, border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 12, textAlign: "left" }}>
           <img src="/mens_group.jpg" alt="Men's Group" style={{ width: 46, height: 46, borderRadius: 14, objectFit: "cover", flexShrink: 0 }} />
