@@ -4797,7 +4797,7 @@ function GamesPage({ gameScores, onScore, getProgress, onSaveProgress, onClearPr
 /* ---------- merch store ---------- */
 const MERCH_URL = "https://sloanefox.myshopify.com/";
 const MERCH_ITEMS = [
-  { name: "Choose Your Edition Tee", price: "$65", img: "/merch/choose-your-edition.png", url: "https://sloanefox.myshopify.com/products/sloane-fox-pick-your-style-heavyweight-tee" },
+  { name: "Choose Your Edition Tee", price: "$65", img: "/merch/choose-your-edition-new.jpg", url: "https://sloanefox.myshopify.com/products/sloane-fox-pick-your-style-heavyweight-tee" },
   { name: "Vixen Edition Tee", price: "$65", img: "/merch/vixen-edition.jpg", url: "https://sloanefox.myshopify.com/products/sloane-fox-heavyweight-women-s-tee" },
   { name: "Gold Edition Tee", price: "$65", img: "/merch/gold-edition.jpg", url: "https://sloanefox.myshopify.com/products/sloane-fox-gold-edition-heavyweight-tee" },
   { name: "Premium 400GSM Hoodie", price: "$85", img: "/merch/hoodie-400gsm.jpg", url: "https://sloanefox.myshopify.com/products/sloane-fox-400gsm-hoodie" },
@@ -5214,30 +5214,48 @@ function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, set
       {/* menu cards — grouped for clarity */}
       <SectionTitle>Your journey</SectionTitle>
       <div style={{ display: "flex", flexDirection: "column", gap: 11 }}>
-        {card(onOpenProgram, "#e7eefb", "#3f6faf", CalendarCheck, "Your 8-Week Plan", "Your plan, progress & journal")}
+        {card(onOpenProgramInfo, "#e9f5ee", "#2c7d50", Heart, "Resilience & Recovery Program", "Our free 8-week in-person program — how it works & how to join")}
         {card(onOpenGuides, "#f4e3d9", "#c9803f", Users, "Your guides", "Juan, Carlos, Mick & Lila — chat any time")}
         {card(onOpenToolkit, "#dceee2", "#2c7d50", Wrench, "Toolkit", "Calm down, reflect & grow, stay safe")}
-        {card(onOpenProgramInfo, "#e9f5ee", "#2c7d50", Heart, "The Resilience & Recovery Program", "Our free 8-week in-person program — how it works & how to join")}
+        {card(onOpenProgram, "#e7eefb", "#3f6faf", CalendarCheck, "Optional 8-Week Plan", "Your plan, progress & journal — use it if it helps")}
+
       </div>
 
       <SectionTitle>Support us</SectionTitle>
       <div style={{ display: "flex", flexDirection: "column", gap: 11 }}>
-        {card(() => window.open("https://gofund.me/4ce6afdc4", "_blank", "noopener,noreferrer"),
-          "#fbe4e4", "#c94f4f", Heart, "Support The Resilience Hub", "Help us keep this free for everyone — visit our GoFundMe")}
-        {card(onOpenMerch, "#efeaf5", "#5b4b7a", ShoppingBag, "Sloane Fox merch", "Built Not Bought — every piece supports the Hub")}
+        <a href="https://gofund.me/4ce6afdc4" target="_blank" rel="noopener noreferrer" aria-label="Support The Resilience Hub on GoFundMe"
+          style={{ display: "flex", alignItems: "center", gap: 12, background: "linear-gradient(135deg, #fff0f0 0%, #fff8f4 58%, #ffe7e1 100%)", border: "1px solid rgba(201, 79, 79, 0.18)", borderRadius: 20, padding: 14, boxShadow: T.soft, textDecoration: "none", color: T.ink }}>
+          <div style={{ width: 46, height: 46, borderRadius: 14, background: "linear-gradient(145deg, #e5484d, #f38a73)", display: "grid", placeItems: "center", flexShrink: 0, boxShadow: "0 6px 14px rgba(201, 79, 79, 0.2)" }}>
+            <Heart size={23} color="#fff" fill="#fff" />
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: "inline-block", color: "#c43f45", fontSize: 10, fontWeight: 900, letterSpacing: 1, marginBottom: 2 }}>GOFUNDME</div>
+            <div style={{ fontWeight: 800, fontSize: 16 }}>Support The Resilience Hub</div>
+            <div style={{ fontSize: 13, color: T.sub, lineHeight: 1.4 }}>Help us keep support free for everyone</div>
+          </div>
+          <ExternalLink size={18} color="#c94f4f" />
+        </a>
+        <button onClick={onOpenMerch} style={{ width: "100%", background: "linear-gradient(135deg, #f4eef7 0%, #fff 72%)", border: "none", borderRadius: 20, padding: 14, boxShadow: T.soft, cursor: "pointer", display: "flex", alignItems: "center", gap: 12, textAlign: "left" }}>
+          <img src="/merch/choose-your-edition-new.jpg" alt="Sloane Fox artwork" style={{ width: 46, height: 46, borderRadius: 14, objectFit: "cover", objectPosition: "50% 37%", flexShrink: 0, border: "1px solid rgba(91,75,122,0.14)" }} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontWeight: 800, fontSize: 16 }}>Sloane Fox merch</div>
+            <div style={{ fontSize: 13, color: T.sub }}>Built Not Bought — every piece supports the Hub</div>
+          </div>
+          <ChevronRight size={20} color={T.sub} />
+        </button>
       </div>
 
       <SectionTitle>Stay connected</SectionTitle>
       <div style={{ display: "flex", flexDirection: "column", gap: 11 }}>
         {[
           { name: "Resilience Hub group", sub: "Our community — support, chat & connection", url: "https://www.facebook.com/share/g/1Edkyyez1t/" },
-          { name: "Sloane Fox page", sub: "Follow the page for updates & drops", url: "https://www.facebook.com/people/Sloanefox/61586163260435/" },
+          { name: "Sloane Fox Facebook Page", sub: "Follow the page for updates & drops", url: "https://www.facebook.com/people/Sloanefox/61586163260435/", img: "/merch/sloane-fox-logo.jpg" },
         ].map((f) => (
           <a key={f.name} href={f.url} target="_blank" rel="noopener noreferrer"
             style={{ display: "flex", alignItems: "center", gap: 12, background: T.card, borderRadius: 20, padding: 16,
               boxShadow: T.soft, textDecoration: "none", color: T.ink }}>
-            <div style={{ width: 46, height: 46, borderRadius: 14, background: "#1877F2", display: "grid", placeItems: "center", flexShrink: 0 }}>
-              <span style={{ color: "#fff", fontWeight: 900, fontSize: 26, fontFamily: "Georgia, serif", lineHeight: 1 }}>f</span>
+            <div style={{ width: 46, height: 46, borderRadius: 14, background: f.img ? "#050505" : "#1877F2", display: "grid", placeItems: "center", overflow: "hidden", flexShrink: 0 }}>
+              {f.img ? <img src={f.img} alt="Sloane Fox logo" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ color: "#fff", fontWeight: 900, fontSize: 26, fontFamily: "Georgia, serif", lineHeight: 1 }}>f</span>}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontWeight: 700, fontSize: 16 }}>{f.name}</div>

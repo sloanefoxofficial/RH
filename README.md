@@ -1,11 +1,7 @@
-# Service-worker deployment fix
+# Home-page card and Sloane Fox update
 
-The live app was loading the registration code but `https://resiliencehubnsw.vercel.app/sw.js` was returning a Vercel 404. The local Vite build contains the worker correctly, so the deployed project needs the complete `public/sw.js` asset and the Vercel configuration below.
+Replace `App.jsx`, `vercel.json`, and the two files in `public/merch/`, then deploy the whole project.
 
-Replace `App.jsx`, copy `public/sw.js` into the deployed project’s `public` folder, and replace `vercel.json`. Then redeploy the whole project—not only `App.jsx`.
+The **Your Journey** cards now appear in this order: Resilience & Recovery Program, Your Guides, Toolkit, and Optional 8-Week Plan.
 
-After deployment, open this exact URL in Safari:
-
-`https://resiliencehubnsw.vercel.app/sw.js`
-
-It must display JavaScript beginning with `// The Resilience Hub`. Once that works, remove the old Home Screen app if necessary, reopen the website in Safari, and enable notifications again.
+The Sloane Fox Facebook card now uses the supplied logo and title. The Choose Your Edition product uses the supplied shirt image, which is also used as the Sloane Fox merch card artwork. The GoFundMe card now has a dedicated GoFundMe label, heart treatment, red/coral support palette, and external-link behaviour.
