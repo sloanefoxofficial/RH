@@ -5002,38 +5002,57 @@ function ProgramPage({ profile, plan, progress, saveProgress, journalCount, chat
 
 /* ---------- Your guides page ---------- */
 function GuidesPage({ onOpenChat, onBack }) {
+  const [filter, setFilter] = useState("all");
   const specialists = [
-    { char: CHARS.juan, forWhat: "A mate who's been there — general support, encouragement, and anything at all that's on your mind.",
-      tip: "Talk to him like a friend who gets it. Nothing's too big or too small to bring to Juan." },
-    { char: CHARS.carlos, forWhat: "Stress, low mood, and calming clinical tools — he's also the one who builds and reviews your 8-week plan.",
-      tip: "Tell him what's weighing on you. Type 'Plan Review' any time to go over your plan together.",
-      note: "Carlos is an AI guide inspired by psychologist Carlos Camacho — he offers supportive tools, not therapy or diagnosis. To ask about the in-person 8-week program with the real team, message Juan." },
-    { char: CHARS.mick, forWhat: "Housing, bills, Centrelink, tenancy, and the practical day-to-day stuff.",
-      tip: "Be specific about what's going on — a letter, a deadline, a form — and Mick can talk you through the actual next step." },
-    { char: CHARS.lila, forWhat: "Family, partners, friendships, boundaries — the people side of life.",
-      tip: "Tell her the situation and how you're feeling about it; she's best when you talk through what you want the relationship to look like." },
+    { char: CHARS.juan, tag: "Your main mate", filter: "support", forWhat: "General support, encouragement, and anything that's on your mind.", tip: "Nothing's too big or too small to bring to Juan.", accent: "#e5f3eb" },
+    { char: CHARS.carlos, tag: "Clinical tools", filter: "clinical", forWhat: "Stress, low mood, coping, and calming tools.", tip: "Tell Carlos what's weighing on you and choose one small tool to try.", note: "Carlos is an AI guide inspired by psychologist Carlos Camacho — he offers supportive tools, not therapy or diagnosis.", accent: "#e8f0fb" },
+    { char: CHARS.mick, tag: "Practical life", filter: "practical", forWhat: "Housing, bills, Centrelink, tenancy, and day-to-day logistics.", tip: "Bring the letter, deadline, or form and Mick will help find the next step.", accent: "#e8eef8" },
+    { char: CHARS.lila, tag: "People & relationships", filter: "relationships", forWhat: "Family, partners, friendships, and healthy boundaries.", tip: "Talk through what happened and what you want the relationship to look like.", accent: "#fae9df" },
   ];
+  const filters = [
+    { key: "all", label: "All guides", Icon: Users },
+    { key: "support", label: "Everyday support", Icon: Heart },
+    { key: "clinical", label: "Calm & coping", Icon: Wind },
+    { key: "practical", label: "Practical life", Icon: Wrench },
+    { key: "relationships", label: "Relationships", Icon: Users },
+  ];
+  const visible = filter === "all" ? specialists : specialists.filter((item) => item.filter === filter);
   return (
     <>
       <Brand right={<BackBtn onBack={onBack} />} />
-      <SectionTitle>Your guides</SectionTitle>
-      <p style={{ fontSize: 13.5, color: T.sub, margin: "0 2px 16px", lineHeight: 1.5 }}>
-        Tap any guide to chat any time. Not sure who to ask? Rex or Juan can always point you the right way.
-      </p>
-      {specialists.map(({ char, forWhat, tip, note }) => (
-        <div key={char.slug} style={{ marginBottom: 16 }}>
-          <GuideRow char={char} onClick={() => onOpenChat(char.slug)} big />
-          <div style={{ background: T.card, borderRadius: 14, padding: 13, boxShadow: T.soft, marginTop: 8 }}>
-            <div style={{ fontSize: 13.5, color: T.ink, lineHeight: 1.5, marginBottom: 6 }}><strong>Best for:</strong> {forWhat}</div>
-            <div style={{ fontSize: 13, color: T.sub, lineHeight: 1.5 }}><strong>Tip:</strong> {tip}</div>
-          </div>
-          {note && (
-            <div style={{ background: "#eef4fb", border: `1px solid #d3e3f5`, borderRadius: 14, padding: 13, marginTop: 8 }}>
-              <p style={{ fontSize: 12.5, color: T.sub, lineHeight: 1.55, margin: 0 }}>{note}</p>
+      <div style={{ background: "linear-gradient(135deg, #e4f4e8 0%, #f5fbf7 54%, #fff1e8 100%)", borderRadius: 24, padding: "23px 20px 21px", marginTop: 7, boxShadow: T.soft, border: `1px solid ${T.line}`, position: "relative", overflow: "hidden" }}>
+        <div style={{ position: "absolute", width: 150, height: 150, borderRadius: "50%", background: "rgba(255,255,255,0.44)", top: -82, right: -38 }} />
+        <div style={{ display: "flex", alignItems: "center", gap: 9, color: T.greenDk, fontSize: 11.5, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase", position: "relative" }}>
+          <Sparkles size={15} /> Your support circle
+        </div>
+        <h1 style={{ fontSize: 25, lineHeight: 1.15, margin: "8px 0 7px", position: "relative" }}>Meet your guides</h1>
+        <p style={{ fontSize: 13.5, color: T.sub, lineHeight: 1.52, margin: 0, maxWidth: 360, position: "relative" }}>Different days need different kinds of support. Choose the voice that feels right for this moment — you can switch any time.</p>
+      </div>
+      <div style={{ display: "flex", gap: 8, overflowX: "auto", padding: "16px 1px 3px", scrollbarWidth: "none" }}>
+        {filters.map(({ key, label, Icon }) => {
+          const active = filter === key;
+          return <button key={key} onClick={() => setFilter(key)} aria-pressed={active} style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 6, border: active ? `1.5px solid ${T.green}` : `1px solid ${T.line}`, borderRadius: 999, padding: "8px 11px", background: active ? "#e6f5eb" : T.card, color: active ? T.greenDk : T.sub, fontSize: 12, fontWeight: active ? 800 : 600, cursor: "pointer", boxShadow: active ? "0 4px 12px rgba(77,159,104,0.12)" : "none" }}><Icon size={14} />{label}</button>;
+        })}
+      </div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", margin: "3px 2px 10px" }}>
+        <div style={{ fontSize: 12, color: T.sub, fontWeight: 700 }}>{visible.length} {visible.length === 1 ? "guide" : "guides"} ready to chat</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11.5, color: T.sub }}><Circle size={8} fill={T.green} color={T.green} /> Available any time</div>
+      </div>
+      {visible.map(({ char, tag, forWhat, tip, note, accent }, index) => (
+        <div key={char.slug} style={{ marginBottom: 15 }}>
+          <div style={{ background: T.card, borderRadius: 21, padding: 13, boxShadow: T.soft, border: `1px solid ${T.line}`, borderTop: `4px solid ${char.tint}` }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 13 }}>
+              <div style={{ width: 72, height: 72, borderRadius: 21, overflow: "hidden", background: `radial-gradient(120% 100% at 50% 20%, #fff, ${accent})`, flexShrink: 0, boxShadow: "0 5px 14px rgba(47,97,72,0.10)" }}><img src={char.img} alt={char.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} /></div>
+              <div style={{ flex: 1, minWidth: 0 }}><div style={{ display: "inline-flex", alignItems: "center", gap: 5, color: T.greenDk, fontSize: 10.5, fontWeight: 800, letterSpacing: 0.6, textTransform: "uppercase", marginBottom: 4 }}><span style={{ width: 6, height: 6, borderRadius: "50%", background: T.green }} /> {tag}</div><div style={{ fontWeight: 800, fontSize: 18 }}>{char.name}</div><div style={{ fontSize: 12.5, color: T.sub, marginTop: 2 }}>{char.role}</div></div>
+              <div style={{ width: 35, height: 35, borderRadius: "50%", background: char.tint, color: T.greenDk, display: "grid", placeItems: "center", flexShrink: 0 }}><ChevronRight size={19} /></div>
             </div>
-          )}
+            <div style={{ background: accent, borderRadius: 14, padding: "11px 12px", marginTop: 12 }}><div style={{ fontSize: 13, color: T.ink, lineHeight: 1.48 }}><strong>Best for</strong> · {forWhat}</div><div style={{ fontSize: 12.5, color: T.sub, lineHeight: 1.45, marginTop: 6 }}><strong>Try saying</strong> · “{tip}”</div></div>
+            <button onClick={() => onOpenChat(char.slug)} aria-label={`Chat with ${char.name}`} style={{ width: "100%", marginTop: 10, border: "none", borderRadius: 13, padding: "10px 12px", background: `linear-gradient(100deg, ${T.greenDk}, ${T.green})`, color: "#fff", fontWeight: 800, fontSize: 13, cursor: "pointer" }}>Start a chat with {char.name} <span style={{ opacity: 0.8 }}>→</span></button>
+          </div>
+          {note && <div style={{ background: "#eef4fb", border: `1px solid #d3e3f5`, borderRadius: 14, padding: 12, marginTop: 8 }}><p style={{ fontSize: 12, color: T.sub, lineHeight: 1.5, margin: 0 }}>{note}</p></div>}
         </div>
       ))}
+      <div style={{ background: "#fffaf0", border: "1px solid #f0dfb1", borderRadius: 16, padding: 13, margin: "3px 0 16px", display: "flex", alignItems: "center", gap: 9 }}><Heart size={17} color="#b1852f" fill="#f3d58f" /><div style={{ fontSize: 12.5, color: T.sub, lineHeight: 1.45 }}>Not sure who fits? Rex or Juan can help point you in the right direction.</div></div>
       <Disclaimer />
     </>
   );
