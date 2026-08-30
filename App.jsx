@@ -2559,11 +2559,21 @@ function AdminAppointments({ onBack }) {
 function AdminBugReports({ onBack }) {
   const [rows, setRows] = useState(null);
   const [showArchived, setShowArchived] = useState(false);
+  const [screenshotUrls, setScreenshotUrls] = useState({});
   const load = async () => {
     if (!supabase) { setRows([]); return; }
     try {
       const { data } = await supabase.from("bug_reports").select("*").order("created_at", { ascending: false });
-      setRows(data || []);
+      const reports = data || [];
+      setRows(reports);
+      const withScreenshots = reports.filter((r) => r.screenshot_path);
+      if (withScreenshots.length) {
+        const signed = await Promise.all(withScreenshots.map(async (r) => {
+          const { data: link } = await supabase.storage.from("bug-screenshots").createSignedUrl(r.screenshot_path, 3600);
+          return [r.id, link?.signedUrl || null];
+        }));
+        setScreenshotUrls(Object.fromEntries(signed.filter(([, url]) => url)));
+      }
     } catch { setRows([]); }
   };
   useEffect(() => { load(); }, []);
@@ -2608,6 +2618,12 @@ function AdminBugReports({ onBack }) {
             <div style={{ fontSize: 14, lineHeight: 1.5, whiteSpace: "pre-wrap", marginBottom: 10 }}>
               {typeof r.description === "string" && r.description.startsWith("[User Feedback]\n\n") ? r.description.slice("[User Feedback]\n\n".length) : r.description}
             </div>
+            {screenshotUrls[r.id] && (
+              <a href={screenshotUrls[r.id]} target="_blank" rel="noopener noreferrer" style={{ display: "block", marginBottom: 10 }}>
+                <img src={screenshotUrls[r.id]} alt="Screenshot attached to this bug report" style={{ display: "block", width: "100%", maxHeight: 260, objectFit: "contain", borderRadius: 12, border: `1px solid ${T.line}`, background: "#f7faf8" }} />
+                <span style={{ display: "block", color: T.greenDk, fontSize: 12, fontWeight: 700, marginTop: 5 }}>Open full-size screenshot</span>
+              </a>
+            )}
             <button onClick={() => archive(r.id, !r.archived)} style={{ background: "none", border: `1px solid ${T.line}`,
               borderRadius: 999, padding: "6px 12px", fontSize: 12, fontWeight: 700, color: T.sub, cursor: "pointer" }}>
               {r.archived ? "Unarchive" : "Archive"}
@@ -5840,21 +5856,47 @@ function BookAppointment({ onBack }) {
 function BugReport({ session, onBack }) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [photo, setPhoto] = useState(null);
+  const [photoPreview, setPhotoPreview] = useState("");
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
   const [err, setErr] = useState("");
-
+  const choosePhoto = (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) { setErr("Please choose an image file, such as a screenshot or photo."); return; }
+    if (file.size > 8 * 1024 * 1024) { setErr("That image is too large. Please choose one smaller than 8 MB."); return; }
+    setErr("");
+    setPhoto(file);
+    setPhotoPreview(URL.createObjectURL(file));
+  };
+  const removePhoto = () => {
+    if (photoPreview) URL.revokeObjectURL(photoPreview);
+    setPhoto(null); setPhotoPreview("");
+  };
   const submit = async () => {
     const desc = description.trim();
     if (!desc || busy) return;
     if (!supabase) { setErr("Couldn't reach the server just now — try again in a moment."); return; }
     setBusy(true); setErr("");
     try {
+      let screenshotPath = null;
+      if (photo) {
+        const userFolder = session?.user?.id || "anonymous";
+        const extension = (photo.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
+        screenshotPath = `${userFolder}/${Date.now()}-${Math.random().toString(36).slice(2, 9)}.${extension}`;
+        const { error: uploadError } = await supabase.storage.from("bug-screenshots").upload(screenshotPath, photo, {
+          contentType: photo.type || "image/jpeg", upsert: false,
+        });
+        if (uploadError) throw uploadError;
+      }
       const { error } = await supabase.from("bug_reports").insert({
         name: name.trim() || null,
         description: desc,
         email: session?.user?.email || null,
         user_id: session?.user?.id || null,
+        screenshot_path: screenshotPath,
       });
       if (error) throw error;
       setSent(true);
@@ -5905,6 +5947,22 @@ function BugReport({ session, onBack }) {
         <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={6}
           placeholder="Describe the bug or glitch — what you were doing, what went wrong, and on what screen if you remember."
           style={{ ...inputStyle, resize: "none", minHeight: 130 }} />
+        <div style={{ marginTop: 16, padding: 13, borderRadius: 16, background: "#f4faf6", border: `1px solid ${T.line}` }}>
+          <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 4 }}>Add a screenshot or photo <span style={{ color: T.sub, fontWeight: 600 }}>(optional)</span></div>
+          <div style={{ fontSize: 12.5, color: T.sub, lineHeight: 1.45, marginBottom: 10 }}>A picture can help us understand exactly what went wrong. Please avoid including private information if possible.</div>
+          {!photo ? (
+            <label style={{ display: "inline-flex", alignItems: "center", gap: 7, background: "#e4f2e9", color: T.greenDk, borderRadius: 12, padding: "9px 12px", fontSize: 13, fontWeight: 800, cursor: "pointer" }}>
+              <Paperclip size={16} /> Choose image
+              <input type="file" accept="image/*" onChange={choosePhoto} style={{ display: "none" }} />
+            </label>
+          ) : (
+            <div style={{ position: "relative" }}>
+              <img src={photoPreview} alt="Selected bug report screenshot preview" style={{ display: "block", width: "100%", maxHeight: 220, objectFit: "contain", borderRadius: 12, background: "#fff", border: `1px solid ${T.line}` }} />
+              <button type="button" onClick={removePhoto} aria-label="Remove selected screenshot" style={{ position: "absolute", top: 8, right: 8, width: 30, height: 30, border: "none", borderRadius: "50%", background: "rgba(32, 47, 39, 0.78)", color: "#fff", display: "grid", placeItems: "center", cursor: "pointer" }}><X size={16} /></button>
+              <div style={{ fontSize: 12, color: T.sub, marginTop: 6, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{photo.name}</div>
+            </div>
+          )}
+        </div>
         {err && <p style={{ fontSize: 12.5, color: "#c94f4f", marginTop: 10 }}>{err}</p>}
         <div style={{ marginTop: 16 }}>
           <Btn onClick={submit} disabled={!description.trim() || busy}>{busy ? "Sending…" : "Submit report"}</Btn>
