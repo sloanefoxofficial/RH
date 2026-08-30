@@ -121,7 +121,7 @@ async function openOrShareFile(url, filename) {
 async function subscribeToPush(userId) {
   if (!pushSupported() || !supabase) return { state: "unsupported" };
   try {
-    await navigator.serviceWorker.register("/sw.js");
+    await navigator.serviceWorker.register("/sw.js", { scope: "/" });
     // On a brand-new registration the service worker isn't "active" yet — trying
     // to subscribe before it activates was the exact bug behind "works after you
     // leave and come back": by then it had quietly finished activating in the
