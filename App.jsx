@@ -788,7 +788,7 @@ export default function App() {
             mode={onbMode}
             onBackToIntro={() => go("intro")}
             onSignOut={showAuth ? signOut : null}
-            onDone={() => go(onbReturn)}
+            onDone={(result) => go(result?.createdPlan ? "program" : onbReturn)}
           />
         ) : screen === "hub" ? (
           <Hub
@@ -4523,7 +4523,7 @@ function Onboarding({ profile, saveProfile, answers, saveAnswers, savePlan, voic
     // Short path: they didn't want a plan right now — save what they shared and go.
     if (mode === "short") {
       saveProfile({ ...profile, name: name.trim() || "friend", onboardingComplete: true });
-      onDone();
+      onDone({ createdPlan: false });
       return;
     }
     setBuilding(true);
@@ -4558,7 +4558,7 @@ Respond with ONLY valid JSON, no markdown fences, exactly this shape:
     savePlan(plan);
     saveProfile({ ...profile, name: name.trim() || "friend", onboardingComplete: true });
     setBuilding(false);
-    onDone();
+    onDone({ createdPlan: true });
   };
 
   if (building) return <PlanBuilding />;
