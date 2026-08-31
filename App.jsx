@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   Phone, LifeBuoy, X, Mic, Send, Square, Volume2, VolumeX,
-  ArrowLeft, LogOut, BookOpen, CheckCircle2, Circle, ChevronRight,
+  ArrowLeft, ArrowUp, LogOut, BookOpen, CheckCircle2, Circle, ChevronRight,
   ChevronLeft, Sparkles, Heart, Wind, Anchor, Play, Pause, RotateCcw, Wrench,
   Shield, Eye, EyeOff, User, Megaphone, Youtube, ExternalLink, Radio, Paperclip, MessageCircle, Share2, Flame, HelpCircle, Plus, Search, Settings as SettingsIcon, CalendarCheck, Users, ShoppingBag, Gamepad2, Zap, Download, FileText,
 } from "lucide-react";
@@ -900,6 +900,7 @@ export default function App() {
         ) : screen === "userFeedback" ? (
           <UserFeedback session={session} onBack={back} />
         ) : null}
+        <GlobalJumpToTop />
         <CrisisBar />
       </div>
     </div>
@@ -1006,6 +1007,32 @@ function Disclaimer() {
         Use it alongside advice from qualified professionals.
       </p>
     </div>
+  );
+}
+
+/* ---------- global navigation helpers ---------- */
+function GlobalJumpToTop() {
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const onScroll = () => setVisible(window.scrollY > 280);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+  const jump = () => {
+    const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    window.scrollTo({ top: 0, behavior: reduced ? "auto" : "smooth" });
+  };
+  return (
+    <button type="button" onClick={jump} aria-label="Jump to top" title="Jump to top"
+      style={{ position: "fixed", right: "max(16px, calc((100vw - 460px) / 2 + 16px))", bottom: 78, zIndex: 49,
+        width: 48, height: 48, borderRadius: "50%", display: "grid", placeItems: "center",
+        background: "linear-gradient(145deg, #4d9f68, #2e8578)", color: "#fff", border: "3px solid rgba(255,255,255,0.9)",
+        boxShadow: "0 10px 24px rgba(47,97,72,0.22), 0 3px 8px rgba(47,97,72,0.15)", cursor: "pointer",
+        opacity: visible ? 1 : 0, transform: visible ? "translateY(0) scale(1)" : "translateY(8px) scale(0.86)",
+        pointerEvents: visible ? "auto" : "none", transition: "opacity .2s ease, transform .2s ease" }}>
+      <ArrowUp size={21} strokeWidth={2.8} />
+    </button>
   );
 }
 
