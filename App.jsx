@@ -6080,19 +6080,24 @@ function UserFeedback({ session, onBack }) {
 
 /* ---------- journal ---------- */
 function ProgramInfoSection({ title, children }) {
+  const tones = title.includes("Join") ? ["#f6e8d9", "#bd7540"] : title.includes("touch") ? ["#e2eefb", "#3f6faf"] : title.includes("court") ? ["#eee8f7", "#7055a8"] : ["#e5f3e9", T.greenDk];
   return (
-    <div style={{ marginTop: 18 }}>
-      <div style={{ fontWeight: 800, fontSize: 15.5, color: T.greenDk, marginBottom: 10 }}>{title}</div>
-      {children}
-    </div>
+    <section style={{ marginTop: 22 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 9, margin: "0 2px 10px" }}>
+        <div style={{ width: 9, height: 26, borderRadius: 999, background: `linear-gradient(180deg, ${tones[1]}, ${tones[0]})`, boxShadow: `0 4px 10px ${tones[1]}33` }} />
+        <div style={{ fontWeight: 800, fontSize: 15.5, color: T.ink, letterSpacing: 0.1 }}>{title}</div>
+      </div>
+      <div style={{ paddingLeft: 0 }}>{children}</div>
+    </section>
   );
 }
 
 function ProgramInfoCard({ title, children }) {
   return (
-    <div style={{ background: T.card, borderRadius: 16, padding: 14, boxShadow: T.soft, marginBottom: 8 }}>
-      {title && <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>{title}</div>}
-      <div style={{ fontSize: 13.5, color: T.sub, lineHeight: 1.5 }}>{children}</div>
+    <div style={{ position: "relative", overflow: "hidden", background: "linear-gradient(135deg, rgba(255,255,255,0.96) 0%, rgba(248,252,249,0.94) 70%, rgba(239,247,241,0.9) 100%)", borderRadius: 17, padding: "15px 15px 15px 17px", boxShadow: T.soft, marginBottom: 9, border: "1px solid rgba(77,159,104,0.12)" }}>
+      <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 3, background: "linear-gradient(180deg, #4ea067, #a8d49c)" }} />
+      {title && <div style={{ fontWeight: 800, fontSize: 14, color: T.ink, marginBottom: 5 }}>{title}</div>}
+      <div style={{ fontSize: 13.5, color: T.sub, lineHeight: 1.55 }}>{children}</div>
     </div>
   );
 }
@@ -6106,22 +6111,74 @@ const INTAKE_PACK = [
   { title: "Consent to Share Between Medical Professionals", sub: "Sharing info with your GP & care team", file: "/forms/rh-form-10-consent-share-medical-professionals.pdf" },
 ];
 
+function FounderVideoSection() {
+  const placeholders = ["Video 1", "Video 2", "Video 3", "Video 4", "Video 5"];
+  return (
+    <div style={{ background: "linear-gradient(135deg, #e5f5ea 0%, #f7fbf8 48%, #fff1e5 100%)", borderRadius: 22, padding: 16, boxShadow: T.soft, marginTop: 14, border: "1px solid rgba(55,160,101,0.16)", overflow: "hidden", position: "relative" }}>
+      <div style={{ position: "absolute", width: 150, height: 150, borderRadius: "50%", right: -72, top: -76, background: "rgba(255,255,255,0.5)" }} />
+      <div style={{ position: "relative" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+          <div style={{ width: 56, height: 56, borderRadius: "50%", background: "#ffffff", display: "grid", placeItems: "center", flexShrink: 0, overflow: "hidden", boxShadow: "0 5px 12px rgba(43,111,76,0.14)" }}>
+            <img src="/guides/juan.png" alt="Juan Carroso" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "50% 24%" }} />
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontWeight: 800, fontSize: 16, color: T.greenDk }}>Juan Carroso</div>
+            <div style={{ fontSize: 12.5, color: T.sub }}>The Resilience Hub Founder</div>
+          </div>
+          <div style={{ width: 34, height: 34, borderRadius: 12, background: "rgba(255,255,255,0.76)", display: "grid", placeItems: "center", flexShrink: 0 }}>
+            <Play size={15} color={T.greenDk} fill={T.greenDk} />
+          </div>
+        </div>
+        <div style={{ fontSize: 14, fontWeight: 800, color: T.greenDk, marginBottom: 5 }}>Where it all began — and how we built this for you.</div>
+        <div style={{ fontSize: 13.5, color: T.ink, lineHeight: 1.55, margin: "0 0 13px" }}>
+          <p style={{ margin: "0 0 10px" }}>Welcome to The Resilience &amp; Recovery Program Introduction. We are proud of you for taking this first step, and we are here to support you, at your pace.</p>
+          <p style={{ margin: "0 0 10px" }}>Here's the honest story: How The Resilience Hub came to be, what our program actually does, and exactly how it works for you. Real answers, real heart, straight from someone who built it all from the ground up.</p>
+          <p style={{ margin: 0, fontWeight: 700, color: T.greenDk }}>You never have to walk it alone.</p>
+        </div>
+        <div style={{ fontSize: 11.5, color: T.sub, fontWeight: 700, letterSpacing: 0.3, textTransform: "uppercase", marginBottom: 8 }}>Studio Venture interview series</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+          {placeholders.map((label, index) => (
+            <div key={label} style={{ display: "flex", alignItems: "center", gap: 11, background: index % 2 === 0 ? "linear-gradient(110deg, rgba(255,255,255,0.86), rgba(238,249,241,0.9))" : "linear-gradient(110deg, rgba(255,255,255,0.82), rgba(255,245,235,0.9))", borderRadius: 15, padding: 11, border: "1px dashed rgba(55,128,82,0.28)" }}>
+              <div style={{ width: 37, height: 37, borderRadius: 11, background: index % 2 === 0 ? "linear-gradient(145deg, #3f9d68, #8acb8c)" : "linear-gradient(145deg, #c48755, #e5b17d)", display: "grid", placeItems: "center", flexShrink: 0 }}>
+                <Play size={15} color="#fff" fill="#fff" />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13.5, fontWeight: 800, color: T.ink }}>{label} <span style={{ fontWeight: 600, color: T.sub }}>— coming soon</span></div>
+                <div style={{ fontSize: 11, color: T.sub, marginTop: 3 }}>Juan Carroso • Studio Venture</div>
+              </div>
+              <span style={{ fontSize: 10, fontWeight: 800, color: T.greenDk, background: "rgba(255,255,255,0.76)", borderRadius: 999, padding: "4px 7px", flexShrink: 0 }}>SOON</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ProgramInfo({ onBack, onMessageJuan, onBookAppointment }) {
   return (
     <>
       <Brand right={<BackBtn onBack={onBack} label="Home" />} />
 
-      <div style={{ background: T.card, borderRadius: 20, padding: "26px 20px", boxShadow: T.soft, marginTop: 8, textAlign: "center" }}>
-        <div style={{ width: 96, height: 72, borderRadius: 16, background: "rgba(255,255,255,0.86)", display: "grid",
-          placeItems: "center", boxShadow: T.soft, margin: "0 auto 12px", overflow: "hidden" }}>
-          <img src="/resilience-hub-logo.png" alt="Resilience Hub" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+      <div style={{ background: "linear-gradient(135deg, #e2f3e8 0%, #f7fcf8 47%, #fff0e3 100%)", borderRadius: 24, padding: "22px 18px 20px", boxShadow: T.soft, marginTop: 8, textAlign: "center", border: "1px solid rgba(77,159,104,0.16)", position: "relative", overflow: "hidden" }}>
+        <div style={{ position: "absolute", width: 150, height: 150, borderRadius: "50%", right: -70, top: -78, background: "rgba(255,255,255,0.5)" }} />
+        <div style={{ position: "relative" }}>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 7, background: "rgba(255,255,255,0.76)", borderRadius: 999, padding: "5px 10px", marginBottom: 13, color: T.greenDk, fontSize: 10.5, fontWeight: 800, letterSpacing: 0.45, textTransform: "uppercase" }}>
+            <Heart size={13} fill={T.greenDk} /> A program built around you
+          </div>
+          <div style={{ width: 86, height: 64, borderRadius: 16, background: "rgba(255,255,255,0.9)", display: "grid", placeItems: "center", boxShadow: T.soft, margin: "0 auto 12px", overflow: "hidden" }}>
+            <img src="/resilience-hub-logo.png" alt="Resilience Hub" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+          </div>
+          <div style={{ fontSize: 11.5, fontWeight: 800, color: T.greenDk, letterSpacing: 0.5, textTransform: "uppercase", marginBottom: 6 }}>The Resilience Hub</div>
+          <div style={{ fontWeight: 800, fontSize: 22, lineHeight: 1.25, marginBottom: 9 }}>The Resilience &amp; Recovery Program</div>
+          <div style={{ display: "flex", justifyContent: "center", flexWrap: "wrap", gap: 7, marginBottom: 12 }}>
+            {["Free support", "Individualised", "Your pace"].map((label) => <span key={label} style={{ background: "rgba(255,255,255,0.72)", color: T.sub, borderRadius: 999, padding: "5px 9px", fontSize: 10.5, fontWeight: 700 }}>{label}</span>)}
+          </div>
+          <div style={{ fontSize: 13.5, color: T.sub, fontStyle: "italic" }}>&quot;You never have to walk this journey alone.&quot;</div>
         </div>
-        <div style={{ fontSize: 11.5, fontWeight: 700, color: T.greenDk, letterSpacing: 0.5, textTransform: "uppercase", marginBottom: 6 }}>
-          The Resilience Hub
-        </div>
-        <div style={{ fontWeight: 800, fontSize: 21, lineHeight: 1.3, marginBottom: 8 }}>The Resilience & Recovery Program</div>
-        <div style={{ fontSize: 13.5, color: T.sub, fontStyle: "italic" }}>"You never have to walk this journey alone."</div>
       </div>
+
+      <FounderVideoSection />
 
       <ProgramInfoSection title="Welcome">
         <ProgramInfoCard>
