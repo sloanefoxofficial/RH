@@ -6079,10 +6079,13 @@ function UserFeedback({ session, onBack }) {
 }
 
 /* ---------- journal ---------- */
+function programSectionId(title) {
+  return `program-${String(title).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")}`;
+}
 function ProgramInfoSection({ title, children }) {
   const tones = title.includes("Join") ? ["#f6e8d9", "#bd7540"] : title.includes("touch") ? ["#e2eefb", "#3f6faf"] : title.includes("court") ? ["#eee8f7", "#7055a8"] : ["#e5f3e9", T.greenDk];
   return (
-    <section style={{ marginTop: 22 }}>
+    <section id={programSectionId(title)} style={{ marginTop: 22, scrollMarginTop: 14 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 9, margin: "0 2px 10px" }}>
         <div style={{ width: 9, height: 26, borderRadius: 999, background: `linear-gradient(180deg, ${tones[1]}, ${tones[0]})`, boxShadow: `0 4px 10px ${tones[1]}33` }} />
         <div style={{ fontWeight: 800, fontSize: 15.5, color: T.ink, letterSpacing: 0.1 }}>{title}</div>
@@ -6114,7 +6117,7 @@ const INTAKE_PACK = [
 function FounderVideoSection() {
   const placeholders = ["Video 1", "Video 2", "Video 3", "Video 4", "Video 5"];
   return (
-    <div style={{ background: "linear-gradient(135deg, #e5f5ea 0%, #f7fbf8 48%, #fff1e5 100%)", borderRadius: 22, padding: 16, boxShadow: T.soft, marginTop: 14, border: "1px solid rgba(55,160,101,0.16)", overflow: "hidden", position: "relative" }}>
+    <div id="program-juans-founder-videos" style={{ background: "linear-gradient(135deg, #e5f5ea 0%, #f7fbf8 48%, #fff1e5 100%)", borderRadius: 22, padding: 16, boxShadow: T.soft, marginTop: 14, border: "1px solid rgba(55,160,101,0.16)", overflow: "hidden", position: "relative" }}>
       <div style={{ position: "absolute", width: 150, height: 150, borderRadius: "50%", right: -72, top: -76, background: "rgba(255,255,255,0.5)" }} />
       <div style={{ position: "relative" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
@@ -6124,9 +6127,6 @@ function FounderVideoSection() {
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontWeight: 800, fontSize: 16, color: T.greenDk }}>Juan Carroso</div>
             <div style={{ fontSize: 12.5, color: T.sub }}>The Resilience Hub Founder</div>
-          </div>
-          <div style={{ width: 34, height: 34, borderRadius: 12, background: "rgba(255,255,255,0.76)", display: "grid", placeItems: "center", flexShrink: 0 }}>
-            <Play size={15} color={T.greenDk} fill={T.greenDk} />
           </div>
         </div>
         <div style={{ fontSize: 14, fontWeight: 800, color: T.greenDk, marginBottom: 5 }}>Where it all began — and how we built this for you.</div>
@@ -6182,7 +6182,27 @@ function ProgramInfo({ onBack, onMessageJuan, onBookAppointment }) {
 
       <ProgramInfoSection title="Welcome">
         <ProgramInfoCard>
-          A completely free, individually tailored recovery & resilience program — built around <b>you</b>, not a generic checklist.
+          <div style={{ fontSize: 14, color: T.ink, lineHeight: 1.55, marginBottom: 14 }}>A completely free, individually tailored recovery &amp; resilience program — built around <b>you</b>, not a generic checklist.</div>
+          <div style={{ background: "linear-gradient(135deg, #f5fbf6 0%, #fffaf4 100%)", borderRadius: 15, padding: 13, border: "1px solid rgba(77,159,104,0.14)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, color: T.greenDk, fontSize: 13.5, fontWeight: 800, marginBottom: 8 }}><BookOpen size={16} /> Inside this program</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+              {[
+                ["Juan’s founder videos", "program-juans-founder-videos"],
+                ["How it works", "program-how-it-works"],
+                ["Your support team", "program-your-support-team"],
+                ["For court, bail & second chances", "program-for-court-bail-second-chances"],
+                ["Additional support we connect you to", "program-additional-support-we-connect-you-to"],
+                ["What makes us different", "program-what-makes-us-different"],
+                ["Join The Program", "program-join-the-program"],
+                ["Get in touch", "program-get-in-touch"],
+              ].map(([label, target], index) => (
+                <a key={target} href={`#${target}`} style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 5px", color: T.ink, textDecoration: "none", fontSize: 12.8, fontWeight: 700, borderRadius: 9 }}>
+                  <span style={{ width: 22, height: 22, borderRadius: 8, display: "grid", placeItems: "center", background: index % 2 === 0 ? "#e2f2e7" : "#fff0e3", color: index % 2 === 0 ? T.greenDk : "#bd7540", fontSize: 10.5, fontWeight: 900, flexShrink: 0 }}>{index + 1}</span>
+                  <span style={{ flex: 1 }}>{label}</span><ChevronRight size={15} color={T.sub} />
+                </a>
+              ))}
+            </div>
+          </div>
         </ProgramInfoCard>
       </ProgramInfoSection>
 
