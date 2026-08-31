@@ -1,5 +1,5 @@
-# Completed plan back-navigation fix
+# Sign-up landing-page update
 
 Replace `App.jsx` and `images.js` with the supplied files, then deploy the whole project.
 
-The Resilience & Recovery Program page now sends its **Previous Page** button directly to **Toolkit**, preventing a completed plan setup from returning to the onboarding questions and creating a loop.
+Full sign-up now lands on the completed **Your 8-Week Plan** page after the plan is constructed. The short/no-plan sign-up continues to land on the main Hub screen.

@@ -680,6 +680,13 @@ export default function App() {
     if (prev) { if (prev.char) setActiveChar(prev.char); setScreen(prev.screen); }
     else setScreen("hub");
   };
+  const openToolkitFromPlan = () => {
+    // This is a deliberate destination change, not a normal back step:
+    // discard the completed-plan/onboarding history so Toolkit cannot loop back.
+    histRef.current = [];
+    setToolkitInitial(null);
+    setScreen("toolkit");
+  };
 
   // Deep-linking from a tapped push notification, e.g. straight to the
   // Message Juan screen for a reply, instead of just opening to the Hub.
@@ -778,7 +785,7 @@ export default function App() {
             onExit={rexIntroReplay ? () => { setRexIntroReplay(false); back(); } : null} />
         ) : screen === "planChoice" ? (
           <PlanChoice voiceOn={voiceOn}
-            onYes={() => { setOnbMode("full"); setOnbReturn("hub"); saveProfile({ ...profile, planPath: "full" }); go("onboarding"); }}
+            onYes={() => { setOnbMode("full"); setOnbReturn("program"); saveProfile({ ...profile, planPath: "full" }); go("onboarding"); }}
             onNo={() => { setOnbMode("short"); setOnbReturn("hub"); saveProfile({ ...profile, planPath: "short" }); go("onboarding"); }} />
         ) : screen === "onboarding" ? (
           <Onboarding
@@ -830,7 +837,7 @@ export default function App() {
             onOpenChat={(slug) => go("chat", slug)}
             onOpenJournal={() => go("journal")}
             onStartPlan={() => { setOnbMode("full"); setOnbReturn("program"); go("onboarding"); }}
-            onBack={() => go("toolkit")}
+            onBack={openToolkitFromPlan}
           />
         ) : screen === "guides" ? (
           <GuidesPage onOpenChat={(slug) => go("chat", slug)} onBack={back} />
