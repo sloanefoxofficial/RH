@@ -1,5 +1,5 @@
-# Sign-up landing-page update
+# Explore The App plan landing update
 
 Replace `App.jsx` and `images.js` with the supplied files, then deploy the whole project.
 
-Full sign-up now lands on the completed **Your 8-Week Plan** page after the plan is constructed. The short/no-plan sign-up continues to land on the main Hub screen.
+After a new full sign-up plan is built, the plan page’s top button reads **Explore The App** and takes the user to the main Hub. The short/no-plan sign-up still lands on the Hub and does not show the full-plan landing action. Later in-app plan creation continues to use the normal **Previous Page** behaviour back to Toolkit.

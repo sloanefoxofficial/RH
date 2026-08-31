@@ -311,6 +311,8 @@ export default function App() {
   const [activeChar, setActiveChar] = useState("juan");
   const [onbMode, setOnbMode] = useState("full");     // "full" = with plan, "short" = guides only
   const [onbReturn, setOnbReturn] = useState("hub");  // where to land after the questions
+  const [onbFromSignup, setOnbFromSignup] = useState(false);
+  const [planSignupLanding, setPlanSignupLanding] = useState(false);
   const [gameScores, setGameScores] = useState({});   // { gameKey: bestNumber } — private per user
   const gameScoresRef = useRef({});
   const gameProgressRef = useRef({});                  // { gameKey: savedState } — resume in-progress games
@@ -687,6 +689,11 @@ export default function App() {
     setToolkitInitial(null);
     setScreen("toolkit");
   };
+  const openHubFromPlan = () => {
+    histRef.current = [];
+    setPlanSignupLanding(false);
+    setScreen("hub");
+  };
 
   // Deep-linking from a tapped push notification, e.g. straight to the
   // Message Juan screen for a reply, instead of just opening to the Hub.
@@ -785,8 +792,8 @@ export default function App() {
             onExit={rexIntroReplay ? () => { setRexIntroReplay(false); back(); } : null} />
         ) : screen === "planChoice" ? (
           <PlanChoice voiceOn={voiceOn}
-            onYes={() => { setOnbMode("full"); setOnbReturn("program"); saveProfile({ ...profile, planPath: "full" }); go("onboarding"); }}
-            onNo={() => { setOnbMode("short"); setOnbReturn("hub"); saveProfile({ ...profile, planPath: "short" }); go("onboarding"); }} />
+            onYes={() => { setOnbMode("full"); setOnbFromSignup(true); setOnbReturn("program"); saveProfile({ ...profile, planPath: "full" }); go("onboarding"); }}
+            onNo={() => { setOnbMode("short"); setOnbFromSignup(true); setOnbReturn("hub"); saveProfile({ ...profile, planPath: "short" }); go("onboarding"); }} />
         ) : screen === "onboarding" ? (
           <Onboarding
             profile={profile} saveProfile={saveProfile}
@@ -795,7 +802,7 @@ export default function App() {
             mode={onbMode}
             onBackToIntro={() => go("intro")}
             onSignOut={showAuth ? signOut : null}
-            onDone={(result) => go(result?.createdPlan ? "program" : onbReturn)}
+            onDone={(result) => { const landing = Boolean(result?.createdPlan && onbFromSignup); setPlanSignupLanding(landing); setOnbFromSignup(false); go(result?.createdPlan ? "program" : onbReturn); }}
           />
         ) : screen === "hub" ? (
           <Hub
@@ -836,8 +843,9 @@ export default function App() {
             journalCount={journal.length} chats={chats}
             onOpenChat={(slug) => go("chat", slug)}
             onOpenJournal={() => go("journal")}
-            onStartPlan={() => { setOnbMode("full"); setOnbReturn("program"); go("onboarding"); }}
-            onBack={openToolkitFromPlan}
+            onStartPlan={() => { setOnbMode("full"); setOnbFromSignup(false); setOnbReturn("program"); setPlanSignupLanding(false); go("onboarding"); }}
+            isSignupLanding={planSignupLanding}
+            onBack={planSignupLanding ? openHubFromPlan : openToolkitFromPlan}
           />
         ) : screen === "guides" ? (
           <GuidesPage onOpenChat={(slug) => go("chat", slug)} onBack={back} />
@@ -4910,7 +4918,7 @@ function MerchPage({ onBack }) {
 }
 
 /* ---------- Your 8-week program page ---------- */
-function ProgramPage({ profile, plan, progress, saveProgress, journalCount, chats, onOpenChat, onOpenJournal, onStartPlan, onBack }) {
+function ProgramPage({ profile, plan, progress, saveProgress, journalCount, chats, onOpenChat, onOpenJournal, onStartPlan, isSignupLanding, onBack }) {
   const weeks = plan?.weeks || [];
   // Support day-based plans ({days:[{d,tasks:[]}]}) and legacy step-based plans ({steps:[]}).
   const weekTaskKeys = (w) => {
@@ -4953,7 +4961,7 @@ function ProgramPage({ profile, plan, progress, saveProgress, journalCount, chat
 
   return (
     <>
-      <Brand right={<BackBtn onBack={onBack} />} />
+      <Brand right={<BackBtn onBack={onBack} label={isSignupLanding ? "Explore The App" : "Previous Page"} />} />
       <SectionTitle>Your 8-Week Plan</SectionTitle>
 
       {!plan && (
