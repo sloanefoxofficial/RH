@@ -422,7 +422,13 @@ export default function App() {
   }, []);
   const saveProfile = useCallback((p) => { setProfile(p); sset("rh_profile", p); syncMemberData({ profile: p }); }, [syncMemberData]);
   const saveAnswers = useCallback((a) => { setAnswers(a); sset("rh_answers", a); syncMemberData({ answers: a }); }, [syncMemberData]);
-  const savePlan = useCallback((pl) => { if (pl && !pl.startedAt) pl.startedAt = Date.now(); setPlan(pl); sset("rh_plan", pl); syncMemberData({ plan: pl }); }, [syncMemberData]);
+  const savePlan = useCallback((pl) => {
+    if (pl && !pl.startedAt) pl.startedAt = Date.now();
+    const cleanProgress = {};
+    setPlan(pl); sset("rh_plan", pl);
+    setProgress(cleanProgress); sset("rh_progress", cleanProgress);
+    syncMemberData({ plan: pl, progress: cleanProgress });
+  }, [syncMemberData]);
   const saveProgress = useCallback((pr) => { setProgress(pr); sset("rh_progress", pr); syncMemberData({ progress: pr }); }, [syncMemberData]);
   const saveJournal = useCallback((j) => { setJournal(j); sset("rh_journal", j); syncMemberData({ journal: j }); }, [syncMemberData]);
   const saveChats = useCallback((c) => { setChats(c); sset("rh_chats", c); }, []);
@@ -600,9 +606,14 @@ export default function App() {
 
   const resetAll = async () => {
     clearLocalDeviceCache();
+    setOnbFromSignup(false); setPlanSignupLanding(false); setOnbMode("full"); setOnbReturn("hub");
+    histRef.current = [];
     if (authEnabled && supabase && sessionRef.current) {
       try { await supabase.from("chat_history").delete().eq("user_id", sessionRef.current.user.id); } catch {}
       try { await supabase.from("guide_memory").delete().eq("user_id", sessionRef.current.user.id); } catch {}
+      try {
+        await supabase.from("member_data").update({ profile: null, answers: null, plan: null, progress: {}, journal: [], updated_at: new Date().toISOString() }).eq("user_id", sessionRef.current.user.id);
+      } catch {}
     }
     setScreen("welcome");
   };
