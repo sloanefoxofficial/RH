@@ -865,7 +865,7 @@ export default function App() {
               onBack={() => { setJournalUnlocked(false); back(); }} />
           )
         ) : screen === "toolkit" ? (
-          <Toolkit voiceOn={voiceOn} initial={toolkitInitial} onUseTool={tickToolTask} onBack={back} />
+          <Toolkit voiceOn={voiceOn} initial={toolkitInitial} onUseTool={tickToolTask} onOpenJournal={() => go("journal")} onBack={back} />
         ) : screen === "admin" ? (
           <Admin isAdmin={isAdmin} guidePrompts={guidePrompts} onSaveGuidePrompt={saveGuidePrompt} onBack={back} />
         ) : screen === "profile" ? (
@@ -900,7 +900,7 @@ export default function App() {
         ) : screen === "userFeedback" ? (
           <UserFeedback session={session} onBack={back} />
         ) : null}
-        <GlobalJumpToTop />
+        <GlobalJumpToTop screen={screen} />
         <CrisisBar />
       </div>
     </div>
@@ -1011,7 +1011,7 @@ function Disclaimer() {
 }
 
 /* ---------- global navigation helpers ---------- */
-function GlobalJumpToTop() {
+function GlobalJumpToTop({ screen }) {
   const [visible, setVisible] = useState(false);
   useEffect(() => {
     const onScroll = () => setVisible(window.scrollY > 280);
@@ -1021,10 +1021,15 @@ function GlobalJumpToTop() {
   }, []);
   const jump = () => {
     const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-    window.scrollTo({ top: 0, behavior: reduced ? "auto" : "smooth" });
+    const behavior = reduced ? "auto" : "smooth";
+    if (screen === "programInfo") {
+      document.getElementById("program-welcome")?.scrollIntoView({ behavior, block: "start" });
+    } else {
+      window.scrollTo({ top: 0, behavior });
+    }
   };
   return (
-    <button type="button" onClick={jump} aria-label="Jump to top" title="Jump to top"
+    <button type="button" onClick={jump} aria-label={screen === "programInfo" ? "Jump to table of contents" : "Jump to top"} title={screen === "programInfo" ? "Jump to table of contents" : "Jump to top"}
       style={{ position: "fixed", right: "max(16px, calc((100vw - 460px) / 2 + 16px))", bottom: 78, zIndex: 49,
         width: 48, height: 48, borderRadius: "50%", display: "grid", placeItems: "center",
         background: "linear-gradient(145deg, #4d9f68, #2e8578)", color: "#fff", border: "3px solid rgba(255,255,255,0.9)",
@@ -1533,6 +1538,7 @@ const TOOLS = [
   { key: "safety", title: "Staying safe", blurb: "Substance safety, overdose help & support lines", Icon: LifeBuoy, tint: "#e2eefb", ic: "#3b7fca" },
   { key: "selfhelp", title: "Self-help videos", blurb: "Talks and motivation from inspiring speakers", Icon: Flame, tint: "#fde7cf", ic: "#d0904e" },
   { key: "affirmations", title: "Words for right now", blurb: "Gentle reminders to steady you", Icon: Heart, tint: "#f8e3d6", ic: "#d08a5e" },
+  { key: "journal", title: "Private Journal", blurb: "Put your thoughts into words at your own pace", Icon: BookOpen, tint: "#f3ecd6", ic: "#c9a227" },
   { key: "calm", title: "Quick calm", blurb: "Small things to try when it's too much", Icon: Sparkles, tint: "#fbf1d6", ic: "#c9a227" },
 ];
 
@@ -1690,7 +1696,7 @@ function CarlosSpotlight() {
   );
 }
 
-function Toolkit({ voiceOn, initial, onUseTool, onBack }) {
+function Toolkit({ voiceOn, initial, onUseTool, onOpenJournal, onBack }) {
   const [tool, setTool] = useState(initial || null);
   if (tool === "breathing") return <BreathingTool onBack={() => setTool(null)} />;
   if (tool === "grounding") return <GroundingTool onBack={() => setTool(null)} />;
@@ -1702,7 +1708,7 @@ function Toolkit({ voiceOn, initial, onUseTool, onBack }) {
   if (tool === "nevern") return <NevernPage onBack={() => setTool(null)} />;
   const groups = [
     { label: "Calm down now", keys: ["breathing", "grounding", "calm"] },
-    { label: "Reflect & grow", keys: ["meditation", "selfhelp", "affirmations"] },
+    { label: "Reflect & grow", keys: ["meditation", "selfhelp", "affirmations", "journal"] },
     { label: "Stay safe", keys: ["safety"] },
   ];
   return (
@@ -1722,7 +1728,7 @@ function Toolkit({ voiceOn, initial, onUseTool, onBack }) {
               const t = TOOLS.find((x) => x.key === k);
               if (!t) return null;
               return (
-                <button key={t.key} onClick={() => { onUseTool && onUseTool(t.key); setTool(t.key); }} style={{ width: "100%", display: "flex", alignItems: "center",
+                <button key={t.key} onClick={() => { if (t.key === "journal") { onOpenJournal && onOpenJournal(); return; } onUseTool && onUseTool(t.key); setTool(t.key); }} style={{ width: "100%", display: "flex", alignItems: "center",
                   gap: 14, background: T.card, borderRadius: 18, padding: 14, cursor: "pointer", boxShadow: T.soft, border: "none", textAlign: "left" }}>
                   <div style={{ width: 46, height: 46, borderRadius: 14, background: t.tint, display: "grid", placeItems: "center", flexShrink: 0 }}>
                     <t.Icon size={22} color={t.ic} />
@@ -5025,19 +5031,6 @@ function ProgramPage({ profile, plan, progress, saveProgress, journalCount, chat
         </>
       )}
 
-      <SectionTitle>Journal</SectionTitle>
-      <button onClick={onOpenJournal} style={{ width: "100%", background: T.card, borderRadius: 20, padding: 16,
-        boxShadow: T.soft, border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 12, textAlign: "left" }}>
-        <div style={{ width: 44, height: 44, borderRadius: 14, background: "#f3ecd6", display: "grid", placeItems: "center" }}>
-          <BookOpen size={20} color="#c9a227" />
-        </div>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontWeight: 700 }}>Voice-first journal</div>
-          <div style={{ fontSize: 13, color: T.sub }}>Speak your thoughts — {journalCount} {journalCount === 1 ? "entry" : "entries"} so far</div>
-        </div>
-        <ChevronRight size={20} color={T.sub} />
-      </button>
-
       <Disclaimer />
     </>
   );
@@ -5244,7 +5237,7 @@ function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, set
         {card(onOpenProgramInfo, "#e9f5ee", "#2c7d50", Heart, "Resilience & Recovery Program", "Our free 8-week in-person program — how it works & how to join")}
         {card(onOpenGuides, "#f4e3d9", "#c9803f", Users, "Your guides", "Juan, Carlos, Mick & Lila — chat any time")}
         {card(onOpenToolkit, "#dceee2", "#2c7d50", Wrench, "Toolkit", "Calm down, reflect & grow, stay safe")}
-        {card(onOpenProgram, "#e7eefb", "#3f6faf", CalendarCheck, "Optional 8-Week Plan", "Your plan, progress & journal — use it if it helps")}
+        {card(onOpenProgram, "#e7eefb", "#3f6faf", CalendarCheck, plan ? "Your 8-Week Plan" : "Optional 8-Week Plan", plan ? "Your active plan, progress & next steps" : "Your plan, progress & journal — use it if it helps")}
 
       </div>
 
@@ -6142,7 +6135,13 @@ const INTAKE_PACK = [
 ];
 
 function FounderVideoSection() {
-  const placeholders = ["Video 1", "Video 2", "Video 3", "Video 4", "Video 5"];
+  const videos = [
+    { title: "The Story Behind The Resilience Hub", url: "https://streamable.com/m4edih" },
+    { title: "Men’s Mental Health: Breaking the Silence", url: "https://streamable.com/y5gx96" },
+    { title: "Personalising Support: The Resilience Hub Mission", url: "https://streamable.com/gmng1v" },
+    { title: "Building a New Network for Success", url: "https://streamable.com/dco6ex" },
+    { title: "Authentic Support Through Shared Experience", url: "https://streamable.com/axzg87" },
+  ];
   return (
     <div id="program-juans-founder-videos" style={{ background: "linear-gradient(135deg, #e5f5ea 0%, #f7fbf8 48%, #fff1e5 100%)", borderRadius: 22, padding: 16, boxShadow: T.soft, marginTop: 14, border: "1px solid rgba(55,160,101,0.16)", overflow: "hidden", position: "relative" }}>
       <div style={{ position: "absolute", width: 150, height: 150, borderRadius: "50%", right: -72, top: -76, background: "rgba(255,255,255,0.5)" }} />
@@ -6164,17 +6163,19 @@ function FounderVideoSection() {
         </div>
         <div style={{ fontSize: 11.5, color: T.sub, fontWeight: 700, letterSpacing: 0.3, textTransform: "uppercase", marginBottom: 8 }}>Studio Venture interview series</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
-          {placeholders.map((label, index) => (
-            <div key={label} style={{ display: "flex", alignItems: "center", gap: 11, background: index % 2 === 0 ? "linear-gradient(110deg, rgba(255,255,255,0.86), rgba(238,249,241,0.9))" : "linear-gradient(110deg, rgba(255,255,255,0.82), rgba(255,245,235,0.9))", borderRadius: 15, padding: 11, border: "1px dashed rgba(55,128,82,0.28)" }}>
-              <div style={{ width: 37, height: 37, borderRadius: 11, background: index % 2 === 0 ? "linear-gradient(145deg, #3f9d68, #8acb8c)" : "linear-gradient(145deg, #c48755, #e5b17d)", display: "grid", placeItems: "center", flexShrink: 0 }}>
+          {videos.map((video, index) => (
+            <a key={video.url} href={video.url} target="_blank" rel="noopener noreferrer" aria-label={`Watch ${video.title} on Streamable`}
+              style={{ display: "flex", alignItems: "center", gap: 11, background: index % 2 === 0 ? "linear-gradient(110deg, rgba(255,255,255,0.9), rgba(238,249,241,0.94))" : "linear-gradient(110deg, rgba(255,255,255,0.86), rgba(255,245,235,0.94))", borderRadius: 15, padding: 11, border: "1px solid rgba(55,128,82,0.14)", textDecoration: "none", color: T.ink, boxShadow: "0 4px 12px rgba(47,97,72,0.05)" }}>
+              <div style={{ width: 37, height: 37, borderRadius: 11, background: index % 2 === 0 ? "linear-gradient(145deg, #3f9d68, #8acb8c)" : "linear-gradient(145deg, #c48755, #e5b17d)", display: "grid", placeItems: "center", flexShrink: 0, position: "relative" }}>
                 <Play size={15} color="#fff" fill="#fff" />
+                <span style={{ position: "absolute", right: -5, top: -6, minWidth: 17, height: 17, borderRadius: 9, background: T.card, color: index % 2 === 0 ? T.greenDk : "#bd7540", fontSize: 10, fontWeight: 800, display: "grid", placeItems: "center", boxShadow: "0 2px 5px rgba(40,38,47,0.14)" }}>{index + 1}</span>
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13.5, fontWeight: 800, color: T.ink }}>{label} <span style={{ fontWeight: 600, color: T.sub }}>— coming soon</span></div>
-                <div style={{ fontSize: 11, color: T.sub, marginTop: 3 }}>Juan Carroso • Studio Venture</div>
+                <div style={{ fontSize: 13.5, fontWeight: 800, color: T.ink, lineHeight: 1.3 }}>{video.title}</div>
+                <div style={{ fontSize: 11, color: T.sub, marginTop: 3 }}>Juan Carroso • Studio Venture • Watch on Streamable</div>
               </div>
-              <span style={{ fontSize: 10, fontWeight: 800, color: T.greenDk, background: "rgba(255,255,255,0.76)", borderRadius: 999, padding: "4px 7px", flexShrink: 0 }}>SOON</span>
-            </div>
+              <ExternalLink size={16} color={index % 2 === 0 ? T.greenDk : "#bd7540"} />
+            </a>
           ))}
         </div>
       </div>
