@@ -830,7 +830,7 @@ export default function App() {
             onOpenChat={(slug) => go("chat", slug)}
             onOpenJournal={() => go("journal")}
             onStartPlan={() => { setOnbMode("full"); setOnbReturn("program"); go("onboarding"); }}
-            onBack={back}
+            onBack={() => go("toolkit")}
           />
         ) : screen === "guides" ? (
           <GuidesPage onOpenChat={(slug) => go("chat", slug)} onBack={back} />

@@ -1,5 +1,5 @@
-# Plan landing-page update
+# Completed plan back-navigation fix
 
 Replace `App.jsx` and `images.js` with the supplied files, then deploy the whole project.
 
-When a person later starts an 8-week plan from the in-app plan page, completion now explicitly signals that a plan was created and routes them directly to the completed **Your 8-Week Plan** page. The no-plan onboarding path continues to use its normal return destination.
+The Resilience & Recovery Program page now sends its **Previous Page** button directly to **Toolkit**, preventing a completed plan setup from returning to the onboarding questions and creating a loop.
