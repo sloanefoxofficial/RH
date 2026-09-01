@@ -852,7 +852,7 @@ export default function App() {
         ) : screen === "program" ? (
           <ProgramPage
             profile={profile} plan={plan} progress={progress} saveProgress={saveProgress}
-            journalCount={journal.length} chats={chats}
+            answers={answers} journalCount={journal.length} chats={chats}
             onOpenChat={(slug) => go("chat", slug)}
             onOpenJournal={() => go("journal")}
             onStartPlan={() => { setOnbMode("full"); setOnbFromSignup(false); setOnbReturn("program"); setPlanSignupLanding(false); go("onboarding"); }}
@@ -4932,7 +4932,7 @@ function MerchPage({ onBack }) {
 }
 
 /* ---------- Your 8-week program page ---------- */
-function ProgramPage({ profile, plan, progress, saveProgress, journalCount, chats, onOpenChat, onOpenJournal, onStartPlan, isSignupLanding, onBack }) {
+function ProgramPage({ profile, plan, progress, saveProgress, answers, journalCount, chats, onOpenChat, onOpenJournal, onStartPlan, isSignupLanding, onBack }) {
   const weeks = plan?.weeks || [];
   // Support day-based plans ({days:[{d,tasks:[]}]}) and legacy step-based plans ({steps:[]}).
   const weekTaskKeys = (w) => {
@@ -4944,8 +4944,39 @@ function ProgramPage({ profile, plan, progress, saveProgress, journalCount, chat
     return (w.steps || []).map((_, si) => `w${w.n}s${si}`);
   };
   const allKeys = weeks.flatMap(weekTaskKeys);
-  const doneCount = allKeys.filter((k) => progress[k]).length;
-  const totalSteps = allKeys.length;
+  const answerHas = (key, value) => {
+    const selected = answers?.[key];
+    if (Array.isArray(selected)) return selected.includes(value);
+    if (typeof selected === "number") {
+      const question = QUESTIONS.find((q) => q.key === key);
+      return question?.opts?.[selected] === value;
+    }
+    return selected === value;
+  };
+  const weeklyExtras = (weekNumber) => {
+    const areas = Array.isArray(answers?.areas) ? answers.areas : [];
+    const coping = Array.isArray(answers?.coping) ? answers.coping : [];
+    const gentle = answerHas("pace", "Small, gentle steps") || answerHas("energy", "Running low") || answerHas("energy", "Empty") || answerHas("mood", "Really rough");
+    const challenge = answerHas("pace", "Push me a bit") || answerHas("pace", "A steady challenge") || answerHas("energy", "Good");
+    const extras = [];
+    if (areas.includes("Feeling alone") || answerHas("support", "Not really anyone")) extras.push("Send one low-pressure message to someone safe, or spend ten minutes somewhere you feel around other people.");
+    if (areas.includes("Money") || areas.includes("Housing") || areas.includes("Work / no work") || areas.includes("Legal or justice stuff")) extras.push("Choose one practical loose end and write down the very next step — no need to solve the whole thing today.");
+    if (areas.includes("Relationships") || areas.includes("Family")) extras.push("Notice one conversation that could be made 10% easier by choosing a calmer time, a shorter message, or a clearer boundary.");
+    if (areas.includes("Health") || answerHas("sleep", "Not great") || answerHas("sleep", "Barely sleeping")) extras.push("Create a small wind-down cue for tonight: lower one light, put your phone down for five minutes, or make a warm drink.");
+    if (coping.includes("Exercise or the outdoors")) extras.push("Take a short walk or step outside and notice three things you can see, hear, and feel.");
+    if (coping.includes("Music or games")) extras.push("Use one song or a short game as a deliberate reset, then notice whether your body feels any different afterwards.");
+    if (coping.includes("Talking to someone")) extras.push("Ask a trusted person one honest, simple question: ‘Can you check in with me later today?’");
+    if (coping.includes("Bottling it up")) extras.push("Write three words for how today actually feels. You do not have to explain them or share them.");
+    if (answers?.goal) extras.push(`Take one tiny action that points towards your goal: “${String(answers.goal).slice(0, 110)}”.`);
+    if (!extras.length) extras.push("Notice one moment this week when things felt a little easier, even if it only lasted a minute.");
+    const offset = Math.max(0, (weekNumber - 1) % extras.length);
+    const ordered = extras.slice(offset).concat(extras.slice(0, offset));
+    return gentle ? ordered.slice(0, 1) : challenge ? ordered.slice(0, 2) : ordered.slice(0, 1);
+  };
+  const extraKeys = weeks.flatMap((w) => weeklyExtras(w.n).map((_, i) => `w${w.n}extra${i}`));
+  const trackedKeys = [...allKeys, ...extraKeys];
+  const doneCount = trackedKeys.filter((k) => progress[k]).length;
+  const totalSteps = trackedKeys.length;
   const currentWeek = Math.min(weeks.length || 1, 1 + weeks.filter((w) => weekTaskKeys(w).every((k) => progress[k])).length);
   const [wk, setWk] = useState(currentWeek);
   const [showAllDays, setShowAllDays] = useState(false);
@@ -5026,6 +5057,11 @@ function ProgramPage({ profile, plan, progress, saveProgress, journalCount, chat
         <>
           <SectionTitle>Your plan</SectionTitle>
           {plan.summary && <p style={{ fontSize: 13.5, color: T.sub, margin: "0 2px 12px", lineHeight: 1.5 }}>{plan.summary}</p>}
+          <div style={{ background: "linear-gradient(135deg, #eef8f0 0%, #fff 68%, #fff3e7 100%)", border: `1px solid ${T.line}`, borderRadius: 20, padding: 15, boxShadow: T.soft, marginBottom: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 5 }}><Sparkles size={18} color={T.greenDk} /><div style={{ fontWeight: 800, fontSize: 15.5 }}>A little extra for this week</div></div>
+            <div style={{ fontSize: 12.5, color: T.sub, lineHeight: 1.45, marginBottom: 7 }}>These are optional ways to make the plan feel more like yours. Pick what fits, leave what does not.</div>
+            {weeklyExtras(wk).map((extra, ei) => <TaskRow key={extra} label={extra} k={`w${wk}extra${ei}`} />)}
+          </div>
           <div style={{ background: T.card, borderRadius: 20, padding: 16, boxShadow: T.soft }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
               <button onClick={() => { setWk(Math.max(1, wk - 1)); setShowAllDays(false); }} disabled={wk <= 1} style={navBtn(wk <= 1)}><ChevronLeft size={18} /></button>
