@@ -3,7 +3,7 @@ import {
   Phone, LifeBuoy, X, Mic, Send, Square, Volume2, VolumeX,
   ArrowLeft, ArrowUp, LogOut, BookOpen, CheckCircle2, Circle, ChevronRight,
   ChevronLeft, Sparkles, Heart, Wind, Anchor, Play, Pause, RotateCcw, Wrench,
-  Shield, Eye, EyeOff, User, Megaphone, Youtube, ExternalLink, Radio, Paperclip, MessageCircle, Share2, Flame, HelpCircle, Plus, Search, Settings as SettingsIcon, CalendarCheck, Users, ShoppingBag, Gamepad2, Zap, Download, FileText,
+  Shield, Eye, EyeOff, User, Megaphone, Youtube, ExternalLink, Radio, Paperclip, MessageCircle, Share2, Flame, HelpCircle, Plus, Search, Settings as SettingsIcon, CalendarCheck, Users, ShoppingBag, Gamepad2, Zap, Download, FileText, Clock, MapPin, DollarSign,
 } from "lucide-react";
 import { IMG } from "./images.js";
 import { supabase, authEnabled } from "./supabase.js";
@@ -828,6 +828,7 @@ export default function App() {
             onOpenNotifications={() => go("notifications")}
             onOpenCoordinator={() => go("coordinator")}
             onOpenMensGroup={() => go("mensGroup")}
+            onOpenMensShed={() => go("mensShed")}
             onOpenAdminMessages={() => go("adminMessages")}
             onOpenProgramInfo={() => go("programInfo")}
             onOpenSettings={() => go("settings")}
@@ -906,6 +907,8 @@ export default function App() {
           isAdmin ? <AdminBugReports onBack={back} /> : <Admin isAdmin={isAdmin} guidePrompts={guidePrompts} onSaveGuidePrompt={saveGuidePrompt} onBack={back} />
         ) : screen === "adminAppointments" ? (
           isAdmin ? <AdminAppointments onBack={back} /> : <Admin isAdmin={isAdmin} guidePrompts={guidePrompts} onSaveGuidePrompt={saveGuidePrompt} onBack={back} />
+        ) : screen === "mensShed" ? (
+          <MensShedPage onBack={back} />
         ) : screen === "mensGroup" ? (
           <MensGroup onBack={back} />
         ) : screen === "programInfo" ? (
@@ -5121,7 +5124,7 @@ function GuidesPage({ onOpenChat, onBack }) {
 }
 
 
-function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, setVoiceOn, onOpenChat, onOpenProgram, onOpenGuides, onOpenMerch, onOpenGames, onOpenToolkit, onOpenNotifications, onOpenCoordinator, onOpenSettings, onOpenMensGroup, onOpenAdminMessages, onOpenProgramInfo, onReset, isAdmin, authEnabled, guestMode, onExitGuest, onOpenAdmin, onOpenProfile, onSignOut, session, rexHistory, onSaveRexChat, memories, onConversation, answers, bargeIn, rexPersona }) {
+function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, setVoiceOn, onOpenChat, onOpenProgram, onOpenGuides, onOpenMerch, onOpenGames, onOpenToolkit, onOpenNotifications, onOpenCoordinator, onOpenSettings, onOpenMensGroup, onOpenMensShed, onOpenAdminMessages, onOpenProgramInfo, onReset, isAdmin, authEnabled, guestMode, onExitGuest, onOpenAdmin, onOpenProfile, onSignOut, session, rexHistory, onSaveRexChat, memories, onConversation, answers, bargeIn, rexPersona }) {
   const { speak, stop, speaking } = useVoice(voiceOn);
   const [notifRefresh, setNotifRefresh] = useState(0);
   const [shareMsg, setShareMsg] = useState("");
@@ -5322,6 +5325,16 @@ function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, set
           </div>
           <ExternalLink size={18} color={T.greenDk} />
         </a>
+        <button onClick={onOpenMensShed} aria-label="Open South West Sydney Men's Shed"
+          style={{ width: "100%", background: "linear-gradient(135deg, #e8f5ec 0%, #fffdf7 62%, #fff1d1 100%)", border: "1px solid rgba(41,126,77,0.14)", borderRadius: 20, padding: 12, boxShadow: T.soft, cursor: "pointer", display: "flex", alignItems: "center", gap: 12, textAlign: "left" }}>
+          <img src="/mens-shed/south-west-sydney-mens-shed-sign.png" alt="South West Sydney Men’s Shed sign" style={{ width: 46, height: 46, borderRadius: 14, objectFit: "cover", objectPosition: "50% 50%", flexShrink: 0 }} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: "inline-block", color: "#2b7b4c", fontSize: 10, fontWeight: 900, letterSpacing: 0.9, marginBottom: 2 }}>COMMUNITY CONNECTION</div>
+            <div style={{ fontWeight: 800, fontSize: 16 }}>South West Sydney Men’s Shed</div>
+            <div style={{ fontSize: 13, color: T.sub, lineHeight: 1.35 }}>Mateship, new skills & support — Bonnyrigg</div>
+          </div>
+          <ChevronRight size={20} color={T.greenDk} />
+        </button>
         <button onClick={onOpenMensGroup} style={{ width: "100%", background: T.card, borderRadius: 20, padding: 12,
           boxShadow: T.soft, border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 12, textAlign: "left" }}>
           <img src="/mens_group.jpg" alt="Men's Group" style={{ width: 46, height: 46, borderRadius: 14, objectFit: "cover", flexShrink: 0 }} />
@@ -6348,6 +6361,65 @@ function ProgramInfo({ onBack, onMessageJuan, onBookAppointment }) {
           You never have to walk it alone.
         </div>
       </ProgramInfoSection>
+    </>
+  );
+}
+
+function MensShedPage({ onBack }) {
+  const [galleryOpen, setGalleryOpen] = useState(false);
+  const signPhoto = "/mens-shed/south-west-sydney-mens-shed-sign.png";
+  return (
+    <>
+      <Brand right={<BackBtn onBack={onBack} label="Home" />} />
+      <div style={{ background: "linear-gradient(145deg, #e7f5eb 0%, #fbfcf8 48%, #fff0d7 100%)", borderRadius: 24, overflow: "hidden", boxShadow: T.soft, marginTop: 8, border: "1px solid rgba(44,125,80,0.14)" }}>
+        <div style={{ padding: "22px 18px 18px", position: "relative" }}>
+          <div style={{ position: "absolute", right: -38, top: -44, width: 150, height: 150, borderRadius: "50%", background: "rgba(255,255,255,0.52)" }} />
+          <div style={{ position: "relative" }}>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 7, color: T.greenDk, fontSize: 11, fontWeight: 900, letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}><Users size={15} /> Community connection</div>
+            <h1 style={{ margin: 0, fontSize: 25, lineHeight: 1.12, color: T.ink }}>South West Sydney<br />Men’s Shed</h1>
+            <p style={{ margin: "10px 0 0", color: T.sub, fontSize: 14, lineHeight: 1.5 }}>A friendly place to meet, learn new skills and establish new friendships in Bonnyrigg.</p>
+          </div>
+        </div>
+        <div style={{ padding: "0 14px 14px" }}>
+          <button onClick={() => setGalleryOpen(true)} aria-label="Enlarge South West Sydney Men’s Shed photo" style={{ width: "100%", padding: 0, border: "none", borderRadius: 18, overflow: "hidden", cursor: "zoom-in", background: "#174f36", display: "block" }}>
+            <img src={signPhoto} alt="South West Sydney Men’s Shed sign" style={{ width: "100%", aspectRatio: "4 / 3", objectFit: "cover", display: "block" }} />
+          </button>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginTop: 8, padding: "0 2px" }}>
+            <span style={{ fontSize: 11.5, color: T.sub }}>Tap the photo to enlarge</span>
+            <span style={{ fontSize: 11.5, color: T.greenDk, fontWeight: 800 }}>South West Sydney Men’s Shed Inc.</span>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 12 }}>
+        <a href="tel:0287860040" style={{ textDecoration: "none", color: T.ink, background: "#fff", borderRadius: 17, padding: 13, boxShadow: T.soft, display: "flex", flexDirection: "column", gap: 7 }}><Phone size={19} color={T.greenDk} /><span style={{ fontWeight: 800, fontSize: 13.5 }}>Call the shed</span><span style={{ color: T.sub, fontSize: 12 }}>02 8786 0040</span></a>
+        <a href="https://maps.google.com/?daddr=-33.8925139,150.8891497" target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none", color: T.ink, background: "#fff", borderRadius: 17, padding: 13, boxShadow: T.soft, display: "flex", flexDirection: "column", gap: 7 }}><MapPin size={19} color="#c48755" /><span style={{ fontWeight: 800, fontSize: 13.5 }}>Get directions</span><span style={{ color: T.sub, fontSize: 12 }}>Open in Maps</span></a>
+      </div>
+
+      <div style={{ background: T.card, borderRadius: 20, padding: 17, boxShadow: T.soft, marginTop: 12 }}>
+        <SectionTitle>About the shed</SectionTitle>
+        <p style={{ margin: "0 0 12px", fontSize: 14, lineHeight: 1.58, color: T.ink }}>South West Sydney Men’s Shed is a non-profit community space built around mateship, practical skills and support. Come along to connect with other men, learn something new, or simply spend time in a welcoming environment.</p>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>{["Woodwork", "Metal work", "Electrical work", "Computing", "Community barbecues"].map((x) => <span key={x} style={{ background: "#edf7ef", color: T.greenDk, borderRadius: 999, padding: "7px 10px", fontSize: 11.5, fontWeight: 700 }}>{x}</span>)}</div>
+      </div>
+
+      <div style={{ background: "linear-gradient(135deg, #fffaf0, #fff 68%)", border: "1px solid #f0dfb1", borderRadius: 20, padding: 17, boxShadow: T.soft, marginTop: 12 }}>
+        <SectionTitle>Plan your visit</SectionTitle>
+        <div style={{ display: "flex", gap: 10, alignItems: "flex-start", marginBottom: 11 }}><Clock size={19} color="#b17a2e" style={{ flexShrink: 0, marginTop: 2 }} /><div><div style={{ fontWeight: 800, fontSize: 14 }}>Opening hours</div><div style={{ color: T.sub, fontSize: 13.5, lineHeight: 1.5 }}>Monday, Tuesday and Wednesday<br />8:30am – 12:00pm</div></div></div>
+        <div style={{ display: "flex", gap: 10, alignItems: "flex-start", marginBottom: 11 }}><MapPin size={19} color="#b17a2e" style={{ flexShrink: 0, marginTop: 2 }} /><div><div style={{ fontWeight: 800, fontSize: 14 }}>Location</div><div style={{ color: T.sub, fontSize: 13.5, lineHeight: 1.5 }}>22 Hebblewhite Place<br />Bonnyrigg NSW 2177</div></div></div>
+        <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}><DollarSign size={19} color="#b17a2e" style={{ flexShrink: 0, marginTop: 2 }} /><div><div style={{ fontWeight: 800, fontSize: 14 }}>Membership fees</div><div style={{ color: T.sub, fontSize: 13.5, lineHeight: 1.5 }}>Fees are not listed on the current directory page. Please contact Robert or the shed directly for current fees and joining details.</div></div></div>
+      </div>
+
+      <div style={{ background: T.card, borderRadius: 20, padding: 17, boxShadow: T.soft, marginTop: 12 }}>
+        <SectionTitle>Connect with the shed</SectionTitle>
+        <p style={{ margin: "0 0 12px", color: T.sub, fontSize: 13.5, lineHeight: 1.5 }}>The directory lists Robert Matysiak as the contact person. You can call the shed or visit their Facebook page before you come along.</p>
+        <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+          <a href="tel:0287860040" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none", color: T.ink, background: "#eef7f0", borderRadius: 13, padding: "11px 12px", fontWeight: 750, fontSize: 13.5 }}><Phone size={17} color={T.greenDk} /> 02 8786 0040</a>
+          <a href="https://www.facebook.com/swsmensshedbonnyrigg/" target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none", color: T.ink, background: "#eef3fb", borderRadius: 13, padding: "11px 12px", fontWeight: 750, fontSize: 13.5 }}><ExternalLink size={17} color="#3b6fb6" /> Visit the South West Sydney Men’s Shed Facebook page</a>
+          <a href="https://mensshed.org/sheds/south-west-sydney-mens-shed-inc/" target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none", color: T.ink, background: "#f7f4ef", borderRadius: 13, padding: "11px 12px", fontWeight: 750, fontSize: 13.5 }}><ExternalLink size={17} color={T.sub} /> View the current directory listing</a>
+        </div>
+      </div>
+
+      {galleryOpen && <div onClick={() => setGalleryOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 160, background: "rgba(27,39,31,0.82)", display: "flex", alignItems: "center", justifyContent: "center", padding: 18, cursor: "zoom-out" }}><div onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: 620, background: "#fff", borderRadius: 20, padding: 10, boxShadow: "0 20px 60px rgba(0,0,0,0.35)" }}><img src={signPhoto} alt="South West Sydney Men’s Shed sign enlarged" style={{ width: "100%", display: "block", borderRadius: 14 }} /><button onClick={() => setGalleryOpen(false)} style={{ width: "100%", marginTop: 9, padding: 11, border: "none", borderRadius: 12, background: T.green, color: "#fff", fontWeight: 800, cursor: "pointer" }}>Close photo</button></div></div>}
     </>
   );
 }

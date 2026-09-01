@@ -1,7 +1,9 @@
-# Plan progress reset fix
+# South West Sydney Men’s Shed update
 
-Replace `App.jsx` and `images.js` with the supplied files, then deploy the whole project.
+Replace `App.jsx` and `images.js` in the existing project, and copy `public/mens-shed/south-west-sydney-mens-shed-sign.png` into the matching public folder before deploying.
 
-A newly constructed plan now starts with an empty progress object both locally and in the account’s `member_data` record. The Start over action also clears the local progress cache and updates the signed-in account record with `progress: {}` along with the cleared plan and profile data.
+The Stay Connected section now places a South West Sydney Men’s Shed card below the Resilience Hub website card and above Men’s Group. It opens a dedicated in-app page with the verified Bonnyrigg address, opening hours, phone, directions, Facebook link, directory link, listed activities, and a note that current membership fees should be confirmed directly with the shed because no fee is published on the supplied directory listing.
 
-To retest, complete a few tasks on an existing plan, use Start over and confirm the plan is cleared, then create a new plan. Its progress should begin at zero.
+The supplied sign photo has been cleaned, straightened, cropped, sharpened, and made tappable for an enlarged gallery view.
+
+Source listing: https://mensshed.org/sheds/south-west-sydney-mens-shed-inc/
