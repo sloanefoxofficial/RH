@@ -6484,7 +6484,7 @@ function ResourcesPage({ onOpenSafety, onOpenMensShed, onBack }) {
 
       {sectionLabel("resources-safety", LifeBuoy, "Stay safe", "Practical safety information and in-app support when you need it.", "#a47c1f")}
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {resourceCard({ Icon: LifeBuoy, tint: "#f3ecd6", color: "#a47c1f", eyebrow: "The Resilience Hub", title: "Stay Safe", onClick={onOpenSafety}, children: "Substance safety, overdose information, and support lines. Open the in-app safety guide whenever you need it.", actionLabel: "Open in-app safety guide" })}
+        {resourceCard({ Icon: LifeBuoy, tint: "#f3ecd6", color: "#a47c1f", eyebrow: "The Resilience Hub", title: "Stay Safe", onClick: onOpenSafety, children: "Substance safety, overdose information, and support lines. Open the in-app safety guide whenever you need it.", actionLabel: "Open in-app safety guide" })}
       </div>
       <div style={{ margin: "18px 2px 0", fontSize: 11.5, color: T.sub, lineHeight: 1.5 }}>Please check each organisation’s current hours, eligibility, fees, and availability before travelling. If there is immediate danger, call <a href="tel:000" style={{ color: T.greenDk, fontWeight: 800 }}>000</a>.</div>
       <Disclaimer />
