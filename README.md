@@ -1,7 +1,14 @@
-# Personalised 8-week plan engagement update
+# Resources section update
 
-Replace `App.jsx` and `images.js` in the existing project, then deploy the full project.
+Replace `App.jsx` and `images.js`, copy `public/mens-shed/south-west-sydney-mens-shed-sign.png`, and deploy the full project.
 
-The original Carlos-generated weekly tasks remain intact. The plan page now adds a small optional weekly activity layer based on the person’s setup answers: areas of difficulty, coping preferences, support level, sleep, energy, mood, pace, and stated goal. Gentle or low-energy answers receive one small optional extra; steady/challenge-oriented answers can receive two. Optional extras can be ticked off and are included in the overall progress count.
+The Hub now includes a Resources section after Your Journey. It contains Food Services, Addiction Recovery, Community Support, and Stay Safe. Food Services links to the Ask Izzy 2165 search, Community Cafe’s Miller outreach service (free food and essentials, confidential, no questions asked), and Foodbank Australia’s locator. Addiction Recovery links to Western Sydney Local Health District’s Drug and Alcohol Health Services and Odyssey House NSW, with current public intake phone numbers. Community Support links back to the existing South West Sydney Men’s Shed page, and Stay Safe opens the existing in-app safety guide.
 
-The update also passes the stored onboarding answers into the plan page and correctly decodes the app’s numeric single-choice answers, so the adaptive logic responds to the actual selected labels. Existing plan completion, week navigation, journal access, plan review, and back-navigation behaviour are preserved.
+Stay Safe has been removed from the Toolkit grouping; its safety screen remains available through Resources and its existing tool route. The supplied source URL and current organisation pages should be rechecked periodically because service hours, availability, and contact details can change.
+
+Sources:
+- https://askizzy.org.au/food/2165-NSW
+- https://www.communitycafe.org.au/our-programs/
+- https://www.foodbank.org.au/find-food/
+- https://www.nsw.gov.au/departments-and-agencies/wslhd/services/drug-alcohol
+- https://odysseyhouse.com.au/
