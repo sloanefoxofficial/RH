@@ -273,18 +273,23 @@ function contextBlock(profile, answers) {
   return s;
 }
 
-async function callModel({ system, messages, maxTokens = 1000 }) {
+async function callModel({ system, messages, maxTokens = 1000, timeoutMs = 45000 }) {
   let res;
+  let timer;
   try {
+    const controller = new AbortController();
+    timer = setTimeout(() => controller.abort(), timeoutMs);
     res = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ system, messages, max_tokens: maxTokens }),
+      signal: controller.signal,
     });
-  } catch {
+  } catch (error) {
     throw new Error("Couldn't reach the guides just now — check your connection and try again.");
   }
 
+  finally { clearTimeout(timer); }
   let data = null;
   try { data = await res.json(); } catch { data = null; }
 
@@ -825,6 +830,8 @@ export default function App() {
             onOpenMerch={() => go("merch")}
             onOpenGames={() => go("games")}
             onOpenToolkit={() => { setToolkitInitial(null); go("toolkit"); }}
+            onOpenResources={() => go("resources")}
+            onOpenSafety={() => openTool("safety")}
             onOpenNotifications={() => go("notifications")}
             onOpenCoordinator={() => go("coordinator")}
             onOpenMensGroup={() => go("mensGroup")}
@@ -893,6 +900,8 @@ export default function App() {
           )
         ) : screen === "toolkit" ? (
           <Toolkit voiceOn={voiceOn} initial={toolkitInitial} onUseTool={tickToolTask} onOpenJournal={() => go("journal")} onBack={back} />
+        ) : screen === "resources" ? (
+          <ResourcesPage onOpenSafety={() => openTool("safety")} onOpenMensShed={() => go("mensShed")} onBack={back} />
         ) : screen === "admin" ? (
           <Admin isAdmin={isAdmin} guidePrompts={guidePrompts} onSaveGuidePrompt={saveGuidePrompt} onBack={back} />
         ) : screen === "profile" ? (
@@ -1051,14 +1060,14 @@ function GlobalJumpToTop({ screen }) {
   const jump = () => {
     const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
     const behavior = reduced ? "auto" : "smooth";
-    if (screen === "programInfo") {
-      document.getElementById("program-welcome")?.scrollIntoView({ behavior, block: "start" });
+    if (screen === "programInfo" || screen === "resources") {
+      document.getElementById(screen === "resources" ? "resources-toc" : "program-welcome")?.scrollIntoView({ behavior, block: "start" });
     } else {
       window.scrollTo({ top: 0, behavior });
     }
   };
   return (
-    <button type="button" onClick={jump} aria-label={screen === "programInfo" ? "Jump to table of contents" : "Jump to top"} title={screen === "programInfo" ? "Jump to table of contents" : "Jump to top"}
+    <button type="button" onClick={jump} aria-label={screen === "programInfo" || screen === "resources" ? "Jump to table of contents" : "Jump to top"} title={screen === "programInfo" || screen === "resources" ? "Jump to table of contents" : "Jump to top"}
       style={{ position: "fixed", right: "max(16px, calc((100vw - 460px) / 2 + 16px))", bottom: 78, zIndex: 49,
         width: 48, height: 48, borderRadius: "50%", display: "grid", placeItems: "center",
         background: "linear-gradient(145deg, #4d9f68, #2e8578)", color: "#fff", border: "3px solid rgba(255,255,255,0.9)",
@@ -1738,7 +1747,6 @@ function Toolkit({ voiceOn, initial, onUseTool, onOpenJournal, onBack }) {
   const groups = [
     { label: "Calm down now", keys: ["breathing", "grounding", "calm"] },
     { label: "Reflect & grow", keys: ["meditation", "selfhelp", "affirmations", "journal"] },
-    { label: "Stay safe", keys: ["safety"] },
   ];
   return (
     <>
@@ -4561,18 +4569,18 @@ function Onboarding({ profile, saveProfile, answers, saveAnswers, savePlan, voic
       const sys = `${CHARS.carlos.system}
 You are creating a genuinely personalised 8-week resilience plan from this person's setup answers. It must feel hand-made for THEM, using the specifics they gave — what's weighing on them, why the last weeks felt how they did, the life areas they picked, how they cope, what's helped before, their own goal in their words, their energy, and the pace they asked for.
 
-Structure: 8 weeks. Each week has a short "focus" and 7 days. EACH DAY has between 2 and 5 concrete tasks — 2 is the floor for everyone, and you scale UP toward 4–5 for people who are driven, want a challenge, like being kept busy, or have the energy for it; keep it closer to 2–3 gentle ones for people low on energy, really struggling, or who asked for small steps.
+Structure: 8 weeks. Each week has a short "focus" and 7 days. EACH DAY has exactly 2 or 3 concrete tasks. Use 2 tasks for people who are low on energy, really struggling, or asked for small steps; use 3 for people who want a steady challenge or more structure. Keep every task short and useful so the plan can be generated quickly.
 - Tasks are short, specific to their real situation, and doable — not vague filler.
 - PROGRESS across the plan: early days gentle and stabilising, middle weeks build, later weeks stretch and consolidate toward their goal.
 - Regularly weave in tasks to chat with the RIGHT guide by name — Juan (a mate, general support), Carlos (calming/clinical tools), Mick (practical life, housing, bills), Lila (family & relationships). E.g. "Have a chat with Juan about how the week's going", "Ask Carlos for a tool to try when stress hits", "Talk a bill or form through with Mick", "Chat to Lila about that relationship". Include a few of these each week, matched to what they're dealing with.
 - On DAY 1 of weeks 3, 5 and 7, make one of the tasks exactly: "Plan review — type 'Plan Review' to Carlos to check in on how your plan's going". This lets them adjust the plan with Carlos every couple of weeks.
-- CALIBRATE both difficulty AND how many tasks per day (2 up to 5) to their pace and energy: challenge-seekers get more, meatier, more active tasks (4–5 a day); people low on energy or wanting gentle steps get fewer, small, kind ones — but never fewer than 2 a day.
+- CALIBRATE difficulty AND task count to their pace and energy: challenge-seekers get 3 tasks a day; people low on energy or wanting gentle steps get 2 small, kind tasks a day — never more than 3.
 - Never include anything about self-harm or crisis.
 
 Respond with ONLY valid JSON, no markdown fences, exactly this shape:
 {"summary":"2-3 warm sentences to them referencing their real situation and goal","weeks":[{"n":1,"focus":"short focus title","days":[{"d":1,"tasks":["task","task"]}, ... 7 days]}, ... all 8 weeks]}`;
       const out = await callModel({
-        system: sys, maxTokens: 8000,
+        system: sys, maxTokens: 5200, timeoutMs: 30000,
         messages: [{ role: "user", content: `Their name: ${name || "friend"}. Their setup answers (JSON): ${JSON.stringify(local)}. Build the full, personalised 8-week plan now, with at least two tasks every day.` }],
       });
       let clean = out.split("```json").join("").split("```").join("").trim();
@@ -5160,7 +5168,7 @@ function GuidesPage({ onOpenChat, onBack }) {
 }
 
 
-function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, setVoiceOn, onOpenChat, onOpenProgram, onOpenGuides, onOpenMerch, onOpenGames, onOpenToolkit, onOpenNotifications, onOpenCoordinator, onOpenSettings, onOpenMensGroup, onOpenMensShed, onOpenAdminMessages, onOpenProgramInfo, onReset, isAdmin, authEnabled, guestMode, onExitGuest, onOpenAdmin, onOpenProfile, onSignOut, session, rexHistory, onSaveRexChat, memories, onConversation, answers, bargeIn, rexPersona }) {
+function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, setVoiceOn, onOpenChat, onOpenProgram, onOpenGuides, onOpenMerch, onOpenGames, onOpenToolkit, onOpenResources, onOpenSafety, onOpenNotifications, onOpenCoordinator, onOpenSettings, onOpenMensGroup, onOpenMensShed, onOpenAdminMessages, onOpenProgramInfo, onReset, isAdmin, authEnabled, guestMode, onExitGuest, onOpenAdmin, onOpenProfile, onSignOut, session, rexHistory, onSaveRexChat, memories, onConversation, answers, bargeIn, rexPersona }) {
   const { speak, stop, speaking } = useVoice(voiceOn);
   const [notifRefresh, setNotifRefresh] = useState(0);
   const [shareMsg, setShareMsg] = useState("");
@@ -5361,6 +5369,7 @@ function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, set
           </div>
           <ExternalLink size={18} color={T.greenDk} />
         </a>
+        {card(onOpenResources, "#e9f5ee", "#2c7d50", ShoppingBag, "Resources", "Food, recovery, safety, housing and practical support")}
         <button onClick={onOpenMensShed} aria-label="Open South West Sydney Men's Shed"
           style={{ width: "100%", background: "linear-gradient(135deg, #e8f5ec 0%, #fffdf7 62%, #fff1d1 100%)", border: "1px solid rgba(41,126,77,0.14)", borderRadius: 20, padding: 12, boxShadow: T.soft, cursor: "pointer", display: "flex", alignItems: "center", gap: 12, textAlign: "left" }}>
           <img src="/mens-shed/south-west-sydney-mens-shed-sign.png" alt="South West Sydney Men’s Shed sign" style={{ width: 46, height: 46, borderRadius: 14, objectFit: "cover", objectPosition: "50% 50%", flexShrink: 0 }} />
@@ -6397,6 +6406,88 @@ function ProgramInfo({ onBack, onMessageJuan, onBookAppointment }) {
           You never have to walk it alone.
         </div>
       </ProgramInfoSection>
+    </>
+  );
+}
+
+function ResourcesPage({ onOpenSafety, onOpenMensShed, onBack }) {
+  const jump = (id) => document.getElementById(id)?.scrollIntoView({ behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+  const sectionLabel = (id, Icon, title, sub, color) => <div id={id} style={{ scrollMarginTop: 18, margin: "24px 2px 9px" }}><div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 15.5, fontWeight: 800 }}><span style={{ width: 30, height: 30, borderRadius: 10, background: `${color}18`, display: "grid", placeItems: "center" }}><Icon size={16} color={color} /></span>{title}</div><div style={{ fontSize: 12.5, color: T.sub, margin: "5px 0 0 38px", lineHeight: 1.4 }}>{sub}</div></div>;
+  const resourceCard = ({ Icon, tint, color, eyebrow, title, children, href, phone, email, onClick, actionLabel }) => {
+    const body = <><div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}><div style={{ width: 44, height: 44, borderRadius: 14, background: tint, display: "grid", placeItems: "center", flexShrink: 0 }}><Icon size={22} color={color} /></div><div style={{ flex: 1, minWidth: 0 }}><div style={{ color, fontSize: 10, fontWeight: 900, letterSpacing: 0.9, textTransform: "uppercase", marginBottom: 3 }}>{eyebrow}</div><div style={{ fontWeight: 800, fontSize: 16, color: T.ink }}>{title}</div><div style={{ fontSize: 13, color: T.sub, lineHeight: 1.48, marginTop: 5 }}>{children}</div></div>{(href || onClick) && <ChevronRight size={19} color={T.sub} style={{ flexShrink: 0, marginTop: 12 }} />}</div>{(phone || email || actionLabel) && <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginTop: 11 }}><span style={{ padding: "7px 10px", borderRadius: 999, background: "rgba(255,255,255,0.78)", color: T.ink, fontWeight: 750, fontSize: 11.5 }}>{phone ? `Phone: ${phone}` : email ? `Email: ${email}` : actionLabel}</span></div>}</>;
+    const style = { display: "block", width: "100%", textAlign: "left", background: `linear-gradient(135deg, ${tint} 0%, #fff 74%)`, border: `1px solid ${T.line}`, borderRadius: 19, padding: 14, boxShadow: T.soft, textDecoration: "none", color: T.ink, cursor: "pointer" };
+    if (href) return <a href={href} target="_blank" rel="noopener noreferrer" style={style}>{body}</a>;
+    return <button type="button" onClick={onClick} style={style}>{body}</button>;
+  };
+  const toc = [
+    ["resources-immediate", "Immediate support"], ["resources-food", "Food and meals"], ["resources-housing", "Housing and essentials"], ["resources-money", "Legal, money and bills"], ["resources-recovery", "Addiction recovery"], ["resources-family", "Family, children and youth"], ["resources-health", "Health and wellbeing"], ["resources-safety", "Stay safe"],
+  ];
+  return (
+    <>
+      <Brand right={<BackBtn onBack={onBack} label="Home" />} />
+      <div style={{ background: "linear-gradient(135deg, #e5f5ea 0%, #f8fcf9 54%, #fff0e4 100%)", borderRadius: 24, padding: "22px 19px 20px", marginTop: 7, boxShadow: T.soft, border: `1px solid ${T.line}`, position: "relative", overflow: "hidden" }}>
+        <div style={{ position: "absolute", width: 170, height: 170, borderRadius: "50%", background: "rgba(255,255,255,0.45)", top: -95, right: -55 }} />
+        <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 8, color: T.greenDk, fontSize: 11, fontWeight: 900, letterSpacing: 1, textTransform: "uppercase" }}><BookOpen size={15} /> Practical support, close to home</div>
+        <h1 style={{ position: "relative", fontSize: 26, lineHeight: 1.12, margin: "9px 0 7px", color: T.greenDk }}>Resources</h1>
+        <p style={{ position: "relative", fontSize: 13.5, color: T.sub, lineHeight: 1.55, margin: 0 }}>A clear starting place for food, housing, recovery, safety, legal help, and everyday support. Information and availability can change, so check before travelling.</p>
+        <div id="resources-toc" style={{ position: "relative", scrollMarginTop: 18, marginTop: 16, padding: 13, borderRadius: 17, background: "rgba(255,255,255,0.68)", border: "1px solid rgba(77,159,104,0.14)" }}>
+          <div style={{ fontWeight: 800, color: T.greenDk, fontSize: 13.5, marginBottom: 8 }}>On this page</div>
+          <div style={{ display: "grid", gap: 5 }}>{toc.map(([id, label]) => <button key={id} onClick={() => jump(id)} style={{ border: "none", background: "none", padding: "4px 0", textAlign: "left", color: T.ink, fontSize: 12.5, cursor: "pointer", display: "flex", alignItems: "center", gap: 7 }}><ChevronRight size={14} color={T.green} />{label}</button>)}</div>
+        </div>
+      </div>
+
+      {sectionLabel("resources-immediate", LifeBuoy, "Immediate support", "If things feel urgent or unsafe, these are the first places to reach out.", "#c94f4f")}
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        {resourceCard({ Icon: Phone, tint: "#fff0f0", color: "#c94f4f", eyebrow: "24/7 crisis support", title: "Lifeline", phone: "13 11 14", children: "Crisis support and suicide prevention counselling, available 24 hours a day." })}
+        {resourceCard({ Icon: Phone, tint: "#e7eefb", color: T.blueDk, eyebrow: "Emergency", title: "Police, ambulance or fire", phone: "000", children: "Call 000 if someone is in immediate danger or needs urgent medical help." })}
+        {resourceCard({ Icon: Heart, tint: "#f4e3d9", color: "#b56739", eyebrow: "Mental health support", title: "Beyond Blue and MensLine Australia", href: "https://www.beyondblue.org.au/get-support", children: "Beyond Blue: 1300 22 4636. MensLine Australia: 1300 78 99 78 for men needing phone or online support." })}
+      </div>
+
+      {sectionLabel("resources-food", ShoppingBag, "Food and meals", "Food banks, community meals, food parcels, and help with groceries.", T.greenDk)}
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        {resourceCard({ Icon: Search, tint: "#e9f5ee", color: T.greenDk, eyebrow: "Search local services", title: "Food support near postcode 2165", href: "https://askizzy.org.au/food/2165-NSW", children: "Ask Izzy’s current local directory can help you find food banks, pantries, community meals, vouchers, and food parcels near Fairfield, Liverpool, Cabramatta, and surrounding areas." })}
+        {resourceCard({ Icon: ShoppingBag, tint: "#fff4db", color: "#9a7419", eyebrow: "Miller outreach · no questions asked", title: "Community Cafe food and essentials", href: "https://www.communitycafe.org.au/our-programs/", phone: "0493 048 650", children: "Free food, clothing, household items, and essentials through the Miller Senior Citizens Centre, 29 Shropshire Street, Miller. The service is confidential and no questions are asked. Current listed hours are Monday, Wednesday, and Friday, 1:00pm–5:00pm." })}
+        {resourceCard({ Icon: ExternalLink, tint: "#e8f0fb", color: T.blueDk, eyebrow: "More food-relief options", title: "Foodbank Australia — find food", href: "https://www.foodbank.org.au/find-food/", children: "Use Foodbank’s official locator when you need to look beyond the closest local listings." })}
+      </div>
+
+      {sectionLabel("resources-housing", MapPin, "Housing and essentials", "Emergency accommodation, clothing, bedding, toiletries, and practical support.", "#4e7c9e")}
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        {resourceCard({ Icon: MapPin, tint: "#e7eefb", color: "#4e7c9e", eyebrow: "24/7 housing advice", title: "Link2home", phone: "1800 152 152", href: "https://www.nsw.gov.au/housing-and-construction/housing-support/homelessness", children: "NSW’s statewide homelessness information and referral line for people needing emergency accommodation or housing support." })}
+        {resourceCard({ Icon: MapPin, tint: "#f4e3d9", color: "#b56739", eyebrow: "Practical assistance", title: "The Salvation Army", href: "https://www.salvationarmy.org.au/need-help/", children: "Support may include emergency relief, food, clothing, material aid, and referrals. Contact the service first to check what is available locally." })}
+        {resourceCard({ Icon: ShoppingBag, tint: "#f3ecd6", color: "#a47c1f", eyebrow: "Everyday essentials", title: "Ask Izzy — essentials search", href: "https://askizzy.org.au/", children: "Search for nearby services offering clothing, bedding, toiletries, showers, and other essentials." })}
+      </div>
+
+      {sectionLabel("resources-money", FileText, "Legal, money and bills", "Free legal information, income support, concessions, and help with household costs.", "#6d55b0")}
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        {resourceCard({ Icon: FileText, tint: "#efeaf5", color: "#6d55b0", eyebrow: "Free legal help", title: "LawAccess NSW", href: "https://www.lawaccess.nsw.gov.au/", phone: "1300 888 529", children: "Free legal information, referrals, and assistance for people in New South Wales." })}
+        {resourceCard({ Icon: DollarSign, tint: "#e9f5ee", color: T.greenDk, eyebrow: "Income and concessions", title: "Services Australia", href: "https://www.servicesaustralia.gov.au/centrelink-multilingual-phone-service", phone: "131 202", children: "Centrelink’s multilingual phone service can help people access information in languages other than English." })}
+        {resourceCard({ Icon: DollarSign, tint: "#fff4db", color: "#9a7419", eyebrow: "Bills and household costs", title: "Good Shepherd NILS and NSW energy help", href: "https://goodshep.org.au/services/nils/", children: "Good Shepherd NILS offers no-interest loans for eligible essential needs. For energy-bill support and payment difficulties, contact your retailer or the Energy and Water Ombudsman NSW." })}
+      </div>
+
+      {sectionLabel("resources-recovery", Shield, "Addiction recovery", "Detox, treatment, counselling, aftercare, and the next step after rehab or custody.", T.blueDk)}
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        {resourceCard({ Icon: Shield, tint: "#e7eefb", color: T.blueDk, eyebrow: "Western Sydney public services", title: "Drug and Alcohol Health Services", href: "https://www.nsw.gov.au/departments-and-agencies/wslhd/services/drug-alcohol", phone: "02 8860 2565", children: "Western Sydney services include detoxification treatment, opioid treatment, counselling, outpatient and inpatient pathways, and specialist support. Self-referral is accepted and interpreter support is available." })}
+        {resourceCard({ Icon: Heart, tint: "#f4e3d9", color: "#b56739", eyebrow: "Recovery support", title: "Odyssey House NSW", href: "https://odysseyhouse.com.au/", phone: "1800 397 739", children: "Alcohol and other drug support, including referral guidance for people looking for a recovery pathway." })}
+      </div>
+
+      {sectionLabel("resources-family", Users, "Family, children and youth", "Support for family safety, young people, carers, and children.", "#b56739")}
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        {resourceCard({ Icon: Shield, tint: "#f4e3d9", color: "#b56739", eyebrow: "Family and domestic violence", title: "1800RESPECT", href: "https://www.1800respect.org.au/", phone: "1800 737 732", children: "National counselling, information, and support for people affected by domestic, family, or sexual violence." })}
+        {resourceCard({ Icon: Users, tint: "#e8f0fb", color: T.blueDk, eyebrow: "For young people", title: "Kids Helpline", href: "https://kidshelpline.com.au/", phone: "1800 55 1800", children: "Free, private counselling and support for children and young people up to age 25." })}
+      </div>
+
+      {sectionLabel("resources-health", Heart, "Health and wellbeing", "Low-cost health pathways, mental wellbeing support, and help finding the right service.", "#c56e68")}
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        {resourceCard({ Icon: Heart, tint: "#fbe1e1", color: "#c56e68", eyebrow: "Mental wellbeing", title: "Beyond Blue", href: "https://www.beyondblue.org.au/get-support", phone: "1300 22 4636", children: "Information, counselling, and support for anxiety, depression, and suicide prevention." })}
+        {resourceCard({ Icon: Search, tint: "#e9f5ee", color: T.greenDk, eyebrow: "Find local help", title: "Ask Izzy — health and support search", href: "https://askizzy.org.au/", children: "Search for health, counselling, medical, and community services near your location." })}
+      </div>
+
+      {sectionLabel("resources-safety", LifeBuoy, "Stay safe", "Practical safety information and in-app support when you need it.", "#a47c1f")}
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        {resourceCard({ Icon: LifeBuoy, tint: "#f3ecd6", color: "#a47c1f", eyebrow: "The Resilience Hub", title: "Stay Safe", onClick={onOpenSafety}, children: "Substance safety, overdose information, and support lines. Open the in-app safety guide whenever you need it.", actionLabel: "Open in-app safety guide" })}
+      </div>
+      <div style={{ margin: "18px 2px 0", fontSize: 11.5, color: T.sub, lineHeight: 1.5 }}>Please check each organisation’s current hours, eligibility, fees, and availability before travelling. If there is immediate danger, call <a href="tel:000" style={{ color: T.greenDk, fontWeight: 800 }}>000</a>.</div>
+      <Disclaimer />
     </>
   );
 }
