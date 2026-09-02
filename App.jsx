@@ -273,23 +273,18 @@ function contextBlock(profile, answers) {
   return s;
 }
 
-async function callModel({ system, messages, maxTokens = 1000, timeoutMs = 45000 }) {
+async function callModel({ system, messages, maxTokens = 1000 }) {
   let res;
-  let timer;
   try {
-    const controller = new AbortController();
-    timer = setTimeout(() => controller.abort(), timeoutMs);
     res = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ system, messages, max_tokens: maxTokens }),
-      signal: controller.signal,
     });
-  } catch (error) {
+  } catch {
     throw new Error("Couldn't reach the guides just now — check your connection and try again.");
   }
 
-  finally { clearTimeout(timer); }
   let data = null;
   try { data = await res.json(); } catch { data = null; }
 
@@ -830,8 +825,6 @@ export default function App() {
             onOpenMerch={() => go("merch")}
             onOpenGames={() => go("games")}
             onOpenToolkit={() => { setToolkitInitial(null); go("toolkit"); }}
-            onOpenResources={() => go("resources")}
-            onOpenSafety={() => openTool("safety")}
             onOpenNotifications={() => go("notifications")}
             onOpenCoordinator={() => go("coordinator")}
             onOpenMensGroup={() => go("mensGroup")}
@@ -900,8 +893,6 @@ export default function App() {
           )
         ) : screen === "toolkit" ? (
           <Toolkit voiceOn={voiceOn} initial={toolkitInitial} onUseTool={tickToolTask} onOpenJournal={() => go("journal")} onBack={back} />
-        ) : screen === "resources" ? (
-          <ResourcesPage onOpenSafety={() => openTool("safety")} onOpenMensShed={() => go("mensShed")} onBack={back} />
         ) : screen === "admin" ? (
           <Admin isAdmin={isAdmin} guidePrompts={guidePrompts} onSaveGuidePrompt={saveGuidePrompt} onBack={back} />
         ) : screen === "profile" ? (
@@ -1747,6 +1738,7 @@ function Toolkit({ voiceOn, initial, onUseTool, onOpenJournal, onBack }) {
   const groups = [
     { label: "Calm down now", keys: ["breathing", "grounding", "calm"] },
     { label: "Reflect & grow", keys: ["meditation", "selfhelp", "affirmations", "journal"] },
+    { label: "Stay safe", keys: ["safety"] },
   ];
   return (
     <>
@@ -4569,18 +4561,18 @@ function Onboarding({ profile, saveProfile, answers, saveAnswers, savePlan, voic
       const sys = `${CHARS.carlos.system}
 You are creating a genuinely personalised 8-week resilience plan from this person's setup answers. It must feel hand-made for THEM, using the specifics they gave — what's weighing on them, why the last weeks felt how they did, the life areas they picked, how they cope, what's helped before, their own goal in their words, their energy, and the pace they asked for.
 
-Structure: 8 weeks. Each week has a short "focus" and 7 days. EACH DAY has exactly 2 or 3 concrete tasks. Use 2 tasks for people who are low on energy, really struggling, or asked for small steps; use 3 for people who want a steady challenge or more structure. Keep every task short and useful so the plan can be generated quickly.
+Structure: 8 weeks. Each week has a short "focus" and 7 days. EACH DAY has between 2 and 5 concrete tasks — 2 is the floor for everyone, and you scale UP toward 4–5 for people who are driven, want a challenge, like being kept busy, or have the energy for it; keep it closer to 2–3 gentle ones for people low on energy, really struggling, or who asked for small steps.
 - Tasks are short, specific to their real situation, and doable — not vague filler.
 - PROGRESS across the plan: early days gentle and stabilising, middle weeks build, later weeks stretch and consolidate toward their goal.
 - Regularly weave in tasks to chat with the RIGHT guide by name — Juan (a mate, general support), Carlos (calming/clinical tools), Mick (practical life, housing, bills), Lila (family & relationships). E.g. "Have a chat with Juan about how the week's going", "Ask Carlos for a tool to try when stress hits", "Talk a bill or form through with Mick", "Chat to Lila about that relationship". Include a few of these each week, matched to what they're dealing with.
 - On DAY 1 of weeks 3, 5 and 7, make one of the tasks exactly: "Plan review — type 'Plan Review' to Carlos to check in on how your plan's going". This lets them adjust the plan with Carlos every couple of weeks.
-- CALIBRATE difficulty AND task count to their pace and energy: challenge-seekers get 3 tasks a day; people low on energy or wanting gentle steps get 2 small, kind tasks a day — never more than 3.
+- CALIBRATE both difficulty AND how many tasks per day (2 up to 5) to their pace and energy: challenge-seekers get more, meatier, more active tasks (4–5 a day); people low on energy or wanting gentle steps get fewer, small, kind ones — but never fewer than 2 a day.
 - Never include anything about self-harm or crisis.
 
 Respond with ONLY valid JSON, no markdown fences, exactly this shape:
 {"summary":"2-3 warm sentences to them referencing their real situation and goal","weeks":[{"n":1,"focus":"short focus title","days":[{"d":1,"tasks":["task","task"]}, ... 7 days]}, ... all 8 weeks]}`;
       const out = await callModel({
-        system: sys, maxTokens: 5200, timeoutMs: 30000,
+        system: sys, maxTokens: 8000,
         messages: [{ role: "user", content: `Their name: ${name || "friend"}. Their setup answers (JSON): ${JSON.stringify(local)}. Build the full, personalised 8-week plan now, with at least two tasks every day.` }],
       });
       let clean = out.split("```json").join("").split("```").join("").trim();
@@ -5168,7 +5160,7 @@ function GuidesPage({ onOpenChat, onBack }) {
 }
 
 
-function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, setVoiceOn, onOpenChat, onOpenProgram, onOpenGuides, onOpenMerch, onOpenGames, onOpenToolkit, onOpenResources, onOpenSafety, onOpenNotifications, onOpenCoordinator, onOpenSettings, onOpenMensGroup, onOpenMensShed, onOpenAdminMessages, onOpenProgramInfo, onReset, isAdmin, authEnabled, guestMode, onExitGuest, onOpenAdmin, onOpenProfile, onSignOut, session, rexHistory, onSaveRexChat, memories, onConversation, answers, bargeIn, rexPersona }) {
+function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, setVoiceOn, onOpenChat, onOpenProgram, onOpenGuides, onOpenMerch, onOpenGames, onOpenToolkit, onOpenNotifications, onOpenCoordinator, onOpenSettings, onOpenMensGroup, onOpenMensShed, onOpenAdminMessages, onOpenProgramInfo, onReset, isAdmin, authEnabled, guestMode, onExitGuest, onOpenAdmin, onOpenProfile, onSignOut, session, rexHistory, onSaveRexChat, memories, onConversation, answers, bargeIn, rexPersona }) {
   const { speak, stop, speaking } = useVoice(voiceOn);
   const [notifRefresh, setNotifRefresh] = useState(0);
   const [shareMsg, setShareMsg] = useState("");
@@ -5312,14 +5304,6 @@ function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, set
         {card(onOpenToolkit, "#dceee2", "#2c7d50", Wrench, "Toolkit", "Calm down, reflect & grow, stay safe")}
         {card(onOpenProgram, "#e7eefb", "#3f6faf", CalendarCheck, plan ? "Your 8-Week Plan" : "Optional 8-Week Plan", plan ? "Your active plan, progress & next steps" : "Your plan, progress & journal — use it if it helps")}
 
-      </div>
-
-      <SectionTitle>Resources</SectionTitle>
-      <div style={{ display: "flex", flexDirection: "column", gap: 11 }}>
-        {card(onOpenResources, "#e9f5ee", "#2c7d50", ShoppingBag, "Food Services", "Food support and local services around Western Sydney")}
-        {card(onOpenResources, "#e7eefb", "#345c8d", Shield, "Addiction Recovery", "Detox, counselling, treatment and recovery pathways")}
-        {card(onOpenResources, "#f4e3d9", "#b56739", Users, "Community Support", "Local connection, practical help and a place to start")}
-        {card(onOpenResources, "#f3ecd6", "#a47c1f", LifeBuoy, "Stay Safe", "Overdose information, crisis contacts and safety support")}
       </div>
 
       <SectionTitle>Support us</SectionTitle>
@@ -6413,66 +6397,6 @@ function ProgramInfo({ onBack, onMessageJuan, onBookAppointment }) {
           You never have to walk it alone.
         </div>
       </ProgramInfoSection>
-    </>
-  );
-}
-
-function ResourcesPage({ onOpenSafety, onOpenMensShed, onBack }) {
-  const resourceCard = ({ icon: Icon, tint, iconColor, eyebrow, title, children, action, href, phone, email }) => {
-    const inner = <>
-      <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
-        <div style={{ width: 44, height: 44, borderRadius: 14, background: tint, display: "grid", placeItems: "center", flexShrink: 0 }}><Icon size={22} color={iconColor} /></div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ color: iconColor, fontSize: 10, fontWeight: 900, letterSpacing: 0.9, textTransform: "uppercase", marginBottom: 3 }}>{eyebrow}</div>
-          <div style={{ fontWeight: 800, fontSize: 16, color: T.ink }}>{title}</div>
-          <div style={{ fontSize: 13, color: T.sub, lineHeight: 1.48, marginTop: 5 }}>{children}</div>
-        </div>
-        {!phone && !email && <ChevronRight size={19} color={T.sub} style={{ flexShrink: 0, marginTop: 12 }} />}
-      </div>
-      {(phone || email || action) && <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginTop: 12 }}>
-        {phone && <a href={`tel:${phone.replace(/\s/g, "")}`} onClick={(e) => e.stopPropagation()} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 10px", borderRadius: 999, background: "rgba(255,255,255,0.78)", color: T.ink, textDecoration: "none", fontWeight: 750, fontSize: 12 }}><Phone size={14} color={iconColor} /> {phone}</a>}
-        {email && <a href={`mailto:${email}`} onClick={(e) => e.stopPropagation()} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 10px", borderRadius: 999, background: "rgba(255,255,255,0.78)", color: T.ink, textDecoration: "none", fontWeight: 750, fontSize: 12 }}><MessageCircle size={14} color={iconColor} /> Email</a>}
-        {action}
-      </div>}
-    </>;
-    const style = { display: "block", width: "100%", textAlign: "left", background: `linear-gradient(135deg, ${tint} 0%, #fff 72%)`, border: `1px solid ${T.line}`, borderRadius: 19, padding: 14, boxShadow: T.soft, textDecoration: "none", color: T.ink, cursor: "pointer" };
-    return href ? <a href={href} target="_blank" rel="noopener noreferrer" style={style}>{inner}</a> : <button onClick={action ? undefined : undefined} style={style}>{inner}</button>;
-  };
-  const sectionLabel = (icon, title, sub) => <div style={{ margin: "21px 2px 9px" }}><div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 15.5, fontWeight: 800 }}><span style={{ width: 29, height: 29, borderRadius: 10, background: "#e9f5ee", display: "grid", placeItems: "center" }}>{icon}</span>{title}</div><div style={{ fontSize: 12.5, color: T.sub, margin: "5px 0 0 37px", lineHeight: 1.4 }}>{sub}</div></div>;
-  return (
-    <>
-      <Brand right={<BackBtn onBack={onBack} label="Home" />} />
-      <div style={{ background: "linear-gradient(135deg, #e5f5ea 0%, #f8fcf9 55%, #fff0e4 100%)", borderRadius: 24, padding: "22px 19px 20px", marginTop: 7, boxShadow: T.soft, border: `1px solid ${T.line}`, position: "relative", overflow: "hidden" }}>
-        <div style={{ position: "absolute", width: 170, height: 170, borderRadius: "50%", background: "rgba(255,255,255,0.45)", top: -95, right: -55 }} />
-        <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 8, color: T.greenDk, fontSize: 11, fontWeight: 900, letterSpacing: 1, textTransform: "uppercase" }}><LifeBuoy size={15} /> Practical support, close to home</div>
-        <h1 style={{ position: "relative", fontSize: 26, lineHeight: 1.12, margin: "9px 0 7px", color: T.greenDk }}>Resources</h1>
-        <p style={{ position: "relative", fontSize: 13.5, color: T.sub, lineHeight: 1.55, margin: 0 }}>A starting place for food, recovery, safety, and community support. Services can change their hours or availability, so it is always worth checking before you travel.</p>
-      </div>
-
-      {sectionLabel(<ShoppingBag size={16} color={T.greenDk} />, "Food Services", "Free food, food parcels, and local help around Western Sydney.")}
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {resourceCard({ icon: Search, tint: "#e9f5ee", iconColor: T.greenDk, eyebrow: "Search nearby", title: "Food support near 2165", href: "https://askizzy.org.au/food/2165-NSW", children: "Use Ask Izzy to see current food services and food parcels near the 2165 postcode. The directory is free and designed to help you find nearby support." })}
-        {resourceCard({ icon: ShoppingBag, tint: "#fff4db", iconColor: "#9a7419", eyebrow: "Miller · no questions asked", title: "Community Cafe Outreach Centre", href: "https://www.communitycafe.org.au/our-programs/", phone: "0493 048 650", email: "info@communitycafe.org.au", children: "Free food, clothing, household items, and essentials. The service is confidential and no questions are asked. Miller Senior Citizens Centre, 29 Shropshire St, Miller NSW 2168. Open Monday, Wednesday and Friday, 1:00pm–5:00pm." })}
-        {resourceCard({ icon: ExternalLink, tint: "#e8f0fb", iconColor: T.blueDk, eyebrow: "Foodbank Australia", title: "Find food near you", href: "https://www.foodbank.org.au/find-food/", children: "Foodbank’s official search tool can help locate local food relief providers when you need more options." })}
-      </div>
-
-      {sectionLabel(<Shield size={16} color={T.blueDk} />, "Addiction Recovery", "Detox, treatment, counselling, and recovery pathways.")}
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {resourceCard({ icon: Shield, tint: "#e7eefb", iconColor: T.blueDk, eyebrow: "NSW Government · Western Sydney", title: "Drug and Alcohol Health Services", href: "https://www.nsw.gov.au/departments-and-agencies/wslhd/services/drug-alcohol", phone: "02 8860 2565", children: "Information about detox, opioid treatment, counselling, outpatient care, and other Western Sydney services. Self-referral is accepted, and interpreter support is available." })}
-        {resourceCard({ icon: Heart, tint: "#f4e3d9", iconColor: "#b56739", eyebrow: "Residential and community support", title: "Odyssey House NSW", href: "https://odysseyhouse.com.au/", phone: "1800 397 739", children: "Alcohol and other drug recovery support, including referral guidance for people looking for a next step." })}
-      </div>
-
-      {sectionLabel(<Users size={16} color="#b56739" />, "Community Support", "Connection, practical support, and places where you can feel less alone.")}
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {resourceCard({ icon: Users, tint: "#f4e3d9", iconColor: "#b56739", eyebrow: "Local connection", title: "South West Sydney Men’s Shed", children: "Mateship, practical skills, and a welcoming local community in Bonnyrigg.", action: <button onClick={(e) => { e.stopPropagation(); onOpenMensShed && onOpenMensShed(); }} style={{ border: "none", borderRadius: 999, padding: "8px 11px", background: "rgba(255,255,255,0.8)", color: T.ink, fontWeight: 800, fontSize: 12, cursor: "pointer" }}>Open Men’s Shed page <ChevronRight size={13} style={{ verticalAlign: "-2px" }} /></button> })}
-      </div>
-
-      {sectionLabel(<LifeBuoy size={16} color="#a47c1f" />, "Stay Safe", "Immediate safety information and support contacts.")}
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {resourceCard({ icon: LifeBuoy, tint: "#f3ecd6", iconColor: "#a47c1f", eyebrow: "The Resilience Hub", title: "Stay Safe", children: "Substance safety, overdose information, and support lines. Open the in-app safety guide whenever you need it.", action: <button onClick={(e) => { e.stopPropagation(); onOpenSafety && onOpenSafety(); }} style={{ border: "none", borderRadius: 999, padding: "8px 11px", background: "rgba(255,255,255,0.8)", color: T.ink, fontWeight: 800, fontSize: 12, cursor: "pointer" }}>Open safety guide <ChevronRight size={13} style={{ verticalAlign: "-2px" }} /></button> })}
-      </div>
-      <div style={{ margin: "18px 2px 0", fontSize: 11.5, color: T.sub, lineHeight: 1.5 }}>If someone is in immediate danger, call <a href="tel:000" style={{ color: T.greenDk, fontWeight: 800 }}>000</a>. For crisis support in Australia, call Lifeline on <a href="tel:131114" style={{ color: T.greenDk, fontWeight: 800 }}>13 11 14</a>.</div>
-      <Disclaimer />
     </>
   );
 }
