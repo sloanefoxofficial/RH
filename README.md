@@ -1,7 +1,7 @@
-# Vercel build fix — Resources page
+# Resources card styling update
 
-Vercel’s error was caused by one malformed JavaScript object property in the Stay Safe Resources card:
+Replace `App.jsx` and `images.js`, then deploy the full project.
 
-`onClick={onOpenSafety}` was being used inside an object literal. It is now correctly written as `onClick: onOpenSafety`.
+Resources is now the first card in Stay Connected. It uses a custom inline basket-and-leaf icon designed for the Resilience Hub’s rounded, calm visual language, plus a green-to-cream gradient, practical-support eyebrow, stronger spacing, and a clearer description.
 
-The malformed pattern has been removed and the Resources navigation wiring remains intact. Replace `App.jsx` and `images.js` in the repository, commit the change, and redeploy. The current sandbox copy does not include `package.json`, so a local `npm run build` could not be executed here; the exact syntax issue reported by Vercel has been corrected and statically verified.
+The Resources page route, table of contents, page-specific jump behaviour, external links, and plan-engagement code are preserved.

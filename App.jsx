@@ -5168,6 +5168,14 @@ function GuidesPage({ onOpenChat, onBack }) {
 }
 
 
+function ResourcesIcon({ size = 24, color = "currentColor", strokeWidth = 2.2 }) {
+  return <svg width={size} height={size} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <path d="M6 12.5h20l-1.8 12.2a2 2 0 0 1-2 1.7H9.8a2 2 0 0 1-2-1.7L6 12.5Z" stroke={color} strokeWidth={strokeWidth} strokeLinejoin="round" />
+    <path d="M4.5 12.5h23M9 12.5l2.5-5h9l2.5 5M11 17.5v4M16 17.5v4M21 17.5v4" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" />
+    <path d="M21.8 5.5c1.8-2.2 4.3-2.4 5.7-1.9-.1 2.2-1.4 4.2-3.5 4.8-1.2.3-2-.2-2.2-1.1-.2-.6-.2-1.2 0-1.8Z" stroke={color} strokeWidth={strokeWidth} strokeLinejoin="round" />
+  </svg>;
+}
+
 function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, setVoiceOn, onOpenChat, onOpenProgram, onOpenGuides, onOpenMerch, onOpenGames, onOpenToolkit, onOpenResources, onOpenSafety, onOpenNotifications, onOpenCoordinator, onOpenSettings, onOpenMensGroup, onOpenMensShed, onOpenAdminMessages, onOpenProgramInfo, onReset, isAdmin, authEnabled, guestMode, onExitGuest, onOpenAdmin, onOpenProfile, onSignOut, session, rexHistory, onSaveRexChat, memories, onConversation, answers, bargeIn, rexPersona }) {
   const { speak, stop, speaking } = useVoice(voiceOn);
   const [notifRefresh, setNotifRefresh] = useState(0);
@@ -5340,6 +5348,10 @@ function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, set
 
       <SectionTitle>Stay connected</SectionTitle>
       <div style={{ display: "flex", flexDirection: "column", gap: 11 }}>
+        <button onClick={onOpenResources} aria-label="Open Resources" style={{ width: "100%", background: "linear-gradient(135deg, #e0f3e7 0%, #f7fbf7 54%, #fff0dc 100%)", border: "1px solid rgba(61, 142, 91, 0.2)", borderRadius: 20, padding: 14, boxShadow: T.soft, cursor: "pointer", display: "flex", alignItems: "center", gap: 12, textAlign: "left" }}>
+          <div style={{ width: 48, height: 48, borderRadius: 16, background: "linear-gradient(145deg, #236b4d, #58a878)", display: "grid", placeItems: "center", flexShrink: 0, boxShadow: "0 7px 15px rgba(35,107,77,0.2)" }}><ResourcesIcon size={27} color="#fff" /></div>
+          <div style={{ flex: 1, minWidth: 0 }}><div style={{ display: "inline-block", color: T.greenDk, fontSize: 10, fontWeight: 900, letterSpacing: 1, marginBottom: 2 }}>PRACTICAL SUPPORT</div><div style={{ fontWeight: 800, fontSize: 16 }}>Resources</div><div style={{ fontSize: 13, color: T.sub, lineHeight: 1.4 }}>Food, recovery, safety, housing and everyday help</div></div><ChevronRight size={20} color={T.greenDk} />
+        </button>
         {[
           { name: "Resilience Hub group", sub: "Our community — support, chat & connection", url: "https://www.facebook.com/share/g/1Edkyyez1t/" },
           { name: "Sloane Fox Facebook Page", sub: "Follow the page for updates & drops", url: "https://www.facebook.com/people/Sloanefox/61586163260435/", img: "/merch/sloane-fox-logo.jpg" },
@@ -5369,7 +5381,6 @@ function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, set
           </div>
           <ExternalLink size={18} color={T.greenDk} />
         </a>
-        {card(onOpenResources, "#e9f5ee", "#2c7d50", ShoppingBag, "Resources", "Food, recovery, safety, housing and practical support")}
         <button onClick={onOpenMensShed} aria-label="Open South West Sydney Men's Shed"
           style={{ width: "100%", background: "linear-gradient(135deg, #e8f5ec 0%, #fffdf7 62%, #fff1d1 100%)", border: "1px solid rgba(41,126,77,0.14)", borderRadius: 20, padding: 12, boxShadow: T.soft, cursor: "pointer", display: "flex", alignItems: "center", gap: 12, textAlign: "left" }}>
           <img src="/mens-shed/south-west-sydney-mens-shed-sign.png" alt="South West Sydney Men’s Shed sign" style={{ width: 46, height: 46, borderRadius: 14, objectFit: "cover", objectPosition: "50% 50%", flexShrink: 0 }} />
