@@ -1313,6 +1313,21 @@ async function fetchTtsUrl(text, voiceId) {
 
 // Split a reply into short speakable chunks so playback can start after the
 // FIRST sentence instead of waiting for the whole reply to synthesise.
+function cleanTranscript(text) {
+  const raw = String(text || '').replace(/\s+/g, ' ').trim();
+  if (!raw) return '';
+  const words = raw.split(' ');
+  const out = [];
+  for (const word of words) {
+    const prev = out[out.length - 1];
+    if (prev && word.length > 1 && prev.replace(/[.,!?;:]+$/g, '').toLowerCase() === word.replace(/^[.,!?;:]+/g, '').toLowerCase()) continue;
+    out.push(word);
+  }
+  const half = Math.floor(out.length / 2);
+  if (out.length > 3 && out.length % 2 === 0 && out.slice(0, half).join(' ').toLowerCase() === out.slice(half).join(' ').toLowerCase()) return out.slice(0, half).join(' ');
+  return out.join(' ');
+}
+
 function splitForTts(text) {
   const clean = String(text || "").replace(/\s+/g, " ").trim();
   if (!clean) return [];
@@ -1494,7 +1509,7 @@ function HoldToTalk({ onText, onStart, size = 52 }) {
       if (heldRef.current) { runSession(); return; } // still held — keep listening seamlessly
       setListening(false);
       const t = committedRef.current.trim();
-      if (t) onText(t);
+      if (t) onText(cleanTranscript(t));
     };
     try { recRef.current = r; r.start(); setListening(true); }
     catch { recRef.current = null; /* start raced with a previous stop — the watchdog revives it */ }
@@ -5724,7 +5739,7 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
         if (done) return; done = true;
         hfRecRef.current = null;
         if (!hfRef.current) return;
-        const t = (finalText + " " + interim).trim();
+        const t = cleanTranscript(finalText + " " + interim);
         if (t) { hfEmpty.current = 0; if (sendRef.current) sendRef.current(t); }
         else {
           hfEmpty.current += 1;
