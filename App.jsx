@@ -5374,7 +5374,6 @@ function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, set
         </button>
         {[
           { name: "Resilience Hub group", sub: "Our community — support, chat & connection", url: "https://www.facebook.com/share/g/1Edkyyez1t/" },
-          { name: "Sloane Fox Facebook Page", sub: "Follow the page for updates & drops", url: "https://www.facebook.com/people/Sloanefox/61586163260435/", img: "/merch/sloane-fox-logo.jpg" },
         ].map((f) => (
           <a key={f.name} href={f.url} target="_blank" rel="noopener noreferrer"
             style={{ display: "flex", alignItems: "center", gap: 12, background: T.card, borderRadius: 20, padding: 16,
