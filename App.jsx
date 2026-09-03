@@ -5670,6 +5670,8 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
   const { speak, stop, speaking, paused, pauseResume } = useVoice(voiceOn);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
+  const sendLockRef = useRef(false);
+  const lastSubmittedTextRef = useRef({ text: "", at: 0 });
   const [err, setErr] = useState(null);
   const scrollRef = useRef(null);
   const spoken = useRef(new Set());
@@ -5731,7 +5733,7 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) { setHandsFree(false); hfRef.current = false; return; }
     // There is exactly one owner of recognition. Invalidate the old instance
-    // before creating a new one so its late onend/onresult cannot submit text.
+    // before creating a new one so its late callbacks cannot submit text.
     const old = hfRecRef.current;
     if (old) {
       old.onresult = null; old.onend = null; old.onerror = null;
@@ -5741,24 +5743,23 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
     const sessionId = ++hfSessionRef.current;
     voiceDebug("hands-free session created", sessionId);
     try {
-      const r = new SR(); r.lang = __speechLang; r.interimResults = true; r.continuous = true;
-      const finalParts = []; const seenFinalIndexes = new Set();
-      let interim = ""; let done = false; let silence = null;
-      const arm = () => { clearTimeout(silence); silence = setTimeout(() => { try { r.stop(); } catch {} }, 1500); };
+      // Keep one continuous session open while the person speaks, but only accept
+      // final results. This avoids rolling interim fragments while allowing
+      // natural pauses between words and sentences.
+      const r = new SR(); r.lang = __speechLang; r.interimResults = false; r.continuous = true;
+      const finalParts = []; const seenFinalIndexes = new Set(); let lastFinalText = ""; let done = false; let silence = null;
+      const arm = () => { clearTimeout(silence); silence = setTimeout(() => { try { r.stop(); } catch {} }, 2600); };
       r.onstart = () => { if (sessionId === hfSessionRef.current) arm(); };
       r.onresult = (e) => {
-        if (sessionId !== hfSessionRef.current || done || speaking) return;
-        let it = "";
+        if (sessionId !== hfSessionRef.current || done) { voiceDebug("stale hands-free result ignored", sessionId); return; }
         for (let i = e.resultIndex || 0; i < e.results.length; i++) {
-          const res = e.results[i]; if (!res || !res[0]) continue;
-          if (res.isFinal) {
-            if (!seenFinalIndexes.has(i)) { seenFinalIndexes.add(i); finalParts.push(res[0].transcript); }
-          } else it += res[0].transcript + " ";
+          const res = e.results[i]; if (!res || !res.isFinal || !res[0]) continue;
+          const part = String(res[0].transcript || "").trim();
+          if (part && !seenFinalIndexes.has(i) && part !== lastFinalText) { seenFinalIndexes.add(i); finalParts.push(part); lastFinalText = part; }
         }
-        interim = it.trim();
         arm();
       };
-      r.onerror = () => {};
+      r.onerror = (e) => { voiceDebug("hands-free recognition error", sessionId, e?.error || "unknown"); };
       r.onend = () => {
         clearTimeout(silence);
         if (sessionId !== hfSessionRef.current || done) { voiceDebug("stale hands-free onend ignored", sessionId); return; }
@@ -5766,14 +5767,14 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
         if (hfRecRef.current === r) hfRecRef.current = null;
         setHfListening(false);
         if (!hfRef.current) return;
-        const t = cleanTranscript(finalParts.join(" ") + " " + interim);
+        const t = cleanTranscript(finalParts.join(" "));
         if (t) {
           hfEmpty.current = 0;
           if (hfSubmittedSessionRef.current !== sessionId) {
             hfSubmittedSessionRef.current = sessionId;
             voiceDebug("hands-free transcript submitted", sessionId, t);
             if (sendRef.current) sendRef.current(t);
-          }
+          } else voiceDebug("hands-free duplicate transcript ignored", sessionId);
           return;
         }
         hfEmpty.current += 1;
@@ -5846,7 +5847,14 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
   const send = async (raw, opts) => {
     const text = (raw ?? input).trim();
     const img = pendingImage;
-    if ((!text && !img) || busy) return;
+    if ((!text && !img) || busy || sendLockRef.current) return;
+    const now = Date.now();
+    if (!img && text === lastSubmittedTextRef.current.text && now - lastSubmittedTextRef.current.at < 2500) {
+      voiceDebug("duplicate AI request ignored", text);
+      return;
+    }
+    sendLockRef.current = true;
+    if (!img) lastSubmittedTextRef.current = { text, at: now };
     // Invalidate any pending recognition before a new AI reply can speak.
     stopHF();
     // Response speed: the person's saved Settings preference, unless this one
@@ -5926,7 +5934,7 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
       if (onConversation) onConversation(withReply); // quietly refresh long-term memory in the background
     } catch (e) {
       setErr(e.message || "Something went wrong.");
-    } finally { setBusy(false); }
+    } finally { sendLockRef.current = false; setBusy(false); }
   };
   sendRef.current = send;
 
