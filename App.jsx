@@ -4495,11 +4495,47 @@ const PLAN_STEPS = [
   "Almost there — adding the finishing touches…",
 ];
 
+// Extracted from the supplied Daily Resilience document. Day 30 repeats the
+// Seneca quotation used on Day 11, so it is intentionally not included here.
+const CARLOS_QUOTES = [
+  `Epictetus said: “Difficulties show what a person is. So when you run into trouble, remember you're being forged stronger, not broken.” Hard days aren't punishments — they're where you find out what you're truly made of.`,
+  `Epictetus said: “We cannot choose our external circumstances, but we can always choose our perspective.” The same storm that hardens clay softens wax — be the one who stays flexible.`,
+  `Seneca said: “He who does not think much of himself is much too humble.” Self-respect is not arrogance — it is the foundation of every good thing you will build.`,
+  `Marcus Aurelius said: “The best revenge is to be unlike him who performed the injury.” Keep your heart clean — anger traps you in the past, forgiveness sets you free.`,
+  `Heraclitus said: “The only constant in life is change.” Do not fear the ending — trust that you are always being carried forward, even when the ground feels unsteady.`,
+  `Plato said: “You can discover more about a person in an hour of play than in a year of conversation.” Rest is not laziness — it is where your humanity and creativity live.`,
+  `Aristotle said: “The soul becomes dyed with the colour of its thoughts.” Guard your mind carefully — what you feed it grows.`,
+  `Zeno said: “The goal of life is living in agreement with nature.” You don't need to chase what everyone else has — you only need to walk true to who you are.`,
+  `Cleanthes said: “Fate leads the willing, and drags the unwilling.” Resistance is heavy — but acceptance turns weight into wisdom.`,
+  `Musonius Rufus said: “Virtue is the only good; all else is only a tool.” Your worth is not in what you own, but in how you show up.`,
+  `Seneca said: “Every new beginning comes from some other beginning's end.” Closing a chapter isn't failure — it is clearing space for what you are meant to become.`,
+  `Plato said: “The beginning is the most important part of the work.” You don't need to have it all figured out to start — you just need to start, even with what little you have.`,
+  `Epictetus said: “Some things are in our control and others not.” True freedom comes from knowing exactly which is which.`,
+  `Heraclitus said: “No man ever steps in the same river twice.” You are not the person you were yesterday — you've grown, you've learned, and you're stronger than you know.`,
+  `Socrates said: “The greatest way to live with honour is to be what we pretend to be.” Become the person you want to meet — and you will change the world around you.`,
+  `Epictetus said: “We cannot choose our external circumstances, but we can always choose our response.” Freedom isn't what happens to you — it's how you meet it.`,
+  `Marcus Aurelius said: “Waste no more time arguing what a good life looks like — live it.” Peace is found in doing, not debating or seeking approval.`,
+  `Socrates said: “The unexamined life is not worth living — but the over-examined life is not livable at all.” You don't have to fix every single thing about yourself to be okay.`,
+  `Aristotle said: “We build walls to keep pain out, but they also keep joy out.” Being open doesn't mean you won't get hurt — it means you get to feel everything that makes life worth living.`,
+  `Marcus Aurelius said: “Dwell on the beauty of life. Watch the stars, and see yourself running with them.” You are part of something far bigger than your struggles.`,
+  `Seneca said: “If a man knows not to which port he sails, no wind is favourable.” You don't need the whole map — just know your next direction.`,
+  `Epictetus said: “No one is free who has not mastered themselves.” True freedom is not doing whatever you feel — it's choosing what serves you.`,
+  `Plato said: “Be kind — for everyone you meet is fighting a hard battle.” You never know what someone carries — gentleness is strength.`,
+  `Aristotle said: “It is during our darkest moments that we must focus to see the light.” Resilience isn't avoiding the dark — it's learning to carry your own light.`,
+  `Seneca said: “He who has a why to live can bear almost any how.” Your purpose doesn't have to be grand — it just has to be yours.`,
+  `Marcus Aurelius said: “The best way to predict the future is to create it.” You build tomorrow by what you do today — not by worrying about it.`,
+  `Epictetus said: “First say to yourself what you would be; and then do what you have to do.” You become who you choose to be — not by wishing, but by acting.`,
+  `Plato said: “Courage is knowing what not to fear.” Sometimes the bravest thing you can do is say no — to what drains you, to what hurts you, to what pulls you down.`,
+  `Aristotle said: “We become just by doing just acts, temperate by doing temperate acts, brave by doing brave acts.” You don't wait to be strong — you become strong by acting strong.`,
+];
+
 function PlanBuilding() {
   const [i, setI] = useState(0);
+  const [quoteI, setQuoteI] = useState(0);
   useEffect(() => {
     const t = setInterval(() => setI((k) => (k < PLAN_STEPS.length - 1 ? k + 1 : k)), 4200);
-    return () => clearInterval(t);
+    const q = setInterval(() => setQuoteI((k) => (k + 1) % CARLOS_QUOTES.length), 7000);
+    return () => { clearInterval(t); clearInterval(q); };
   }, []);
   return (
     <>
@@ -4527,6 +4563,11 @@ function PlanBuilding() {
           <div style={{ fontSize: 11.5, color: T.sub, marginTop: 10, lineHeight: 1.5 }}>
             The more you shared, the longer this takes — and the more personalised your plan will be.
           </div>
+        </div>
+
+        <div key={quoteI} className="rh-in" style={{ background: "linear-gradient(135deg, #f4f8f5, #fffaf3)", border: `1px solid ${T.line}`, borderRadius: 18, padding: "15px 16px", maxWidth: 420, margin: "12px auto 0", boxShadow: T.soft, textAlign: "left" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 7, color: T.greenDk, fontSize: 11, fontWeight: 900, letterSpacing: 0.8, textTransform: "uppercase", marginBottom: 7 }}><MessageCircle size={14} /> A thought from Carlos</div>
+          <div style={{ fontSize: 14, color: T.ink, lineHeight: 1.55, fontStyle: "italic" }}>“{CARLOS_QUOTES[quoteI]}”</div>
         </div>
       </div>
     </>
