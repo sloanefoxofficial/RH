@@ -860,6 +860,10 @@ export default function App() {
           <ProgramPage
             profile={profile} plan={plan} progress={progress} saveProgress={saveProgress}
             answers={answers} journalCount={journal.length} chats={chats}
+            onSaveChat={saveCharChat} memories={memoryOn ? memories : []}
+            onConversation={refreshMemory} voiceOn={voiceOn} setVoiceOn={setVoiceOn}
+            bargeIn={bargeIn} responseSpeed={responseSpeed} onOpenTool={openTool}
+            persona={guidePrompts.carlos ?? PERSONALITY_DEFAULTS.carlos}
             onOpenChat={(slug) => go("chat", slug)}
             onOpenJournal={() => go("journal")}
             onStartPlan={() => { setOnbMode("full"); setOnbFromSignup(false); setOnbReturn("program"); setPlanSignupLanding(false); go("onboarding"); }}
@@ -4940,7 +4944,8 @@ function MerchPage({ onBack }) {
 }
 
 /* ---------- Your 8-week program page ---------- */
-function ProgramPage({ profile, plan, progress, saveProgress, answers, journalCount, chats, onOpenChat, onOpenJournal, onStartPlan, isSignupLanding, onBack }) {
+function ProgramPage({ profile, plan, progress, saveProgress, answers, journalCount, chats, onSaveChat, memories, onConversation, voiceOn, setVoiceOn, bargeIn, responseSpeed, onOpenTool, persona, onOpenChat, onOpenJournal, onStartPlan, isSignupLanding, onBack }) {
+  const [coachOpen, setCoachOpen] = useState(false);
   const weeks = plan?.weeks || [];
   // Support day-based plans ({days:[{d,tasks:[]}]}) and legacy step-based plans ({steps:[]}).
   const weekTaskKeys = (w) => {
@@ -4990,6 +4995,8 @@ function ProgramPage({ profile, plan, progress, saveProgress, answers, journalCo
   const [showAllDays, setShowAllDays] = useState(false);
   const week = weeks.find((w) => w.n === wk);
   const toggle = (key) => saveProgress({ ...progress, [key]: !progress[key] });
+  const coachWeek = week || weeks[0];
+  const coachContext = coachWeek ? `You are guiding the person from inside their 8-week plan. They are currently viewing Week ${coachWeek.n}, focused on “${coachWeek.focus}”. Their visible tasks are: ${Array.isArray(coachWeek.days) ? coachWeek.days.flatMap((d) => d.tasks || []).join("; ") : (coachWeek.steps || []).join("; ")}. Help them understand the purpose of this week, answer questions, make tasks feel manageable, and offer gentle, practical advice. Do not pressure them to complete anything. If they are struggling, help them choose one small next step. You can suggest that they tick off a task only when they feel it is genuinely done. This is supportive guidance, not therapy, diagnosis, or a clinical treatment plan.` : "You are helping the person understand and use their personalised 8-week plan. Keep your guidance gentle, practical, and collaborative.";
 
   // Dates: derived from when the plan was built (older plans without a start date just show no dates).
   const started = plan?.startedAt ? new Date(plan.startedAt) : null;
@@ -5065,6 +5072,11 @@ function ProgramPage({ profile, plan, progress, saveProgress, answers, journalCo
         <>
           <SectionTitle>Your plan</SectionTitle>
           {plan.summary && <p style={{ fontSize: 13.5, color: T.sub, margin: "0 2px 12px", lineHeight: 1.5 }}>{plan.summary}</p>}
+          <button onClick={() => setCoachOpen(true)} style={{ width: "100%", border: `1px solid ${T.line}`, borderRadius: 18, padding: "13px 14px", background: "linear-gradient(120deg, #e7f5eb, #f5f8ff 72%, #fff)", boxShadow: T.soft, display: "flex", alignItems: "center", gap: 11, textAlign: "left", cursor: "pointer", marginBottom: 12 }}>
+            <div style={{ width: 42, height: 42, borderRadius: 14, overflow: "hidden", background: "#e8f0fb", flexShrink: 0 }}><img src={CHARS.carlos.img} alt="Carlos" style={{ width: "100%", height: "100%", objectFit: "contain" }} /></div>
+            <div style={{ flex: 1 }}><div style={{ fontWeight: 800, fontSize: 14.5 }}>Ask Carlos about this week</div><div style={{ fontSize: 12.5, color: T.sub, lineHeight: 1.35 }}>Questions, encouragement, or a gentler way through a task</div></div>
+            <ChevronRight size={19} color={T.sub} />
+          </button>
           <div style={{ background: "linear-gradient(135deg, #eef8f0 0%, #fff 68%, #fff3e7 100%)", border: `1px solid ${T.line}`, borderRadius: 20, padding: 15, boxShadow: T.soft, marginBottom: 12 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 5 }}><Sparkles size={18} color={T.greenDk} /><div style={{ fontWeight: 800, fontSize: 15.5 }}>A little extra for this week</div></div>
             <div style={{ fontSize: 12.5, color: T.sub, lineHeight: 1.45, marginBottom: 7 }}>These are optional ways to make the plan feel more like yours. Pick what fits, leave what does not.</div>
@@ -5104,6 +5116,14 @@ function ProgramPage({ profile, plan, progress, saveProgress, answers, journalCo
         </>
       )}
 
+      {coachOpen && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 120, background: "rgba(44,42,51,0.45)", display: "flex", alignItems: "flex-end", justifyContent: "center", padding: 10 }}>
+          <div style={{ width: "100%", maxWidth: 460, maxHeight: "88vh", overflowY: "auto", background: T.bgMid, borderRadius: "24px 24px 16px 16px", boxShadow: T.lift, padding: "10px 12px 14px" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "2px 2px 8px" }}><div style={{ fontWeight: 800, fontSize: 15 }}>Carlos · plan coach</div><button onClick={() => setCoachOpen(false)} aria-label="Close Carlos plan coach" style={{ width: 34, height: 34, borderRadius: "50%", border: "none", background: "#fff", color: T.ink, cursor: "pointer", display: "grid", placeItems: "center" }}><X size={18} /></button></div>
+            <Chat char={CHARS.carlos} profile={profile} answers={answers} history={chats?.carlos || []} setHistory={(h) => onSaveChat && onSaveChat("carlos", h)} plan={plan} progress={progress} saveProgress={saveProgress} persona={persona} memories={memories} onConversation={onConversation} voiceOn={voiceOn} setVoiceOn={setVoiceOn} bargeIn={bargeIn} responseSpeed={responseSpeed} onBack={() => setCoachOpen(false)} onOpenTool={onOpenTool} embedded planCoachContext={coachContext} />
+          </div>
+        </div>
+      )}
       <Disclaimer />
     </>
   );
@@ -5468,7 +5488,7 @@ function GuideRow({ char, onClick, big }) {
 }
 
 /* ---------- chat ---------- */
-function Chat({ char, profile, answers, history, setHistory, plan, progress, saveProgress, persona, memories, onConversation, voiceOn, setVoiceOn, onBack, onOpenTool, embedded, bargeIn, responseSpeed, onReplayIntro }) {
+function Chat({ char, profile, answers, history, setHistory, plan, progress, saveProgress, persona, memories, onConversation, voiceOn, setVoiceOn, onBack, onOpenTool, embedded, planCoachContext, bargeIn, responseSpeed, onReplayIntro }) {
   const { speak, stop, speaking, paused, pauseResume } = useVoice(voiceOn);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
@@ -5637,6 +5657,7 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
     setBusy(true);
     try {
       let system = char.system + contextBlock(profile, answers);
+      if (planCoachContext && char.slug === "carlos") system += `\n\n[CONTEXTUAL PLAN COACH]\n${planCoachContext}`;
       const note = (persona || "").trim();
       if (note) {
         system += `\n\n[Personality — how you come across. This shapes your tone, voice, and character only. The safety, honesty, role, and memory rules above always take priority and must never be overridden by this.]\n${note}`;
