@@ -4617,7 +4617,7 @@ You are creating a genuinely personalised 8-week recovery and resilience plan fr
 NON-NEGOTIABLE STRUCTURE: return exactly 8 weeks, each with a short focus and exactly 7 days. Each day has 2 or 3 short, concrete tasks. The plan must grow week by week, but the person's requested pace and current energy control how gently that growth is presented. If energy is low or they chose gentle steps, use two tasks where possible and make the second task easy to split into smaller pieces. If they are ready for more, use three tasks. Never make a task a test they can fail.
 
 CORE RULES — EVERY WEEK:
-1. WALKING: include at least three clearly labelled walking days, each with a 30-minute walk. The progression must increase a little every week through a slightly longer route, a few more minutes of purposeful pace, a new destination, or a gentle distance challenge — never a sudden jump. For low-energy users, explicitly allow the 30 minutes to be split into shorter walks across the day while keeping the same weekly target.
+1. WALKING: every one of the seven days must include one clearly labelled 20-minute walk. Keep the walk gentle and achievable, but let the weekly progression grow through a slightly different route, a new landmark, a little more purposeful pace, or a small confidence challenge — never a sudden jump. Include a pre-routine wherever appropriate: get ready five minutes before leaving, put on comfortable clothes and shoes, take water if useful, and set a simple intention. For low-energy users, explicitly allow the 20 minutes to be split into shorter walks across the day.
 2. CONNECTION: include checking in with one safe person regularly. Also include an option to contact the real Juan directly through the app, and remind them that AI Juan is available any time without judgement. Where it fits their answers, suggest the Men's Group, South West Sydney Men's Shed, The Men's Table, or a relevant local support service without pretending you have made contact for them.
 3. GROWING SKILLS: introduce new skills as the weeks progress. Do not simply repeat breathing every week. Build from safety and routine, to noticing wins and anchors, tiny steps and boundaries, reaching out, purpose and practical goals, kinder self-talk, deeper connection, and looking forward.
 4. DAILY RHYTHM: weave these ideas through the week without making every day identical: notice one good thing, check in with someone or Juan, take the walk, and choose one small win plus one tiny next step. Combine related items when needed so the plan stays manageable.
@@ -4649,8 +4649,8 @@ Respond with ONLY valid JSON, no markdown fences, exactly this shape:
       const usable = parsed && Array.isArray(parsed.weeks) && parsed.weeks.length === 8 && parsed.weeks.every((w) => {
         if (!Array.isArray(w.days) || w.days.length !== 7) return false;
         const validDays = w.days.every((d) => Array.isArray(d.tasks) && d.tasks.length >= 2 && d.tasks.length <= 3);
-        const walkingDays = w.days.filter((d) => d.tasks.some((t) => /walk|walking/i.test(String(t)) && /30\s*[- ]?minute|30\s*min/i.test(String(t)))).length;
-        return validDays && walkingDays >= 3;
+        const walkingDays = w.days.filter((d) => d.tasks.some((t) => /walk|walking/i.test(String(t)) && /20\s*[- ]?minute|20\s*min/i.test(String(t)))).length;
+        return validDays && walkingDays === 7;
       });
       if (usable) plan = parsed;
       else throw new Error("plan did not meet the required structure");
@@ -4815,14 +4815,14 @@ function fallbackPlan(name, answers = {}) {
     ["Look back at what helped, what did not, and what you want to keep.", "Choose one next-week action that protects your momentum and celebrate the effort you put in."],
   ];
   const walkProgression = [
-    "Take a relaxed 30-minute walk; if energy is low, split it into three 10-minute walks.",
-    "Take a 30-minute walk and choose a slightly different route or landmark.",
-    "Take a 30-minute walk and add five minutes of purposeful pace if that feels comfortable.",
-    "Take a 30-minute walk somewhere that gives you a little more fresh air or connection.",
-    "Take a 30-minute walk and gently extend the route or include a small hill if it feels right.",
-    "Take a 30-minute walk with a few short purposeful sections, returning to an easy pace whenever needed.",
-    "Take a 30-minute walk and choose a destination that helps you feel part of the world around you.",
-    "Take a 30-minute walk and notice how your route, pace, or confidence has changed since Week 1.",
+    "Five minutes before you leave, get ready slowly, then take a gentle 20-minute walk. If energy is low, split it into two 10-minute walks.",
+    "Get your shoes and water ready five minutes early, then take a relaxed 20-minute walk and notice one landmark.",
+    "Prepare five minutes before leaving, then take a 20-minute walk with one short stretch of purposeful pace if comfortable.",
+    "Start your five-minute pre-routine, then take a 20-minute walk somewhere with a little fresh air or friendly activity around you.",
+    "Get ready five minutes early, then take a 20-minute walk and gently choose a slightly longer route if it feels right.",
+    "Use the five-minute pre-routine, then take a 20-minute walk with two brief purposeful sections, returning to an easy pace whenever needed.",
+    "Prepare five minutes before leaving, then take a 20-minute walk toward a small destination that helps you feel connected to the world.",
+    "Get ready five minutes early, then take a 20-minute walk and notice how your route, pace, or confidence has changed since Week 1.",
   ];
   const dailyRhythm = [
     "Notice one good thing and tell AI Juan how the morning is starting.",
@@ -4839,9 +4839,9 @@ function fallbackPlan(name, answers = {}) {
     days: Array.from({ length: 7 }, (_, di) => {
       const tasks = [
         dailyRhythm[di],
+        walkProgression[wi],
         skills[wi][di % 2],
       ];
-      if ([1, 3, 5].includes(di)) tasks[1] = walkProgression[wi];
       const varied = [
         "Write or voice a short Journal entry about what is taking up space in your head.",
         "Capture one Fleeting Thought in the Journal — no need to turn it into a full entry.",
@@ -4858,8 +4858,8 @@ function fallbackPlan(name, answers = {}) {
       ];
       if (di === 0) tasks.push(wi === 0 ? "Tell AI Juan what would make today feel a little safer or steadier." : `Check in with one safe person, or say hi to AI Juan about Week ${wi + 1}.`);
       if (di === 6) tasks.push(varied[(wi * 2) % varied.length]);
-      if ([2, 4].includes(di)) tasks[1] = varied[(wi * 3 + di) % varied.length];
-      if (di === 5 && wi >= 3) tasks[1] = wi === 3 ? varied[7] : wi === 4 ? varied[8] : wi === 5 ? varied[9] : wi === 6 ? varied[10] : varied[11];
+      if ([2, 4].includes(di)) tasks[2] = varied[(wi * 3 + di) % varied.length];
+      if (di === 5 && wi >= 3) tasks[2] = wi === 3 ? varied[7] : wi === 4 ? varied[8] : wi === 5 ? varied[9] : wi === 6 ? varied[10] : varied[11];
       if ([1, 3, 5].includes(wi) && di === 0) tasks.unshift("Plan review — say 'Plan Review' to Carlos to check in on how your plan's going and reshape it if needed.");
       return { d: di + 1, tasks: tasks.slice(0, 3) };
     }),
@@ -5103,6 +5103,13 @@ function ProgramPage({ profile, plan, progress, saveProgress, answers, journalCo
   const [wk, setWk] = useState(currentWeek);
   const [showAllDays, setShowAllDays] = useState(false);
   const week = weeks.find((w) => w.n === wk);
+  const walkTaskKeys = week ? weekTaskKeys(week).filter((k) => {
+    const match = k.match(/^w(\d+)d(\d+)t(\d+)$/); if (!match) return false;
+    const day = week.days?.find((d) => String(d.d) === match[2]);
+    const task = day?.tasks?.[Number(match[3])];
+    return /walk|walking/i.test(String(task)) && /20\s*[- ]?minute|20\s*min/i.test(String(task));
+  }) : [];
+  const walkDone = walkTaskKeys.filter((k) => progress[k]).length;
   const toggle = (key) => saveProgress({ ...progress, [key]: !progress[key] });
   const coachWeek = week || weeks[0];
   const coachContext = coachWeek ? `You are guiding the person from inside their 8-week plan. They are currently viewing Week ${coachWeek.n}, focused on “${coachWeek.focus}”. Their visible tasks are: ${Array.isArray(coachWeek.days) ? coachWeek.days.flatMap((d) => d.tasks || []).join("; ") : (coachWeek.steps || []).join("; ")}. Help them understand the purpose of this week, answer questions, make tasks feel manageable, and offer gentle, practical advice. Do not pressure them to complete anything. If they are struggling, help them choose one small next step. You can suggest that they tick off a task only when they feel it is genuinely done. This is supportive guidance, not therapy, diagnosis, or a clinical treatment plan.` : "You are helping the person understand and use their personalised 8-week plan. Keep your guidance gentle, practical, and collaborative.";
@@ -5184,6 +5191,11 @@ function ProgramPage({ profile, plan, progress, saveProgress, answers, journalCo
             <div style={{ fontSize: 12.5, color: T.sub, lineHeight: 1.45, marginBottom: 7 }}>These are optional ways to make the plan feel more like yours. Pick what fits, leave what does not.</div>
             {weeklyExtras(wk).map((extra, ei) => <TaskRow key={extra} label={extra} k={`w${wk}extra${ei}`} />)}
           </div>
+          <div style={{ background: "linear-gradient(135deg, #f1f8f3, #ffffff 70%, #fff4e8)", border: `1px solid ${T.line}`, borderRadius: 20, padding: 15, boxShadow: T.soft, marginBottom: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}><div style={{ display: "flex", alignItems: "center", gap: 9 }}><div style={{ width: 38, height: 38, borderRadius: 12, background: "#dff1e5", display: "grid", placeItems: "center" }}><Anchor size={19} color={T.greenDk} /></div><div><div style={{ fontWeight: 800, fontSize: 14.5 }}>Walking this week</div><div style={{ fontSize: 12, color: T.sub }}>A gentle daily rhythm</div></div></div><div style={{ fontWeight: 850, fontSize: 18, color: T.greenDk }}>{walkDone}/{walkTaskKeys.length || 7}<span style={{ fontSize: 11, fontWeight: 700, color: T.sub }}> walks</span></div></div>
+            <div style={{ height: 8, borderRadius: 999, background: "#dfeee3", overflow: "hidden", marginTop: 13 }}><div style={{ width: `${walkTaskKeys.length ? (walkDone / walkTaskKeys.length) * 100 : 0}%`, height: "100%", borderRadius: 999, background: "linear-gradient(90deg, #4d9f68, #a8d49c)", transition: "width .35s" }} /></div>
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 7, fontSize: 11.5, color: T.sub }}><span>20 minutes each day</span><span>{walkTaskKeys.length ? Math.round((walkDone / walkTaskKeys.length) * 100) : 0}% complete</span></div>
+          </div>
           <div style={{ background: T.card, borderRadius: 20, padding: 16, boxShadow: T.soft }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
               <button onClick={() => { setWk(Math.max(1, wk - 1)); setShowAllDays(false); }} disabled={wk <= 1} style={navBtn(wk <= 1)}><ChevronLeft size={18} /></button>
@@ -5197,17 +5209,16 @@ function ProgramPage({ profile, plan, progress, saveProgress, answers, journalCo
 
             {week && Array.isArray(week.days) ? (
               <>
-                {(showAllDays ? week.days : week.days.slice(0, 3)).map((day) => (
-                  <div key={day.d} style={{ borderTop: `1px solid ${T.line}`, paddingTop: 8, marginTop: 8 }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: T.sub, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 2 }}>Day {day.d}{started ? ` · ${fmtD(dayDate(week.n, day.d))}` : ""}</div>
+                {(showAllDays ? week.days : week.days.slice(0, 2)).map((day) => (
+                  <div key={day.d} style={{ background: day.d % 2 ? "linear-gradient(135deg, #ffffff, #f8fbf8)" : "linear-gradient(135deg, #fffdf9, #ffffff)", border: `1px solid ${T.line}`, borderRadius: 17, padding: "12px 13px", marginTop: 12, boxShadow: "0 5px 14px rgba(47,97,72,0.045)" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 4 }}><div style={{ fontSize: 11, fontWeight: 900, color: T.greenDk, textTransform: "uppercase", letterSpacing: 0.8 }}>Day {day.d}</div>{started && <div style={{ fontSize: 11, color: T.sub }}>{fmtD(dayDate(week.n, day.d))}</div>}</div>
+                    <div style={{ height: 2, width: 34, borderRadius: 999, background: day.d % 2 ? T.green : "#d99b67", marginBottom: 4 }} />
                     {(day.tasks || []).map((t, ti) => <TaskRow key={ti} label={t} k={`w${week.n}d${day.d}t${ti}`} />)}
                   </div>
                 ))}
-                {week.days.length > 3 && (
-                  <button onClick={() => setShowAllDays((v) => !v)} style={{ marginTop: 12, width: "100%",
-                    background: "#f3eef7", border: "none", borderRadius: 12, padding: "10px", fontSize: 13.5,
-                    fontWeight: 600, color: T.ink, cursor: "pointer" }}>
-                    {showAllDays ? "Show less" : `Show the rest of the week (days 4–${week.days.length})`}
+                {week.days.length > 2 && (
+                  <button onClick={() => setShowAllDays((v) => !v)} style={{ marginTop: 14, width: "100%", background: "#f3eef7", border: "none", borderRadius: 12, padding: "11px", fontSize: 13.5, fontWeight: 700, color: T.ink, cursor: "pointer" }}>
+                    {showAllDays ? "Show less" : `Show the rest of the week (days 3–${week.days.length})`}
                   </button>
                 )}
               </>
@@ -5469,6 +5480,7 @@ function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, set
       </div>
 
       <SectionTitle>Stay connected</SectionTitle>
+      <p style={{ margin: "-3px 2px 12px", fontSize: 12, color: T.sub, lineHeight: 1.5 }}>All listed services are recommendations only. We do not run or manage them. Always check directly with each provider for current details.</p>
       <div style={{ display: "flex", flexDirection: "column", gap: 11 }}>
         <button onClick={onOpenResources} aria-label="Open Resources" style={{ width: "100%", background: "linear-gradient(135deg, #e0f3e7 0%, #f7fbf7 54%, #fff0dc 100%)", border: "1px solid rgba(61, 142, 91, 0.2)", borderRadius: 20, padding: 14, boxShadow: T.soft, cursor: "pointer", display: "flex", alignItems: "center", gap: 12, textAlign: "left" }}>
           <div style={{ width: 48, height: 48, borderRadius: 16, background: "linear-gradient(145deg, #236b4d, #58a878)", display: "grid", placeItems: "center", flexShrink: 0, boxShadow: "0 7px 15px rgba(35,107,77,0.2)" }}><ResourcesIcon size={27} color="#fff" /></div>
@@ -5512,6 +5524,12 @@ function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, set
           </div>
           <ChevronRight size={20} color={T.greenDk} />
         </button>
+        <a href="https://www.themenstable.org" target="_blank" rel="noopener noreferrer" aria-label="Visit The Men’s Table website"
+          style={{ display: "flex", alignItems: "center", gap: 12, background: "linear-gradient(135deg, #fffaf0 0%, #ffffff 58%, #edf6f1 100%)", border: "1px solid rgba(51,111,82,0.15)", borderRadius: 20, padding: 12, boxShadow: T.soft, textDecoration: "none", color: T.ink }}>
+          <div style={{ width: 46, height: 46, borderRadius: 14, background: "#fff", display: "grid", placeItems: "center", overflow: "hidden", flexShrink: 0, border: "1px solid rgba(51,111,82,0.12)" }}><img src="/community/mens-table-logo.png" alt="The Men’s Table logo" style={{ width: "100%", height: "100%", objectFit: "contain", padding: 4 }} /></div>
+          <div style={{ flex: 1, minWidth: 0 }}><div style={{ display: "inline-block", color: "#336f52", fontSize: 10, fontWeight: 900, letterSpacing: 0.9, marginBottom: 2 }}>COMMUNITY CONNECTION</div><div style={{ fontWeight: 800, fontSize: 16 }}>The Men’s Table</div><div style={{ fontSize: 13, color: T.sub, lineHeight: 1.35 }}>Safe conversation, belonging & connection</div></div>
+          <ExternalLink size={19} color="#336f52" />
+        </a>
         <button onClick={onOpenMensGroup} style={{ width: "100%", background: T.card, borderRadius: 20, padding: 12,
           boxShadow: T.soft, border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 12, textAlign: "left" }}>
           <img src="/mens_group.jpg" alt="Men's Group" style={{ width: 46, height: 46, borderRadius: 14, objectFit: "cover", flexShrink: 0 }} />
