@@ -4511,8 +4511,8 @@ function PlanBuilding() {
             <Sparkles size={18} color={T.green} /> Carlos here.
           </div>
           Thanks for sharing all that. I'm putting together a plan shaped just for you — this can take a minute or two,
-          so hang tight while I work through it. Once it's ready, you'll find me anytime in the Your Guides
-          section — come and talk to me whenever you like.
+          so hang tight while I work through it. Once it's ready, you can ask me about any week right from the plan page,
+          or come and talk to me in Your Guides whenever you like.
         </Bubble>
 
         <div style={{ background: T.card, borderRadius: 18, padding: "16px 16px 18px", boxShadow: T.soft,
@@ -4571,15 +4571,27 @@ function Onboarding({ profile, saveProfile, answers, saveAnswers, savePlan, voic
     let plan = null;
     try {
       const sys = `${CHARS.carlos.system}
-You are creating a genuinely personalised 8-week resilience plan from this person's setup answers. It must feel hand-made for THEM, using the specifics they gave — what's weighing on them, why the last weeks felt how they did, the life areas they picked, how they cope, what's helped before, their own goal in their words, their energy, and the pace they asked for.
+You are creating a genuinely personalised 8-week recovery and resilience plan from this person's setup answers. It must feel hand-made for THEM — use their age stage, mood, sleep, energy, situation, goals, life areas, coping style, past strengths, support network, and chosen pace. Speak in plain, warm language. No clinical jargon, shame, or motivational-poster filler.
 
-Structure: 8 weeks. Each week has a short "focus" and 7 days. EACH DAY has exactly 2 or 3 concrete tasks. Use 2 tasks for people who are low on energy, really struggling, or asked for small steps; use 3 for people who want a steady challenge or more structure. Keep every task short and useful so the plan can be generated quickly.
-- Tasks are short, specific to their real situation, and doable — not vague filler.
-- PROGRESS across the plan: early days gentle and stabilising, middle weeks build, later weeks stretch and consolidate toward their goal.
-- Regularly weave in tasks to chat with the RIGHT guide by name — Juan (a mate, general support), Carlos (calming/clinical tools), Mick (practical life, housing, bills), Lila (family & relationships). E.g. "Have a chat with Juan about how the week's going", "Ask Carlos for a tool to try when stress hits", "Talk a bill or form through with Mick", "Chat to Lila about that relationship". Include a few of these each week, matched to what they're dealing with.
-- On DAY 1 of weeks 3, 5 and 7, make one of the tasks exactly: "Plan review — type 'Plan Review' to Carlos to check in on how your plan's going". This lets them adjust the plan with Carlos every couple of weeks.
-- CALIBRATE difficulty AND task count to their pace and energy: challenge-seekers get 3 tasks a day; people low on energy or wanting gentle steps get 2 small, kind tasks a day — never more than 3.
-- Never include anything about self-harm or crisis.
+NON-NEGOTIABLE STRUCTURE: return exactly 8 weeks, each with a short focus and exactly 7 days. Each day has 2 or 3 short, concrete tasks. The plan must grow week by week, but the person's requested pace and current energy control how gently that growth is presented. If energy is low or they chose gentle steps, use two tasks where possible and make the second task easy to split into smaller pieces. If they are ready for more, use three tasks. Never make a task a test they can fail.
+
+CORE RULES — EVERY WEEK:
+1. WALKING: include at least three clearly labelled walking days, each with a 30-minute walk. The progression must increase a little every week through a slightly longer route, a few more minutes of purposeful pace, a new destination, or a gentle distance challenge — never a sudden jump. For low-energy users, explicitly allow the 30 minutes to be split into shorter walks across the day while keeping the same weekly target.
+2. CONNECTION: include checking in with one safe person regularly. Also include an option to contact the real Juan directly through the app, and remind them that AI Juan is available any time without judgement. Where it fits their answers, suggest the Men's Group, South West Sydney Men's Shed, The Men's Table, or a relevant local support service without pretending you have made contact for them.
+3. GROWING SKILLS: introduce new skills as the weeks progress. Do not simply repeat breathing every week. Build from safety and routine, to noticing wins and anchors, tiny steps and boundaries, reaching out, purpose and practical goals, kinder self-talk, deeper connection, and looking forward.
+4. DAILY RHYTHM: weave these ideas through the week without making every day identical: notice one good thing, check in with someone or Juan, take the walk, and choose one small win plus one tiny next step. Combine related items when needed so the plan stays manageable.
+
+WEEK THEMES — follow this order:
+Week 1 — Landing gently: safety, a small routine, first walks, and showing up as a win.
+Week 2 — Steady footing: consistency, small wins, and finding an anchor.
+Week 3 — One thing at a time: break big problems into tiny steps and begin boundaries. Include a Plan review task on Day 1.
+Week 4 — Reaching out: identify who is in their corner, practise asking for help, and offer relevant groups or community connection.
+Week 5 — Practical ground: routine, purpose, and small goals that matter to them. Include a Plan review task on Day 1.
+Week 6 — Kinder self-talk: notice the inner voice and practise a fairer, more supportive response.
+Week 7 — Connection: deepen relationships, give and receive support, and include a Plan review task on Day 1.
+Week 8 — Looking forward: review what helped, celebrate effort, plan what comes next, and protect momentum.
+
+Use the right guide naturally: Juan for mate-style support and a check-in, Carlos for calming tools and plan questions, Mick for bills/housing/practical life, and Lila for family, relationships, and boundaries. Never promise that an AI guide is a clinician, never diagnose, and never include crisis or self-harm content in the plan itself.
 
 Respond with ONLY valid JSON, no markdown fences, exactly this shape:
 {"summary":"2-3 warm sentences to them referencing their real situation and goal","weeks":[{"n":1,"focus":"short focus title","days":[{"d":1,"tasks":["task","task"]}, ... 7 days]}, ... all 8 weeks]}`;
@@ -4591,10 +4603,16 @@ Respond with ONLY valid JSON, no markdown fences, exactly this shape:
       const first = clean.indexOf("{"), last = clean.lastIndexOf("}");
       if (first > 0 || last < clean.length - 1) clean = clean.slice(first, last + 1); // strip any stray preamble/postamble
       const parsed = JSON.parse(clean);
-      if (parsed && Array.isArray(parsed.weeks) && parsed.weeks.length >= 6) plan = parsed;
-      else throw new Error("thin plan");
+      const usable = parsed && Array.isArray(parsed.weeks) && parsed.weeks.length === 8 && parsed.weeks.every((w) => {
+        if (!Array.isArray(w.days) || w.days.length !== 7) return false;
+        const validDays = w.days.every((d) => Array.isArray(d.tasks) && d.tasks.length >= 2 && d.tasks.length <= 3);
+        const walkingDays = w.days.filter((d) => d.tasks.some((t) => /walk|walking/i.test(String(t)) && /30\s*[- ]?minute|30\s*min/i.test(String(t)))).length;
+        return validDays && walkingDays >= 3;
+      });
+      if (usable) plan = parsed;
+      else throw new Error("plan did not meet the required structure");
     } catch {
-      plan = fallbackPlan(name);
+      plan = fallbackPlan(name, local);
     }
     savePlan(plan);
     saveProfile({ ...profile, name: name.trim() || "friend", onboardingComplete: true });
@@ -4741,28 +4759,47 @@ function MultiSelect({ opts, value, onChange, onNext }) {
   );
 }
 
-function fallbackPlan(name) {
-  const focuses = ["Landing gently", "Steady footing", "One thing at a time", "Reaching out",
-    "Practical ground", "Kinder self-talk", "Connection", "Looking back, looking forward"];
-  const dayTasks = [
-    ["Notice one good moment today", "Say hi to Juan and tell him how today went"],
-    ["Pick one small anchor — a walk or a cuppa", "Jot one line in your journal"],
-    ["Name the single biggest thing on your mind", "Break it into one tiny next step"],
-    ["Try a 2-minute breathing pause in the toolkit", "Ask Carlos for one tool to try this week"],
-    ["Tackle one small admin task", "Talk it through with Mick if it's practical stuff"],
-    ["Catch one harsh thought and reframe it", "Do one kind thing for yourself"],
-    ["Have one honest chat — Lila can help you prep", "Set one small, healthy boundary"],
+function fallbackPlan(name, answers = {}) {
+  const focuses = ["Landing gently", "Steady footing", "One thing at a time", "Reaching out", "Practical ground", "Kinder self-talk", "Connection", "Looking forward"];
+  const skills = [
+    ["Choose one tiny morning anchor — water, medication if prescribed, a shower, or opening the curtains.", "Notice one good thing, however small, and tell AI Juan how today is going."],
+    ["Pick one repeatable anchor for the day and try it at roughly the same time.", "Write down one small win before bed and check in with one safe person."],
+    ["Name the biggest problem on your mind and break it into one next step only.", "Practise one small boundary: pause, say no, ask for time, or make a clear request."],
+    ["Write down two people or places you could reach out to when you need company.", "Ask one safe person for a simple check-in, and message the real Juan in the app if you want a human-team connection."],
+    ["Choose one practical task that would make this week 1% easier.", "Write one small goal that matters to you and ask Mick for help if it involves bills, housing, or paperwork."],
+    ["Notice one harsh thought and answer it as fairly as you would answer a mate.", "Ask Carlos for one calming tool, then practise it once when you are not already overwhelmed."],
+    ["Have one honest conversation with someone in your corner, with Lila available to help prepare.", "Offer or receive one small piece of support without trying to fix everything."],
+    ["Look back at what helped, what did not, and what you want to keep.", "Choose one next-week action that protects your momentum and celebrate the effort you put in."],
+  ];
+  const walkProgression = [
+    "Take a relaxed 30-minute walk; if energy is low, split it into three 10-minute walks.",
+    "Take a 30-minute walk and choose a slightly different route or landmark.",
+    "Take a 30-minute walk and add five minutes of purposeful pace if that feels comfortable.",
+    "Take a 30-minute walk somewhere that gives you a little more fresh air or connection.",
+    "Take a 30-minute walk and gently extend the route or include a small hill if it feels right.",
+    "Take a 30-minute walk with a few short purposeful sections, returning to an easy pace whenever needed.",
+    "Take a 30-minute walk and choose a destination that helps you feel part of the world around you.",
+    "Take a 30-minute walk and notice how your route, pace, or confidence has changed since Week 1.",
   ];
   const weeks = focuses.map((focus, wi) => ({
-    n: wi + 1, focus,
-    days: Array.from({ length: 7 }, (_, di) => ({
-      d: di + 1,
-      tasks: (di === 6 && [1, 3, 5, 7].includes(wi))
-        ? ["Plan review — say 'Plan Review' to Carlos to check in on how your plan's going (and re-shape it if you'd like)", ...dayTasks[di]]
-        : dayTasks[di],
-    })),
+    n: wi + 1,
+    focus,
+    days: Array.from({ length: 7 }, (_, di) => {
+      const tasks = [
+        "Notice one good thing, check in with someone or Juan, and choose one tiny next step.",
+        skills[wi][di % 2],
+      ];
+      if ([1, 3, 5].includes(di)) tasks[1] = walkProgression[wi];
+      if (di === 0) tasks.push(wi === 0 ? "Tell AI Juan what would make today feel a little safer or steadier." : `Check in with one safe person, or say hi to AI Juan about Week ${wi + 1}.`);
+      if (di === 6) tasks.push(wi === 3 ? "If it feels useful, look at the Men's Group, South West Sydney Men's Shed, or The Men's Table as a possible connection — no pressure to attend." : "Write down one small win and one tiny next step for tomorrow.");
+      if ([2, 4, 6].includes(di) && wi > 0) tasks.push("AI Juan is here any time, without judgement; message the real Juan through the app if you want to reach the human team.");
+      if ([2, 4, 6].includes(di) && wi === 2) tasks.push("Try one small boundary today: pause, ask for space, or make a clear request.");
+      if ([1, 3, 5].includes(wi) && di === 0) tasks.unshift("Plan review — say 'Plan Review' to Carlos to check in on how your plan's going and reshape it if needed.");
+      return { d: di + 1, tasks: tasks.slice(0, 3) };
+    }),
   }));
-  return { summary: `Here's an 8-week plan to get us started, ${name || "friend"} — a couple of small things each day, at your pace. Nothing's set in stone: if some tasks aren't for you, just say "Plan Review" to Carlos and tell him which ones you'd rather skip — he'll re-shape the plan around what actually helps you. We adjust as we go, and the guides are here whenever you want to talk.`, startedAt: Date.now(), weeks };
+  const goal = answers?.goal ? ` You said you would like “${String(answers.goal).slice(0, 120)}” to feel different.` : "";
+  return { summary: `Here's a practical eight-week plan for you, ${name || "friend"}. It grows slowly, keeps walking and connection at the centre, and leaves room for real life — you do not have to do it perfectly.${goal} If something does not fit, ask Carlos for a plan review and we will adjust it.`, startedAt: Date.now(), weeks };
 }
 
 /* ---------- hub / dashboard ---------- */
