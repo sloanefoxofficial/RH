@@ -6442,6 +6442,12 @@ function ProgramInfo({ onBack, onMessageJuan, onBookAppointment }) {
 }
 
 function ResourcesPage({ onOpenSafety, onOpenMensShed, onBack }) {
+  useEffect(() => {
+    // Each visit should begin at the Resources hero and table of contents,
+    // rather than inheriting the scroll position from the previous screen.
+    window.scrollTo({ top: 0, behavior: "auto" });
+    requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "auto" }));
+  }, []);
   const jump = (id) => document.getElementById(id)?.scrollIntoView({ behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
   const sectionLabel = (id, Icon, title, sub, color) => <div id={id} style={{ scrollMarginTop: 18, margin: "24px 2px 9px" }}><div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 15.5, fontWeight: 800 }}><span style={{ width: 30, height: 30, borderRadius: 10, background: `${color}18`, display: "grid", placeItems: "center" }}><Icon size={16} color={color} /></span>{title}</div><div style={{ fontSize: 12.5, color: T.sub, margin: "5px 0 0 38px", lineHeight: 1.4 }}>{sub}</div></div>;
   const resourceCard = ({ Icon, tint, color, eyebrow, title, children, href, phone, email, onClick, actionLabel }) => {
