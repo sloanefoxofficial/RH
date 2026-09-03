@@ -303,6 +303,27 @@ async function callModel({ system, messages, maxTokens = 1000, timeoutMs = 45000
   return text;
 }
 
+const CARLOS_BOOKS = [
+  { title: "Happiness Handbook: How To Be Happy Pocket Size", lang: "English", asin: "B0HHHKJ5X2", href: "https://www.amazon.com.au/dp/B0HHHKJ5X2" },
+  { title: "Nothing Matters: Overcoming Mortality and Nihilism", lang: "English", asin: "B0FN67VXPH", href: "https://www.amazon.com.au/dp/B0FN67VXPH" },
+  { title: "How To Be Happy for Adults: 100 Tips", lang: "English", asin: "B0D9M7RPL4", href: "https://www.amazon.com.au/dp/B0D9M7RPL4" },
+  { title: "How To Be Happy: 10 Tips from 10 Thinkers", lang: "English", asin: "B0CCZX22HX", href: "https://www.amazon.com.au/dp/B0CCZX22HX" },
+  { title: "Peeling a Seedless Moon", lang: "English", asin: "B084ZP8DT9", href: "https://www.amazon.com.au/dp/B084ZP8DT9" },
+  { title: "Goodbye Charlie 2: Part Two", lang: "English", asin: "B07BKNRZX5", href: "https://www.amazon.com.au/dp/B07BKNRZX5" },
+  { title: "Goodbye Charlie", lang: "English", asin: "B078GC22BT", href: "https://www.amazon.com.au/dp/B078GC22BT" },
+  { title: "Nothing Matters: Overcoming Nihilism", lang: "English", asin: "B0B2WP6B3R", href: "https://www.amazon.com.au/dp/B0B2WP6B3R" },
+  { title: "Peeling a Seedless Moon", lang: "English", asin: "1790893089", href: "https://www.amazon.com.au/dp/1790893089" },
+  { title: "Goodbye Charlie 2: Part Two", lang: "English", asin: "1984384724", href: "https://www.amazon.com.au/dp/1984384724" },
+  { title: "Nada Importa: Superando la Mortalidad y el Nihilismo", lang: "Spanish", asin: "B0FTSJDTH7", href: "https://www.amazon.com.au/dp/B0FTSJDTH7" },
+  { title: "Cómo Ser Feliz: Cien Consejos Para Adultos", lang: "Spanish", asin: "B0DFGFFJL4", href: "https://www.amazon.com.au/dp/B0DFGFFJL4" },
+  { title: "Cómo Ser Feliz: 10 Consejos de 10 Pensadores", lang: "Spanish", asin: "B0CH87WRVV", href: "https://www.amazon.com.au/dp/B0CH87WRVV" },
+  { title: "Piel de una Luna Implacable", lang: "Spanish", asin: "B085C4HKJJ", href: "https://www.amazon.com.au/dp/B085C4HKJJ" },
+  { title: "Adios Charlie 2", lang: "Spanish", asin: "B07BHDSDCF", href: "https://www.amazon.com.au/dp/B07BHDSDCF" },
+  { title: "Adios Charlie", lang: "Spanish", asin: "B07918VR1Y", href: "https://www.amazon.com.au/dp/B07918VR1Y" },
+  { title: "Piel de una Luna Implacable", lang: "Spanish", asin: "1081411422", href: "https://www.amazon.com.au/dp/1081411422" },
+  { title: "Adios Charlie 2: Segunda Parte", lang: "Spanish", asin: "198492432X", href: "https://www.amazon.com.au/dp/198492432X" },
+];
+
 /* ================================================================== */
 export default function App() {
   const [ready, setReady] = useState(false);
@@ -838,6 +859,7 @@ export default function App() {
             onOpenProgram={() => go("program")}
             onOpenGuides={() => go("guides")}
             onOpenMerch={() => go("merch")}
+            onOpenCarlosLibrary={() => go("carlosLibrary")}
             onOpenGames={() => go("games")}
             onOpenToolkit={() => { setToolkitInitial(null); go("toolkit"); }}
             onOpenResources={() => go("resources")}
@@ -884,6 +906,8 @@ export default function App() {
           <GuidesPage onOpenChat={(slug) => go("chat", slug)} onBack={back} />
         ) : screen === "merch" ? (
           <MerchPage onBack={back} />
+        ) : screen === "carlosLibrary" ? (
+          <CarlosLibraryPage onBack={back} />
         ) : screen === "games" ? (
           <GamesPage gameScores={gameScores} onScore={saveGameScore}
             getProgress={(g) => gameProgressRef.current[g] ?? null}
@@ -4108,7 +4132,7 @@ function ChatHelp() {
     { Icon: Send, title: "Type a message", body: "Write in the box at the bottom and tap send (or press Enter). Just like texting." },
     { Icon: Mic, title: "Talk instead of typing", body: "Tap the mic button, say what you want, then tap it again to finish — it turns your voice into a message. Works best in Chrome on Android or a computer." },
     { Icon: Volume2, title: "Hear the guide's voice", body: "Tap the speaker icon at the top to turn the guide's voice on or off. Tap any of their messages to pause and resume, or tap Repeat under a message to hear it again." },
-    { Icon: Radio, title: "Hands-free chat", body: "Tap the radio icon to talk back and forth without touching the screen — the guide replies out loud and then listens for you. Just start talking to jump in. Headphones help." },
+    { Icon: Radio, title: "Hands-free chat", body: "Tap the radio icon to talk back and forth without touching the screen — the guide replies out loud and then listens for you. To prevent the guide hearing their own voice through your phone speaker, listening resumes after each reply finishes." },
     { Icon: Paperclip, title: "Send a photo", body: "Tap the paperclip to attach a photo the guide can look at and talk about with you. Photos only — our guides cannot view video files." },
     { Icon: Zap, title: "Fast Reply", body: "In a rush? Tap the ⚡ next to Send and that one reply comes back quick and to the point — it won't change your saved Response Speed in Settings." },
   ];
@@ -5319,7 +5343,7 @@ function ResourcesIcon({ size = 24, color = "currentColor", strokeWidth = 2.2 })
   </svg>;
 }
 
-function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, setVoiceOn, onOpenChat, onOpenProgram, onOpenGuides, onOpenMerch, onOpenGames, onOpenToolkit, onOpenResources, onOpenSafety, onOpenNotifications, onOpenCoordinator, onOpenSettings, onOpenMensGroup, onOpenMensShed, onOpenAdminMessages, onOpenProgramInfo, onReset, isAdmin, authEnabled, guestMode, onExitGuest, onOpenAdmin, onOpenProfile, onSignOut, session, rexHistory, onSaveRexChat, memories, onConversation, answers, bargeIn, rexPersona }) {
+function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, setVoiceOn, onOpenChat, onOpenProgram, onOpenGuides, onOpenMerch, onOpenCarlosLibrary, onOpenGames, onOpenToolkit, onOpenResources, onOpenSafety, onOpenNotifications, onOpenCoordinator, onOpenSettings, onOpenMensGroup, onOpenMensShed, onOpenAdminMessages, onOpenProgramInfo, onReset, isAdmin, authEnabled, guestMode, onExitGuest, onOpenAdmin, onOpenProfile, onSignOut, session, rexHistory, onSaveRexChat, memories, onConversation, answers, bargeIn, rexPersona }) {
   const { speak, stop, speaking } = useVoice(voiceOn);
   const [notifRefresh, setNotifRefresh] = useState(0);
   const [shareMsg, setShareMsg] = useState("");
@@ -5486,6 +5510,11 @@ function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, set
             <div style={{ fontSize: 13, color: T.sub }}>Built Not Bought — every piece supports the Hub</div>
           </div>
           <ChevronRight size={20} color={T.sub} />
+        </button>
+        <button onClick={onOpenCarlosLibrary} aria-label="Open Support Carlos Camacho library" style={{ width: "100%", background: "linear-gradient(135deg, #e8f0fb 0%, #ffffff 62%, #f3eafa 100%)", border: "1px solid rgba(63,111,175,0.16)", borderRadius: 20, padding: 14, boxShadow: T.soft, cursor: "pointer", display: "flex", alignItems: "center", gap: 12, textAlign: "left" }}>
+          <div style={{ width: 46, height: 46, borderRadius: 14, overflow: "hidden", background: "#dfeafa", flexShrink: 0, border: "1px solid rgba(63,111,175,0.12)" }}><img src={CHARS.carlos.img} alt="Carlos Camacho" style={{ width: "100%", height: "100%", objectFit: "contain" }} /></div>
+          <div style={{ flex: 1, minWidth: 0 }}><div style={{ display: "inline-block", color: T.blueDk, fontSize: 10, fontWeight: 900, letterSpacing: 0.9, marginBottom: 2 }}>CARLOS CAMACHO</div><div style={{ fontWeight: 800, fontSize: 16 }}>Support Carlos Camacho</div><div style={{ fontSize: 13, color: T.sub, lineHeight: 1.4 }}>Explore his books on happiness, philosophy and life</div></div>
+          <ChevronRight size={20} color={T.blueDk} />
         </button>
       </div>
 
@@ -5707,10 +5736,9 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
     } catch { setTimeout(() => { if (hfRef.current) hfListen(); }, 800); }
   }, []);
 
-  // Barge-in: while a guide is speaking in hands-free mode, listen lightly for
-  // the person starting to talk over them, and if so, cut the guide off and
-  // switch straight to listening. Works best with headphones (otherwise the
-  // mic can occasionally pick up the guide's own voice on speaker devices).
+  // Do not open Speech Recognition while guide audio is playing. On phones and
+  // speaker devices it hears the guide's own voice and creates a feedback loop.
+  // Hands-free resumes automatically through speak()'s onDone callback instead.
   const bargeRecRef = useRef(null);
   const bargeArmTimer = useRef(null);
   const bargeSpeakingRef = useRef(false);
@@ -5755,16 +5783,12 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
   }, []);
 
   useEffect(() => {
-    bargeSpeakingRef.current = bargeIn && handsFree && speaking;
-    if (bargeIn && handsFree && speaking) {
-      // Only if the user opted in — listening while the guide talks conflicts
-      // with audio playback on many phones (pauses/cuts the guide off).
-      bargeArmTimer.current = setTimeout(() => { if (hfRef.current) startBargeWatch(); }, 700);
-    } else {
-      stopBargeWatch();
-    }
+    // Always keep the mic closed during guide speech. This is more reliable than
+    // trying to distinguish the guide from the person on a phone speaker.
+    bargeSpeakingRef.current = false;
+    stopBargeWatch();
     return stopBargeWatch;
-  }, [bargeIn, handsFree, speaking, startBargeWatch, stopBargeWatch]);
+  }, [handsFree, speaking, stopBargeWatch]);
 
   useEffect(() => { scrollRef.current?.scrollTo({ top: 1e6, behavior: "smooth" }); }, [history, busy, showAllHistory]);
   useEffect(() => () => { stop(); stopHF(); }, [stop, stopHF]);
@@ -5912,7 +5936,7 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
           fontSize: 12.5, color: T.greenDk, fontWeight: 600, cursor: speaking ? "pointer" : "default" }}>
           <span style={{ width: 7, height: 7, borderRadius: "50%", background: T.green,
             animation: "rh-glow 1.2s ease-in-out infinite" }} />
-          Hands-free on — {speaking ? `${char.name} is talking — start speaking, or tap here, to jump in` : hfListening ? "listening…" : "getting ready…"}
+          Hands-free on — {speaking ? `${char.name} is talking — listening resumes when they finish, or tap here to stop them` : hfListening ? "listening…" : "getting ready…"}
         </div>
       )}
 
@@ -6571,6 +6595,26 @@ function ProgramInfo({ onBack, onMessageJuan, onBookAppointment }) {
   );
 }
 
+function CarlosLibraryPage({ onBack }) {
+  const english = CARLOS_BOOKS.filter((book) => book.lang === "English");
+  const spanish = CARLOS_BOOKS.filter((book) => book.lang === "Spanish");
+  const bookGrid = (books) => <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 12 }}>{books.map((book) => <a key={book.asin} href={book.href} target="_blank" rel="noopener noreferrer" style={{ display: "block", background: T.card, borderRadius: 17, padding: 9, boxShadow: T.soft, border: `1px solid ${T.line}`, textDecoration: "none", color: T.ink }}><div style={{ aspectRatio: "0.72", borderRadius: 12, overflow: "hidden", background: "#f2f2f0", marginBottom: 9 }}><img src={`/carlos-books/${book.asin}.jpg`} alt={`${book.title} book cover`} loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} /></div><div style={{ fontWeight: 800, fontSize: 12.5, lineHeight: 1.28 }}>{book.title}</div><div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6, marginTop: 8, color: T.blueDk, fontSize: 11, fontWeight: 800 }}><span>View on Amazon</span><ExternalLink size={14} /></div></a>)}</div>;
+  return <>
+    <Brand right={<BackBtn onBack={onBack} label="Home" />} />
+    <div style={{ background: "linear-gradient(135deg, #e8f0fb 0%, #ffffff 58%, #f1eafa 100%)", border: `1px solid ${T.line}`, borderRadius: 24, padding: "21px 18px 19px", marginTop: 7, boxShadow: T.soft, position: "relative", overflow: "hidden" }}>
+      <div style={{ position: "absolute", right: -50, top: -65, width: 170, height: 170, borderRadius: "50%", background: "rgba(255,255,255,0.55)" }} />
+      <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 11 }}><div style={{ width: 58, height: 58, borderRadius: 18, overflow: "hidden", background: "#dfeafa", flexShrink: 0, border: "1px solid rgba(63,111,175,0.14)" }}><img src={CHARS.carlos.img} alt="Carlos Camacho" style={{ width: "100%", height: "100%", objectFit: "contain" }} /></div><div><div style={{ color: T.blueDk, fontSize: 10, fontWeight: 900, letterSpacing: 1 }}>CARLOS CAMACHO</div><h1 style={{ margin: "4px 0 0", fontSize: 24, lineHeight: 1.1, color: T.ink }}>Further your wisdom</h1></div></div>
+      <div style={{ position: "relative", marginTop: 15, background: "rgba(255,255,255,0.78)", borderRadius: 17, padding: 14 }}><div style={{ fontWeight: 900, fontSize: 15, color: T.blueDk, marginBottom: 8 }}>FURTHER YOUR WISDOM — Books by Carlos Camacho</div><p style={{ margin: 0, color: T.sub, fontSize: 13.5, lineHeight: 1.55 }}>Carlos is our lead psychologist and philosopher. He holds a Masters degree in psychology and Honours in philosophy, and has published 18 titles across practical philosophy, happiness, fiction, and children&apos;s works — in both English and Spanish. Wisdom you can read, right now.</p></div>
+    </div>
+    <p style={{ margin: "13px 3px 16px", color: T.sub, fontSize: 12.5, lineHeight: 1.45 }}>Tap any book to view its Amazon listing. Availability, formats, prices, and delivery options are controlled by Amazon and may change.</p>
+    <SectionTitle>English</SectionTitle>
+    {bookGrid(english)}
+    <SectionTitle>Español</SectionTitle>
+    {bookGrid(spanish)}
+    <div style={{ margin: "18px 2px 28px", padding: 13, background: "#f6f4fa", border: `1px solid ${T.line}`, borderRadius: 16, color: T.sub, fontSize: 11.5, lineHeight: 1.5 }}>Book titles and cover images are shown from the supplied Amazon listings. Product details and availability may change on Amazon.</div>
+  </>;
+}
+
 function ResourcesPage({ onOpenSafety, onOpenMensShed, onBack }) {
   useEffect(() => {
     // Each visit should begin at the Resources hero and table of contents,
@@ -6583,7 +6627,7 @@ function ResourcesPage({ onOpenSafety, onOpenMensShed, onBack }) {
   const resourceCard = ({ Icon, tint, color, eyebrow, title, children, href, phone, email, onClick, actionLabel }) => {
     const body = <><div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}><div style={{ width: 44, height: 44, borderRadius: 14, background: tint, display: "grid", placeItems: "center", flexShrink: 0 }}><Icon size={22} color={color} /></div><div style={{ flex: 1, minWidth: 0 }}><div style={{ color, fontSize: 10, fontWeight: 900, letterSpacing: 0.9, textTransform: "uppercase", marginBottom: 3 }}>{eyebrow}</div><div style={{ fontWeight: 800, fontSize: 16, color: T.ink }}>{title}</div><div style={{ fontSize: 13, color: T.sub, lineHeight: 1.48, marginTop: 5 }}>{children}</div></div>{(href || onClick) && <ChevronRight size={19} color={T.sub} style={{ flexShrink: 0, marginTop: 12 }} />}</div>{(phone || email || actionLabel) && <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginTop: 11 }}><span style={{ padding: "7px 10px", borderRadius: 999, background: "rgba(255,255,255,0.78)", color: T.ink, fontWeight: 750, fontSize: 11.5 }}>{phone ? `Phone: ${phone}` : email ? `Email: ${email}` : actionLabel}</span></div>}</>;
     const style = { display: "block", width: "100%", textAlign: "left", background: `linear-gradient(135deg, ${tint} 0%, #fff 74%)`, border: `1px solid ${T.line}`, borderRadius: 19, padding: 14, boxShadow: T.soft, textDecoration: "none", color: T.ink, cursor: "pointer" };
-    if (href) return <a href={href} target="_blank" rel="noopener noreferrer" style={style}>{body}</a>;
+    if (href) { const isWeb = /^https?:\/\//i.test(href); return <a href={href} target={isWeb ? "_blank" : undefined} rel={isWeb ? "noopener noreferrer" : undefined} style={style}>{body}</a>; }
     return <button type="button" onClick={onClick} style={style}>{body}</button>;
   };
   const toc = [
@@ -6605,8 +6649,8 @@ function ResourcesPage({ onOpenSafety, onOpenMensShed, onBack }) {
 
       {sectionLabel("resources-immediate", LifeBuoy, "Immediate support", "If things feel urgent or unsafe, these are the first places to reach out.", "#c94f4f")}
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {resourceCard({ Icon: Phone, tint: "#fff0f0", color: "#c94f4f", eyebrow: "24/7 crisis support", title: "Lifeline", phone: "13 11 14", children: "Crisis support and suicide prevention counselling, available 24 hours a day." })}
-        {resourceCard({ Icon: Phone, tint: "#e7eefb", color: T.blueDk, eyebrow: "Emergency", title: "Police, ambulance or fire", phone: "000", children: "Call 000 if someone is in immediate danger or needs urgent medical help." })}
+        {resourceCard({ Icon: Phone, tint: "#fff0f0", color: "#c94f4f", eyebrow: "24/7 crisis support", title: "Lifeline", href: "tel:131114", phone: "13 11 14", children: "Crisis support and suicide prevention counselling, available 24 hours a day." })}
+        {resourceCard({ Icon: Phone, tint: "#e7eefb", color: T.blueDk, eyebrow: "Emergency", title: "Police, ambulance or fire", href: "tel:000", phone: "000", children: "Call 000 if someone is in immediate danger or needs urgent medical help." })}
         {resourceCard({ Icon: Heart, tint: "#f4e3d9", color: "#b56739", eyebrow: "Mental health support", title: "Beyond Blue and MensLine Australia", href: "https://www.beyondblue.org.au/get-support", children: "Beyond Blue: 1300 22 4636. MensLine Australia: 1300 78 99 78 for men needing phone or online support." })}
       </div>
 
@@ -6627,7 +6671,7 @@ function ResourcesPage({ onOpenSafety, onOpenMensShed, onBack }) {
       {sectionLabel("resources-money", FileText, "Legal, money and bills", "Free legal information, income support, concessions, and help with household costs.", "#6d55b0")}
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {resourceCard({ Icon: FileText, tint: "#efeaf5", color: "#6d55b0", eyebrow: "Free legal help", title: "LawAccess NSW", href: "https://www.lawaccess.nsw.gov.au/", phone: "1300 888 529", children: "Free legal information, referrals, and assistance for people in New South Wales." })}
-        {resourceCard({ Icon: DollarSign, tint: "#e9f5ee", color: T.greenDk, eyebrow: "Income and concessions", title: "Services Australia", href: "https://www.servicesaustralia.gov.au/centrelink-multilingual-phone-service", phone: "131 202", children: "Centrelink’s multilingual phone service can help people access information in languages other than English." })}
+        {resourceCard({ Icon: DollarSign, tint: "#e9f5ee", color: T.greenDk, eyebrow: "Income and concessions", title: "Services Australia", href: "https://www.servicesaustralia.gov.au/phone-us?context=64107", phone: "131 202", children: "Centrelink’s multilingual phone service can help people access information in languages other than English." })}
         {resourceCard({ Icon: DollarSign, tint: "#fff4db", color: "#9a7419", eyebrow: "Bills and household costs", title: "Good Shepherd NILS and NSW energy help", href: "https://goodshep.org.au/services/nils/", children: "Good Shepherd NILS offers no-interest loans for eligible essential needs. For energy-bill support and payment difficulties, contact your retailer or the Energy and Water Ombudsman NSW." })}
       </div>
 
