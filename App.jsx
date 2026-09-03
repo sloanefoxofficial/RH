@@ -1313,6 +1313,8 @@ async function fetchTtsUrl(text, voiceId) {
 
 // Split a reply into short speakable chunks so playback can start after the
 // FIRST sentence instead of waiting for the whole reply to synthesise.
+const voiceDebug = (...args) => { try { if (import.meta.env && import.meta.env.DEV) console.debug("[RH voice]", ...args); } catch {} };
+
 function cleanTranscript(text) {
   const raw = String(text || '').replace(/\s+/g, ' ').trim();
   if (!raw) return '';
@@ -1470,6 +1472,7 @@ function HoldToTalk({ onText, onStart, size = 52 }) {
   const [err, setErr] = useState(null);
   const recRef = useRef(null);
   const committedRef = useRef("");   // finalized speech accumulated across this hold
+  const submittedRef = useRef(false); // one commit maximum per hold
   const heldRef = useRef(false);     // true while the button is actually held
   const supported = typeof window !== "undefined" && (window.SpeechRecognition || window.webkitSpeechRecognition);
 
@@ -1483,6 +1486,7 @@ function HoldToTalk({ onText, onStart, size = 52 }) {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     let r;
     try { r = new SR(); } catch { setErr("Couldn't start the mic."); setListening(false); return; }
+    voiceDebug("tap session created");
     r.lang = __speechLang; r.interimResults = true; r.continuous = false;
     let sessionFinal = "", interimText = "";
     r.onresult = (e) => {
@@ -1503,13 +1507,14 @@ function HoldToTalk({ onText, onStart, size = 52 }) {
     };
     r.onend = () => {
       recRef.current = null;
-      const seg = (sessionFinal + " " + interimText).trim();     // fold this session in once
+      const seg = sessionFinal.trim();     // only finalized recognition results are committed
       if (seg) committedRef.current = (committedRef.current + " " + seg).trim();
       sessionFinal = ""; interimText = "";
       if (heldRef.current) { runSession(); return; } // still held — keep listening seamlessly
       setListening(false);
-      const t = committedRef.current.trim();
-      if (t) onText(cleanTranscript(t));
+      const t = cleanTranscript(committedRef.current);
+      if (t && !submittedRef.current) { submittedRef.current = true; voiceDebug("tap transcript submitted", t); onText(t); }
+      else if (t) voiceDebug("tap duplicate transcript ignored");
     };
     try { recRef.current = r; r.start(); setListening(true); }
     catch { recRef.current = null; /* start raced with a previous stop — the watchdog revives it */ }
@@ -1538,7 +1543,7 @@ function HoldToTalk({ onText, onStart, size = 52 }) {
   const start = () => {
     if (!supported) { setErr("Voice input isn't supported here — please type."); return; }
     if (onStart) onStart();
-    setErr(null); committedRef.current = ""; heldRef.current = true;
+    setErr(null); committedRef.current = ""; submittedRef.current = false; heldRef.current = true;
     // Only pay the mic-wake delay when it's actually needed — right after a
     // guide's voice has played. Otherwise (first message, or voice off) start
     // listening immediately, so the beginning of what someone says isn't lost.
@@ -5703,52 +5708,82 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
   const [hfListening, setHfListening] = useState(false);
   const hfRef = useRef(false); hfRef.current = handsFree;
   const hfRecRef = useRef(null);
+  const hfSessionRef = useRef(0);
+  const hfSubmittedSessionRef = useRef(0);
   const hfEmpty = useRef(0);
   const sendRef = useRef(null);
   const sttSupported = typeof window !== "undefined" && (window.SpeechRecognition || window.webkitSpeechRecognition);
 
   const stopHF = useCallback(() => {
-    try { hfRecRef.current && hfRecRef.current.stop(); } catch {}
-    hfRecRef.current = null; setHfListening(false);
+    voiceDebug("hands-free cleanup", hfSessionRef.current + 1);
+    hfSessionRef.current += 1;
+    const active = hfRecRef.current;
+    hfRecRef.current = null;
+    if (active) {
+      active.onresult = null; active.onend = null; active.onerror = null;
+      try { active.abort(); } catch { try { active.stop(); } catch {} }
+    }
+    setHfListening(false);
   }, []);
 
   const hfListen = useCallback(() => {
     if (!hfRef.current) return;
-    if (hfRecRef.current) { try { hfRecRef.current.stop(); } catch {} hfRecRef.current = null; } // never run two at once
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) { setHandsFree(false); hfRef.current = false; return; }
+    // There is exactly one owner of recognition. Invalidate the old instance
+    // before creating a new one so its late onend/onresult cannot submit text.
+    const old = hfRecRef.current;
+    if (old) {
+      old.onresult = null; old.onend = null; old.onerror = null;
+      try { old.abort(); } catch { try { old.stop(); } catch {} }
+      hfRecRef.current = null;
+    }
+    const sessionId = ++hfSessionRef.current;
+    voiceDebug("hands-free session created", sessionId);
     try {
       const r = new SR(); r.lang = __speechLang; r.interimResults = true; r.continuous = true;
-      let finalText = ""; let interim = ""; let done = false; let silence = null;
+      const finalParts = []; const seenFinalIndexes = new Set();
+      let interim = ""; let done = false; let silence = null;
       const arm = () => { clearTimeout(silence); silence = setTimeout(() => { try { r.stop(); } catch {} }, 1500); };
-      r.onstart = () => arm();
+      r.onstart = () => { if (sessionId === hfSessionRef.current) arm(); };
       r.onresult = (e) => {
-        // Rebuild from scratch each update so a sentence is never counted twice.
-        let f = "", it = "";
-        for (let i = 0; i < e.results.length; i++) {
+        if (sessionId !== hfSessionRef.current || done || speaking) return;
+        let it = "";
+        for (let i = e.resultIndex || 0; i < e.results.length; i++) {
           const res = e.results[i]; if (!res || !res[0]) continue;
-          if (res.isFinal) f += res[0].transcript + " "; else it += res[0].transcript;
+          if (res.isFinal) {
+            if (!seenFinalIndexes.has(i)) { seenFinalIndexes.add(i); finalParts.push(res[0].transcript); }
+          } else it += res[0].transcript + " ";
         }
-        finalText = f.trim(); interim = it;
-        arm(); // reset the silence countdown while they're still talking
+        interim = it.trim();
+        arm();
       };
       r.onerror = () => {};
       r.onend = () => {
         clearTimeout(silence);
+        if (sessionId !== hfSessionRef.current || done) { voiceDebug("stale hands-free onend ignored", sessionId); return; }
+        done = true;
+        if (hfRecRef.current === r) hfRecRef.current = null;
         setHfListening(false);
-        if (done) return; done = true;
-        hfRecRef.current = null;
         if (!hfRef.current) return;
-        const t = cleanTranscript(finalText + " " + interim);
-        if (t) { hfEmpty.current = 0; if (sendRef.current) sendRef.current(t); }
-        else {
-          hfEmpty.current += 1;
-          if (hfEmpty.current >= 3) { setHandsFree(false); hfRef.current = false; } // stop after a stretch of silence
-          else setTimeout(() => { if (hfRef.current) hfListen(); }, 500);
+        const t = cleanTranscript(finalParts.join(" ") + " " + interim);
+        if (t) {
+          hfEmpty.current = 0;
+          if (hfSubmittedSessionRef.current !== sessionId) {
+            hfSubmittedSessionRef.current = sessionId;
+            voiceDebug("hands-free transcript submitted", sessionId, t);
+            if (sendRef.current) sendRef.current(t);
+          }
+          return;
         }
+        hfEmpty.current += 1;
+        if (hfEmpty.current >= 3) { setHandsFree(false); hfRef.current = false; }
+        else setTimeout(() => { if (hfRef.current && sessionId === hfSessionRef.current) hfListen(); }, 500);
       };
       hfRecRef.current = r; r.start(); setHfListening(true);
-    } catch { setTimeout(() => { if (hfRef.current) hfListen(); }, 800); }
+    } catch {
+      if (sessionId === hfSessionRef.current) setTimeout(() => { if (hfRef.current) hfListen(); }, 800);
+    }
   }, []);
 
   // Do not open Speech Recognition while guide audio is playing. On phones and
@@ -5812,6 +5847,8 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
     const text = (raw ?? input).trim();
     const img = pendingImage;
     if ((!text && !img) || busy) return;
+    // Invalidate any pending recognition before a new AI reply can speak.
+    stopHF();
     // Response speed: the person's saved Settings preference, unless this one
     // reply was sent via the ⚡ Fast Reply button, which overrides it just once.
     const effSpeed = (opts && opts.forceFast) ? "fast" : (responseSpeed || "normal");
@@ -6084,7 +6121,7 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
         </button>
       </div>
       {speaking && (
-        <button onClick={() => { stop(); if (handsFree) hfListen(); }} aria-label="Interrupt"
+        <button onClick={() => { voiceDebug("Interrupt pressed"); stopHF(); stop(); if (handsFree) setTimeout(() => { if (hfRef.current) hfListen(); }, 120); }} aria-label="Interrupt"
           style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, margin: "10px auto 0",
             background: "#e5484d", color: "#fff", border: "none", borderRadius: 999, padding: "11px 22px",
             fontSize: 15, fontWeight: 700, cursor: "pointer", boxShadow: "0 6px 16px rgba(229,72,77,0.32)",
