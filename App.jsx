@@ -4621,6 +4621,8 @@ CORE RULES — EVERY WEEK:
 2. CONNECTION: include checking in with one safe person regularly. Also include an option to contact the real Juan directly through the app, and remind them that AI Juan is available any time without judgement. Where it fits their answers, suggest the Men's Group, South West Sydney Men's Shed, The Men's Table, or a relevant local support service without pretending you have made contact for them.
 3. GROWING SKILLS: introduce new skills as the weeks progress. Do not simply repeat breathing every week. Build from safety and routine, to noticing wins and anchors, tiny steps and boundaries, reaching out, purpose and practical goals, kinder self-talk, deeper connection, and looking forward.
 4. DAILY RHYTHM: weave these ideas through the week without making every day identical: notice one good thing, check in with someone or Juan, take the walk, and choose one small win plus one tiny next step. Combine related items when needed so the plan stays manageable.
+5. APP AND COMMUNITY ENGAGEMENT: across the full plan, thoughtfully mix in different ways to use the app, including writing or voicing a Journal entry, capturing a Fleeting Thought, playing one of the Games & Puzzles for a short while, asking Carlos for guidance, checking in with AI Juan, messaging the real Juan, and using the Toolkit. Include the Resilience Hub Facebook group as an optional gradual challenge: first view the group, then consider reacting or reading, and only later invite the person to make a post if they feel comfortable. Where appropriate, include reaching out to the South West Sydney Men's Shed as a brave but optional step. Never pressure, shame, or imply that posting or contacting a group is required.
+6. VARIETY: do not repeat the same daily sentence or activity mechanically. Across the complete plan, vary the wording and activity type. A task may recur only when repetition is genuinely useful, such as the three weekly walks, a safe-person check-in, or a simple daily rhythm.
 
 WEEK THEMES — follow this order:
 Week 1 — Landing gently: safety, a small routine, first walks, and showing up as a win.
@@ -4822,19 +4824,42 @@ function fallbackPlan(name, answers = {}) {
     "Take a 30-minute walk and choose a destination that helps you feel part of the world around you.",
     "Take a 30-minute walk and notice how your route, pace, or confidence has changed since Week 1.",
   ];
+  const dailyRhythm = [
+    "Notice one good thing and tell AI Juan how the morning is starting.",
+    "Check in with one safe person, even if it is only a short message.",
+    "Choose one small win and write down the tiniest next step.",
+    "Pause and notice what your body and mind need before choosing today’s task.",
+    "Tell Juan, Carlos, or someone safe one thing you managed this week.",
+    "Notice one moment that felt a little easier, lighter, or more hopeful.",
+    "Look back at the week with kindness: what helped, what was hard, and what can wait?",
+  ];
   const weeks = focuses.map((focus, wi) => ({
     n: wi + 1,
     focus,
     days: Array.from({ length: 7 }, (_, di) => {
       const tasks = [
-        "Notice one good thing, check in with someone or Juan, and choose one tiny next step.",
+        dailyRhythm[di],
         skills[wi][di % 2],
       ];
       if ([1, 3, 5].includes(di)) tasks[1] = walkProgression[wi];
+      const varied = [
+        "Write or voice a short Journal entry about what is taking up space in your head.",
+        "Capture one Fleeting Thought in the Journal — no need to turn it into a full entry.",
+        "Play one of the Games & Puzzles for 10–15 minutes as a deliberate reset.",
+        "Open the Toolkit and try one activity you have not used yet.",
+        "Ask Carlos one honest question about this week’s focus.",
+        "Check in with AI Juan and tell him one thing you managed today.",
+        "Message the real Juan through the app if you would like a human-team check-in.",
+        "Look at the Resilience Hub Facebook group and notice one post or conversation that feels welcoming.",
+        "If you feel ready, react to or support one post in the Resilience Hub Facebook group — no need to write anything yet.",
+        "If you feel comfortable, consider making one simple post in the Resilience Hub Facebook group, such as saying hello or sharing a small win.",
+        "If it feels like a brave but useful step, look up the South West Sydney Men’s Shed and consider calling or visiting — there is no pressure to commit.",
+        "Write down one small win and one tiny next step for tomorrow.",
+      ];
       if (di === 0) tasks.push(wi === 0 ? "Tell AI Juan what would make today feel a little safer or steadier." : `Check in with one safe person, or say hi to AI Juan about Week ${wi + 1}.`);
-      if (di === 6) tasks.push(wi === 3 ? "If it feels useful, look at the Men's Group, South West Sydney Men's Shed, or The Men's Table as a possible connection — no pressure to attend." : "Write down one small win and one tiny next step for tomorrow.");
-      if ([2, 4, 6].includes(di) && wi > 0) tasks.push("AI Juan is here any time, without judgement; message the real Juan through the app if you want to reach the human team.");
-      if ([2, 4, 6].includes(di) && wi === 2) tasks.push("Try one small boundary today: pause, ask for space, or make a clear request.");
+      if (di === 6) tasks.push(varied[(wi * 2) % varied.length]);
+      if ([2, 4].includes(di)) tasks[1] = varied[(wi * 3 + di) % varied.length];
+      if (di === 5 && wi >= 3) tasks[1] = wi === 3 ? varied[7] : wi === 4 ? varied[8] : wi === 5 ? varied[9] : wi === 6 ? varied[10] : varied[11];
       if ([1, 3, 5].includes(wi) && di === 0) tasks.unshift("Plan review — say 'Plan Review' to Carlos to check in on how your plan's going and reshape it if needed.");
       return { d: di + 1, tasks: tasks.slice(0, 3) };
     }),
@@ -5068,7 +5093,13 @@ function ProgramPage({ profile, plan, progress, saveProgress, answers, journalCo
   const trackedKeys = [...allKeys, ...extraKeys];
   const doneCount = trackedKeys.filter((k) => progress[k]).length;
   const totalSteps = trackedKeys.length;
-  const currentWeek = Math.min(weeks.length || 1, 1 + weeks.filter((w) => weekTaskKeys(w).every((k) => progress[k])).length);
+  const completedWeeks = weeks.filter((w) => weekTaskKeys(w).every((k) => progress[k])).length;
+  const currentWeek = Math.min(weeks.length || 1, 1 + completedWeeks);
+  const currentWeekData = weeks.find((w) => w.n === currentWeek) || weeks[0];
+  const currentWeekKeys = currentWeekData ? [...weekTaskKeys(currentWeekData), ...weeklyExtras(currentWeekData.n).map((_, i) => `w${currentWeekData.n}extra${i}`)] : [];
+  const currentWeekDone = currentWeekKeys.filter((k) => progress[k]).length;
+  const overallPct = totalSteps ? Math.round((doneCount / totalSteps) * 100) : 0;
+  const weekPct = currentWeekKeys.length ? Math.round((currentWeekDone / currentWeekKeys.length) * 100) : 0;
   const [wk, setWk] = useState(currentWeek);
   const [showAllDays, setShowAllDays] = useState(false);
   const week = weeks.find((w) => w.n === wk);
@@ -5125,24 +5156,17 @@ function ProgramPage({ profile, plan, progress, saveProgress, answers, journalCo
       )}
 
       {plan && (
-      <div style={{ background: T.card, borderRadius: 20, padding: 16, boxShadow: T.soft }}>
-        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13.5, color: T.sub, marginBottom: 8 }}>
-          <span>{totalSteps ? `${doneCount} of ${totalSteps} tasks done` : "Plan ready"}</span>
-          <span>Week {currentWeek} of {weeks.length || 8}</span>
+      <div style={{ background: "linear-gradient(135deg, #205f48 0%, #347d62 54%, #4d9f68 100%)", color: "#fff", borderRadius: 24, padding: 17, boxShadow: "0 14px 30px rgba(32,95,72,0.22)", position: "relative", overflow: "hidden" }}>
+        <div style={{ position: "absolute", width: 170, height: 170, borderRadius: "50%", right: -70, top: -90, background: "rgba(255,255,255,0.1)" }} />
+        <div style={{ position: "relative", display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
+          <div><div style={{ fontSize: 10.5, fontWeight: 900, letterSpacing: 1, textTransform: "uppercase", opacity: 0.78 }}>Your momentum</div><div style={{ fontSize: 24, fontWeight: 850, marginTop: 4 }}>{overallPct}% <span style={{ fontSize: 13, fontWeight: 600, opacity: 0.8 }}>complete</span></div></div>
+          <div style={{ minWidth: 58, height: 58, borderRadius: "50%", border: "5px solid rgba(255,255,255,0.28)", borderTopColor: "#fff", display: "grid", placeItems: "center", fontSize: 13, fontWeight: 800 }}>{completedWeeks}/{weeks.length || 8}<span style={{ display: "block", fontSize: 8.5, fontWeight: 600, opacity: 0.8, marginTop: -16 }}>weeks</span></div>
         </div>
-        <div style={{ height: 8, borderRadius: 999, background: "#eee2f0", overflow: "hidden" }}>
-          <div style={{ height: "100%", width: `${totalSteps ? (doneCount / totalSteps) * 100 : 0}%`, background: T.green, transition: "width .4s" }} />
-        </div>
-        <div style={{ display: "flex", gap: 14, marginTop: 14, fontSize: 13 }}>
-          <Stat label="Journal entries" value={journalCount} />
-          <Stat label="Next check-in" value="This week" />
-          <Stat label="Setup" value={profile?.onboardingComplete ? "Done" : "—"} />
-        </div>
-        {started && (
-          <div style={{ fontSize: 12, color: T.sub, marginTop: 12, textAlign: "center", borderTop: `1px solid ${T.line}`, paddingTop: 10 }}>
-            Started {fmtD(started)} · Finishes around {fmtD(planEnd)}
-          </div>
-        )}
+        <div style={{ position: "relative", marginTop: 13, height: 10, borderRadius: 999, background: "rgba(255,255,255,0.22)", overflow: "hidden" }}><div style={{ height: "100%", width: `${overallPct}%`, borderRadius: 999, background: "linear-gradient(90deg, #fff, #dff6d9)", transition: "width .4s" }} /></div>
+        <div style={{ position: "relative", display: "flex", justifyContent: "space-between", marginTop: 12, fontSize: 11.5, opacity: 0.9 }}><span>Week {currentWeek} focus: {currentWeekData?.focus || "Getting started"}</span><span>{currentWeekDone}/{currentWeekKeys.length || 0} this week</span></div>
+        <div style={{ position: "relative", display: "flex", gap: 5, marginTop: 14 }}>{weeks.map((w) => { const complete = weekTaskKeys(w).every((k) => progress[k]); const active = w.n === currentWeek; return <button key={w.n} onClick={() => { setWk(w.n); setShowAllDays(false); }} aria-label={`Open week ${w.n}`} style={{ flex: 1, height: 8, border: "none", borderRadius: 999, background: complete ? "#fff" : active ? "rgba(255,255,255,0.72)" : "rgba(255,255,255,0.2)", cursor: "pointer", padding: 0 }} />; })}</div>
+        <div style={{ position: "relative", display: "flex", gap: 14, marginTop: 15, fontSize: 12 }}><span><strong style={{ fontSize: 16 }}>{journalCount}</strong><br /><span style={{ opacity: 0.78 }}>journal entries</span></span><span><strong style={{ fontSize: 16 }}>{currentWeekDone}</strong><br /><span style={{ opacity: 0.78 }}>this week</span></span><span><strong style={{ fontSize: 16 }}>{weekPct}%</strong><br /><span style={{ opacity: 0.78 }}>week progress</span></span></div>
+        {started && <div style={{ position: "relative", fontSize: 11.5, opacity: 0.78, marginTop: 12, paddingTop: 10, borderTop: "1px solid rgba(255,255,255,0.2)" }}>Started {fmtD(started)} · Finishes around {fmtD(planEnd)}</div>}
       </div>
       )}
 
@@ -6737,15 +6761,18 @@ function JournalPinGate({ onUnlock, onBack }) {
 
 function Journal({ profile, journal, saveJournal, voiceOn, onBack }) {
   const { speak, stop, speaking } = useVoice(voiceOn);
+  const [tab, setTab] = useState("journal");
   const [text, setText] = useState("");
   const [reflecting, setReflecting] = useState(false);
   const [prompt, setPrompt] = useState("What's on your mind today? There's no right way to do this — just start.");
+  const journalEntries = journal.filter((e) => e.kind !== "fleeting");
+  const fleetingEntries = journal.filter((e) => e.kind === "fleeting");
 
   useEffect(() => { speak(prompt, CHARS.lila); return () => stop(); /* eslint-disable-next-line */ }, []);
 
-  const save = () => {
+  const save = (kind = "journal") => {
     const t = text.trim(); if (!t) return;
-    const entry = { id: Date.now(), ts: Date.now(), text: t };
+    const entry = { id: Date.now(), ts: Date.now(), text: t, kind };
     saveJournal([entry, ...journal]); setText("");
   };
 
@@ -6762,47 +6789,27 @@ function Journal({ profile, journal, saveJournal, voiceOn, onBack }) {
     finally { setReflecting(false); }
   };
 
+  const tabButton = (key, label, Icon) => <button onClick={() => { setTab(key); setText(""); }} aria-pressed={tab === key} style={{ flex: 1, border: tab === key ? `1.5px solid ${T.green}` : `1px solid ${T.line}`, borderRadius: 13, padding: "10px 7px", background: tab === key ? "#e6f5eb" : T.card, color: tab === key ? T.greenDk : T.sub, fontSize: 11.5, fontWeight: tab === key ? 800 : 600, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}><Icon size={14} />{label}</button>;
+  const serviceCard = (label, sub, href, Icon, accent) => <a href={href} target={href.startsWith("http") ? "_blank" : undefined} rel={href.startsWith("http") ? "noopener noreferrer" : undefined} style={{ display: "flex", alignItems: "center", gap: 11, background: T.card, borderRadius: 16, padding: 13, boxShadow: T.soft, textDecoration: "none", color: T.ink, borderLeft: `4px solid ${accent}` }}><div style={{ width: 38, height: 38, borderRadius: 12, background: `${accent}18`, display: "grid", placeItems: "center", flexShrink: 0 }}><Icon size={19} color={accent} /></div><div style={{ flex: 1 }}><div style={{ fontWeight: 800, fontSize: 14 }}>{label}</div><div style={{ fontSize: 12.5, color: T.sub, lineHeight: 1.4 }}>{sub}</div></div><ExternalLink size={16} color={accent} /></a>;
+
   return (
     <>
-      <Brand right={
-        <button onClick={onBack} style={{ display: "flex", alignItems: "center", gap: 4, background: "none", border: "none",
-          color: T.sub, cursor: "pointer", fontSize: 14 }}><ArrowLeft size={16} /> Hub</button>
-      } />
-      <div style={{ display: "flex", gap: 12, alignItems: "center", marginTop: 4 }}>
-        <div style={{ width: 84, flexShrink: 0 }}>
-          <Portrait src={IMG.lila} name="Lila" size={84} speaking={speaking} tint={CHARS.lila.tint} />
-        </div>
-        <div style={{ background: T.card, borderRadius: 18, padding: "13px 15px", boxShadow: T.soft, fontSize: 14.5, lineHeight: 1.45 }}>
-          {reflecting ? "Reading that back…" : prompt}
-        </div>
-      </div>
+      <Brand right={<button onClick={onBack} style={{ display: "flex", alignItems: "center", gap: 4, background: "none", border: "none", color: T.sub, cursor: "pointer", fontSize: 14 }}><ArrowLeft size={16} /> Hub</button>} />
+      <div style={{ background: "linear-gradient(135deg, #eee9f8, #f8fbf8 72%)", borderRadius: 20, padding: "15px 16px", boxShadow: T.soft, marginTop: 5 }}><div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 800, color: T.ink }}><Shield size={18} color="#7055a8" /> Private space</div><div style={{ fontSize: 12.5, color: T.sub, lineHeight: 1.45, marginTop: 4 }}>Your notes stay behind your Journal PIN. Choose the kind of space you need today.</div></div>
+      <div style={{ display: "flex", gap: 7, marginTop: 13 }}>{tabButton("journal", "Journal", BookOpen)}{tabButton("fleeting", "Fleeting thoughts", Sparkles)}{tabButton("services", "Help now", LifeBuoy)}</div>
 
-      <div style={{ marginTop: 16 }}>
-        <textarea value={text} onChange={(e) => setText(e.target.value)} rows={6} placeholder="Tap the mic to speak, or type here…"
-          style={{ ...inputStyle, resize: "none", minHeight: 150 }} />
-        <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 12 }}>
-          <HoldToTalk onText={(t) => setText((p) => (p ? p + " " : "") + t)} />
-          <div style={{ flex: 1, display: "flex", gap: 8 }}>
-            <Btn kind="outline" onClick={unpack} disabled={!text.trim() || reflecting} style={{ flex: 1 }}>Help me unpack</Btn>
-            <Btn onClick={save} disabled={!text.trim()} style={{ flex: 1 }}>Save entry</Btn>
-          </div>
-        </div>
-      </div>
+      {tab !== "services" && <div style={{ display: "flex", gap: 12, alignItems: "center", marginTop: 15 }}><div style={{ width: 76, flexShrink: 0 }}><Portrait src={IMG.lila} name="Lila" size={76} speaking={speaking} tint={CHARS.lila.tint} /></div><div style={{ background: T.card, borderRadius: 18, padding: "13px 15px", boxShadow: T.soft, fontSize: 14.5, lineHeight: 1.45 }}>{reflecting ? "Reading that back…" : tab === "fleeting" ? "A thought does not have to become a whole story. Get it down before it disappears." : prompt}</div></div>}
 
-      {journal.length > 0 && (
-        <>
-          <SectionTitle>Past entries</SectionTitle>
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {journal.map((e) => (
-              <div key={e.id} style={{ background: T.card, borderRadius: 16, padding: 14, boxShadow: T.soft }}>
-                <div style={{ fontSize: 11.5, color: T.sub, marginBottom: 6 }}>{new Date(e.ts).toLocaleString()}</div>
-                <div style={{ fontSize: 14.5, lineHeight: 1.5, whiteSpace: "pre-wrap" }}>{e.text}</div>
-              </div>
-            ))}
-          </div>
-        </>
-      )}
-      <Disclaimer />
+      {tab === "journal" && <><div style={{ marginTop: 16 }}><textarea value={text} onChange={(e) => setText(e.target.value)} rows={6} placeholder="Tap the mic to speak, or type here…" style={{ ...inputStyle, resize: "none", minHeight: 150 }} /><div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 12 }}><HoldToTalk onText={(t) => setText((p) => (p ? p + " " : "") + t)} /><div style={{ flex: 1, display: "flex", gap: 8 }}><Btn kind="outline" onClick={unpack} disabled={!text.trim() || reflecting} style={{ flex: 1 }}>Help me unpack</Btn><Btn onClick={() => save("journal")} disabled={!text.trim()} style={{ flex: 1 }}>Save entry</Btn></div></div></div><EntryList title="Past entries" entries={journalEntries} /></>}
+      {tab === "fleeting" && <><div style={{ marginTop: 16 }}><textarea value={text} onChange={(e) => setText(e.target.value)} rows={4} placeholder="A thought, reminder, feeling, or idea…" style={{ ...inputStyle, resize: "none", minHeight: 110 }} /><div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 12 }}><HoldToTalk onText={(t) => setText((p) => (p ? p + " " : "") + t)} /><div style={{ flex: 1 }}><Btn onClick={() => save("fleeting")} disabled={!text.trim()}>Save fleeting thought</Btn></div></div></div><EntryList title="Recent fleeting thoughts" entries={fleetingEntries} /></>}
+      {tab === "services" && <><div style={{ background: "#fff4f1", border: "1px solid #f0d4cd", borderRadius: 16, padding: 13, marginTop: 15, color: T.ink, fontSize: 13, lineHeight: 1.5 }}><strong>If you are in immediate danger, call Triple Zero.</strong> These links and numbers are here for quick access. You can tap a phone number to call or open a service website for more options.</div><SectionTitle>Emergency</SectionTitle><div style={{ display: "flex", flexDirection: "column", gap: 9 }}><a href="tel:000" style={{ display: "flex", alignItems: "center", gap: 11, background: "#c94f4f", color: "#fff", borderRadius: 16, padding: 14, textDecoration: "none", boxShadow: T.soft }}><Phone size={22} /><div><div style={{ fontWeight: 800, fontSize: 16 }}>Triple Zero — 000</div><div style={{ fontSize: 12.5, opacity: 0.9 }}>Police, ambulance or fire</div></div></a></div><SectionTitle>Essential support</SectionTitle><div style={{ display: "flex", flexDirection: "column", gap: 9 }}>{serviceCard("Lifeline", "13 11 14 · 24/7 crisis support", "tel:131114", Phone, "#c94f4f")}{serviceCard("Beyond Blue", "1300 22 4636 · mental health support", "tel:1300224636", Phone, "#3f6faf")}{serviceCard("Suicide Call Back Service", "1300 659 467 · phone and online counselling", "tel:1300659467", Phone, "#7055a8")}{serviceCard("MensLine Australia", "1300 78 99 78 · support for men and families", "tel:1300789978", Phone, "#2e8578")}{serviceCard("1800RESPECT", "1800 737 732 · domestic, family and sexual violence support", "tel:1800737732", Phone, "#b56739")}{serviceCard("Healthdirect", "1800 022 222 · health advice from a registered nurse", "tel:1800022222", Phone, "#4e7c9e")}{serviceCard("Lifeline online chat", "Open Lifeline’s online support options", "https://www.lifeline.org.au/crisis-chat/", ExternalLink, "#c94f4f")}</div></>}
+      {tab !== "services" && <Disclaimer />}
+      {tab === "services" && <Disclaimer />}
     </>
   );
+}
+
+function EntryList({ title, entries }) {
+  if (!entries.length) return <div style={{ background: T.card, borderRadius: 16, padding: 15, boxShadow: T.soft, marginTop: 18, color: T.sub, fontSize: 13.5 }}>Nothing here yet. It is okay to start small.</div>;
+  return <><SectionTitle>{title}</SectionTitle><div style={{ display: "flex", flexDirection: "column", gap: 10 }}>{entries.map((e) => <div key={e.id} style={{ background: T.card, borderRadius: 16, padding: 14, boxShadow: T.soft }}><div style={{ fontSize: 11.5, color: T.sub, marginBottom: 6 }}>{new Date(e.ts).toLocaleString()}</div><div style={{ fontSize: 14.5, lineHeight: 1.5, whiteSpace: "pre-wrap" }}>{e.text}</div></div>)}</div></>;
 }
