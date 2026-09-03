@@ -6822,7 +6822,7 @@ function Journal({ profile, journal, saveJournal, voiceOn, onBack }) {
 
   return (
     <>
-      <Brand right={<button onClick={onBack} style={{ display: "flex", alignItems: "center", gap: 4, background: "none", border: "none", color: T.sub, cursor: "pointer", fontSize: 14 }}><ArrowLeft size={16} /> Hub</button>} />
+      <Brand right={<BackBtn onBack={onBack} label="Toolkit" />} />
       <div style={{ background: "linear-gradient(135deg, #eee9f8, #f8fbf8 72%)", borderRadius: 20, padding: "15px 16px", boxShadow: T.soft, marginTop: 5 }}><div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 800, color: T.ink }}><Shield size={18} color="#7055a8" /> Private space</div><div style={{ fontSize: 12.5, color: T.sub, lineHeight: 1.45, marginTop: 4 }}>Your notes stay behind your Journal PIN. Choose the kind of space you need today.</div></div>
       <div style={{ display: "flex", gap: 7, marginTop: 13 }}>{tabButton("journal", "Journal", BookOpen)}{tabButton("fleeting", "Fleeting thoughts", Sparkles)}{tabButton("services", "Help now", LifeBuoy)}</div>
 
