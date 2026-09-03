@@ -343,6 +343,16 @@ export default function App() {
   const [isStandalone, setIsStandalone] = useState(false);
   const [guidePrompts, setGuidePrompts] = useState(PERSONALITY_DEFAULTS); // per-guide personality notes (admin-editable)
 
+  // Every internal screen starts at the top. The second reset catches pages
+  // whose content finishes mounting after the route state changes.
+  useEffect(() => {
+    if (screen === "welcome") return;
+    const reset = () => window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    reset();
+    const frame = requestAnimationFrame(reset);
+    return () => cancelAnimationFrame(frame);
+  }, [screen]);
+
   useEffect(() => {
     (async () => {
       const [p, a, pl, pr, j, c] = await Promise.all([
