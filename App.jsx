@@ -26,6 +26,22 @@ const T = {
   lift: "0 20px 50px rgba(47,97,72,0.15), 0 6px 16px rgba(47,97,72,0.09)",
 };
 
+// The router records the actual screen a person came from. Any top back
+// button without a fixed local parent uses this label, rather than a vague
+// “Previous Page” caption.
+const SCREEN_BACK_LABELS = {
+  welcome: "Welcome", hub: "Home", onboarding: "Get Started", program: "8-Week Plan",
+  guides: "Guides", chat: "Guide Chat", toolkit: "Toolkit", journal: "Private Journal",
+  resources: "Resources", games: "Games & Puzzles", merch: "Sloane Fox Merch",
+  carlosLibrary: "Carlos Library", programInfo: "Program", bookAppointment: "Program",
+  mensShed: "Men’s Shed", mensGroup: "Men’s Group", settings: "Settings", profile: "Profile",
+  memory: "Profile", notifications: "Home", coordinator: "Message Juan", admin: "Admin",
+  adminMessages: "Messages", adminBugReports: "Bug Reports", adminAppointments: "Appointments",
+  bugReport: "Report a Bug", userFeedback: "Share Feedback",
+};
+const screenBackLabel = (screen) => SCREEN_BACK_LABELS[screen] || "Home";
+let __backDestinationLabel = "Home";
+
 /* ---- persistent storage (browser localStorage) ---- */
 async function sget(key) {
   try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : null; }
@@ -721,18 +737,26 @@ export default function App() {
       histRef.current.push({ screen, char: activeChar });
       if (histRef.current.length > 30) histRef.current.shift();
     }
+    __backDestinationLabel = screenBackLabel(screen);
     if (ch) setActiveChar(ch);
     setScreen(s);
   };
   const back = () => {
     const prev = histRef.current.pop();
-    if (prev) { if (prev.char) setActiveChar(prev.char); setScreen(prev.screen); }
-    else setScreen("hub");
+    if (prev) {
+      __backDestinationLabel = screenBackLabel(histRef.current[histRef.current.length - 1]?.screen || "hub");
+      if (prev.char) setActiveChar(prev.char);
+      setScreen(prev.screen);
+    } else {
+      __backDestinationLabel = "Home";
+      setScreen("hub");
+    }
   };
   const openToolkitFromPlan = () => {
     // This is a deliberate destination change, not a normal back step:
     // discard the completed-plan/onboarding history so Toolkit cannot loop back.
     histRef.current = [];
+    __backDestinationLabel = "Home";
     setToolkitInitial(null);
     setScreen("toolkit");
   };
@@ -782,7 +806,7 @@ export default function App() {
       }
     }
   };
-  const openTool = (k) => { setToolkitInitial(k); setScreen("toolkit"); tickToolTask(k); };
+  const openTool = (k) => { setToolkitInitial(k); go("toolkit"); tickToolTask(k); };
 
   useEffect(() => {
     if (!authEnabled) return;
@@ -857,6 +881,7 @@ export default function App() {
             journalCount={journal.length} voiceOn={voiceOn} setVoiceOn={setVoiceOn}
             onOpenChat={(slug) => go("chat", slug)}
             onOpenProgram={() => go("program")}
+            onOpenJournal={() => go("journal")}
             onOpenGuides={() => go("guides")}
             onOpenMerch={() => go("merch")}
             onOpenCarlosLibrary={() => go("carlosLibrary")}
@@ -1613,12 +1638,13 @@ function HoldToTalk({ onText, onStart, size = 52 }) {
 }
 
 /* ---------- toolkit (anxiety support) ---------- */
-function BackBtn({ onBack, label = "Previous Page" }) {
+function BackBtn({ onBack, label }) {
+  const destination = label || __backDestinationLabel || "Home";
   return (
     <button onClick={onBack} style={{ display: "inline-flex", alignItems: "center", gap: 6,
       background: T.green, border: "none", borderRadius: 999, padding: "9px 16px", color: "#fff",
       fontWeight: 700, fontSize: 14, cursor: "pointer", boxShadow: T.soft, flexShrink: 0 }}>
-      <ArrowLeft size={16} /> {label}
+      <ArrowLeft size={16} /> {destination}
     </button>
   );
 }
@@ -1656,7 +1682,6 @@ const TOOLS = [
   { key: "safety", title: "Staying safe", blurb: "Substance safety, overdose help & support lines", Icon: LifeBuoy, tint: "#e2eefb", ic: "#3b7fca" },
   { key: "selfhelp", title: "Self-help videos", blurb: "Talks and motivation from inspiring speakers", Icon: Flame, tint: "#fde7cf", ic: "#d0904e" },
   { key: "affirmations", title: "Words for right now", blurb: "Gentle reminders to steady you", Icon: Heart, tint: "#f8e3d6", ic: "#d08a5e" },
-  { key: "journal", title: "Private Journal", blurb: "Put your thoughts into words at your own pace", Icon: BookOpen, tint: "#f3ecd6", ic: "#c9a227" },
   { key: "calm", title: "Quick calm", blurb: "Small things to try when it's too much", Icon: Sparkles, tint: "#fbf1d6", ic: "#c9a227" },
 ];
 
@@ -1826,7 +1851,7 @@ function Toolkit({ voiceOn, initial, onUseTool, onOpenJournal, onBack }) {
   if (tool === "nevern") return <NevernPage onBack={() => setTool(null)} />;
   const groups = [
     { label: "Calm down now", keys: ["breathing", "grounding", "calm"] },
-    { label: "Reflect & grow", keys: ["meditation", "selfhelp", "affirmations", "journal"] },
+    { label: "Reflect & grow", keys: ["meditation", "selfhelp", "affirmations"] },
   ];
   return (
     <>
@@ -4994,7 +5019,7 @@ function GamesPage({ gameScores, onScore, getProgress, onSaveProgress, onClearPr
   if (game) {
     return (
       <>
-        <Brand right={<BackBtn onBack={() => setOpen(null)} />} />
+        <Brand right={<BackBtn onBack={() => setOpen(null)} label="Games & Puzzles" />} />
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", margin: "2px 2px 10px" }}>
           <div style={{ fontWeight: 800, fontSize: 17 }}>{game.title}</div>
           <button onClick={() => { try { window.open(game.file, "_blank", "noopener"); } catch {} }}
@@ -5212,7 +5237,7 @@ function ProgramPage({ profile, plan, progress, saveProgress, answers, journalCo
 
   return (
     <>
-      <Brand right={<BackBtn onBack={onBack} label={isSignupLanding ? "Explore The App" : "Previous Page"} />} />
+      <Brand right={<BackBtn onBack={onBack} label={isSignupLanding ? "Explore The App" : "Toolkit"} />} />
       <SectionTitle>Your 8-Week Plan</SectionTitle>
 
       {!plan && (
@@ -5384,7 +5409,7 @@ function ResourcesIcon({ size = 24, color = "currentColor", strokeWidth = 2.2 })
   </svg>;
 }
 
-function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, setVoiceOn, onOpenChat, onOpenProgram, onOpenGuides, onOpenMerch, onOpenCarlosLibrary, onOpenGames, onOpenToolkit, onOpenResources, onOpenSafety, onOpenNotifications, onOpenCoordinator, onOpenSettings, onOpenMensGroup, onOpenMensShed, onOpenAdminMessages, onOpenProgramInfo, onReset, isAdmin, authEnabled, guestMode, onExitGuest, onOpenAdmin, onOpenProfile, onSignOut, session, rexHistory, onSaveRexChat, memories, onConversation, answers, bargeIn, rexPersona }) {
+function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, setVoiceOn, onOpenChat, onOpenProgram, onOpenJournal, onOpenGuides, onOpenMerch, onOpenCarlosLibrary, onOpenGames, onOpenToolkit, onOpenResources, onOpenSafety, onOpenNotifications, onOpenCoordinator, onOpenSettings, onOpenMensGroup, onOpenMensShed, onOpenAdminMessages, onOpenProgramInfo, onReset, isAdmin, authEnabled, guestMode, onExitGuest, onOpenAdmin, onOpenProfile, onSignOut, session, rexHistory, onSaveRexChat, memories, onConversation, answers, bargeIn, rexPersona }) {
   const { speak, stop, speaking } = useVoice(voiceOn);
   const [notifRefresh, setNotifRefresh] = useState(0);
   const [shareMsg, setShareMsg] = useState("");
@@ -5526,7 +5551,20 @@ function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, set
         {card(onOpenProgramInfo, "#e9f5ee", "#2c7d50", Heart, "Resilience & Recovery Program", "Our free 8-week in-person program — how it works & how to join")}
         {card(onOpenGuides, "#f4e3d9", "#c9803f", Users, "Your guides", "Juan, Carlos, Mick & Lila — chat any time")}
         {card(onOpenToolkit, "#dceee2", "#2c7d50", Wrench, "Toolkit", "Calm down, reflect & grow, stay safe")}
-        {card(onOpenProgram, "#e7eefb", "#3f6faf", CalendarCheck, plan ? "Your 8-Week Plan" : "Optional 8-Week Plan", plan ? "Your active plan, progress & next steps" : "Your plan, progress & journal — use it if it helps")}
+        {card(onOpenProgram, "#e7eefb", "#3f6faf", CalendarCheck, plan ? "Your 8-Week Plan" : "Optional 8-Week Plan", plan ? "Your active plan, progress & next steps" : "Your plan, progress & next steps — use it if it helps")}
+        <button onClick={onOpenJournal} aria-label="Private Journal: A calm, PIN-protected place for your thoughts" style={{ width: "100%", background: "linear-gradient(125deg, #fffdf7 0%, #f7f0dc 48%, #edf7f0 100%)", borderRadius: 21, padding: 15, boxShadow: T.soft, border: "1px solid rgba(201,162,39,0.20)", cursor: "pointer", display: "flex", alignItems: "center", gap: 13, textAlign: "left", position: "relative", overflow: "hidden" }}>
+          <div style={{ position: "absolute", right: -22, top: -28, width: 100, height: 100, borderRadius: "50%", background: "rgba(255,255,255,0.52)" }} />
+          <div style={{ width: 48, height: 48, borderRadius: 16, background: "linear-gradient(145deg, #e9d783, #fffaf0)", display: "grid", placeItems: "center", position: "relative", flexShrink: 0, boxShadow: "inset 0 0 0 1px rgba(151,113,24,0.16)" }}>
+            <BookOpen size={22} color="#9a741a" strokeWidth={2.2} />
+            <span style={{ position: "absolute", right: -5, bottom: -5, width: 19, height: 19, borderRadius: 999, background: T.green, display: "grid", placeItems: "center", boxShadow: "0 2px 7px rgba(32,95,72,0.28)" }}><Shield size={11} color="#fff" fill="#fff" /></span>
+          </div>
+          <div style={{ flex: 1, minWidth: 0, position: "relative" }}>
+            <div style={{ color: "#8e6a17", fontSize: 10, fontWeight: 900, letterSpacing: 0.9, marginBottom: 2 }}>YOUR PRIVATE SPACE</div>
+            <div style={{ fontWeight: 800, fontSize: 16, color: T.ink }}>Private Journal</div>
+            <div style={{ fontSize: 13, color: T.sub, lineHeight: 1.35 }}>Write, reflect, or capture a fleeting thought at your own pace</div>
+          </div>
+          <ChevronRight size={20} color="#9a741a" style={{ position: "relative" }} />
+        </button>
 
       </div>
 
@@ -6122,7 +6160,7 @@ function BugReport({ session, onBack }) {
   if (sent) {
     return (
       <>
-        <Brand right={<BackBtn onBack={onBack} label="Home" />} />
+        <Brand right={<BackBtn onBack={onBack} label="Settings" />} />
         <div style={{ background: T.card, borderRadius: 20, padding: 24, boxShadow: T.soft, marginTop: 20, textAlign: "center" }}>
           <div style={{ width: 56, height: 56, borderRadius: "50%", background: "#e9f5ee", display: "grid", placeItems: "center", margin: "0 auto 16px" }}>
             <CheckCircle2 size={28} color={T.greenDk} />
@@ -6133,7 +6171,7 @@ function BugReport({ session, onBack }) {
             smoothly and safely for everyone.
           </p>
           <div style={{ marginTop: 20 }}>
-            <Btn onClick={onBack}>Back to Hub</Btn>
+            <Btn onClick={onBack}>Back to Settings</Btn>
           </div>
         </div>
       </>
@@ -6224,7 +6262,7 @@ function UserFeedback({ session, onBack }) {
   if (sent) {
     return (
       <>
-        <Brand right={<BackBtn onBack={onBack} label="Extras" />} />
+        <Brand right={<BackBtn onBack={onBack} label="Settings" />} />
         <div style={{ background: T.card, borderRadius: 20, padding: 24, boxShadow: T.soft, marginTop: 20, textAlign: "center" }}>
           <div style={{ width: 56, height: 56, borderRadius: "50%", background: "#e9f5ee", display: "grid", placeItems: "center", margin: "0 auto 16px" }}>
             <CheckCircle2 size={28} color={T.greenDk} />
@@ -6234,7 +6272,7 @@ function UserFeedback({ session, onBack }) {
             Your feedback has been sent to the Resilience Hub team. It helps us keep improving the app for everyone.
           </p>
           <div style={{ marginTop: 20 }}>
-            <Btn onClick={onBack}>Back to Extras</Btn>
+            <Btn onClick={onBack}>Back to Settings</Btn>
           </div>
         </div>
       </>
@@ -6243,7 +6281,7 @@ function UserFeedback({ session, onBack }) {
 
   return (
     <>
-      <Brand right={<BackBtn onBack={onBack} label="Extras" />} />
+      <Brand right={<BackBtn onBack={onBack} label="Settings" />} />
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6, marginBottom: 4 }}>
         <MessageCircle size={18} color={T.greenDk} />
         <h2 style={{ fontSize: 18, margin: 0 }}>Share feedback</h2>
@@ -6504,7 +6542,7 @@ function CarlosLibraryPage({ onBack }) {
   const spanish = CARLOS_BOOKS.filter((book) => book.lang === "Spanish");
   const bookGrid = (books) => <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 12 }}>{books.map((book) => <a key={book.asin} href={book.href} target="_blank" rel="noopener noreferrer" style={{ display: "block", background: T.card, borderRadius: 17, padding: 9, boxShadow: T.soft, border: `1px solid ${T.line}`, textDecoration: "none", color: T.ink }}><div style={{ aspectRatio: "0.72", borderRadius: 12, overflow: "hidden", background: "#f2f2f0", marginBottom: 9 }}><img src={`/carlos-books/${book.asin}.jpg`} alt={`${book.title} book cover`} loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} /></div><div style={{ fontWeight: 800, fontSize: 12.5, lineHeight: 1.28 }}>{book.title}</div><div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6, marginTop: 8, color: T.blueDk, fontSize: 11, fontWeight: 800 }}><span>View on Amazon</span><ExternalLink size={14} /></div></a>)}</div>;
   return <>
-    <Brand right={<BackBtn onBack={onBack} label="Home" />} />
+    <Brand right={<BackBtn onBack={onBack} />} />
     <div style={{ background: "linear-gradient(135deg, #e8f0fb 0%, #ffffff 58%, #f1eafa 100%)", border: `1px solid ${T.line}`, borderRadius: 24, padding: "21px 18px 19px", marginTop: 7, boxShadow: T.soft, position: "relative", overflow: "hidden" }}>
       <div style={{ position: "absolute", right: -50, top: -65, width: 170, height: 170, borderRadius: "50%", background: "rgba(255,255,255,0.55)" }} />
       <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 11 }}><div style={{ width: 58, height: 58, borderRadius: 18, overflow: "hidden", background: "#dfeafa", flexShrink: 0, border: "1px solid rgba(63,111,175,0.14)" }}><img src={CHARS.carlos.img} alt="Carlos Camacho" style={{ width: "100%", height: "100%", objectFit: "contain" }} /></div><div><div style={{ color: T.blueDk, fontSize: 10, fontWeight: 900, letterSpacing: 1 }}>CARLOS CAMACHO</div><h1 style={{ margin: "4px 0 0", fontSize: 24, lineHeight: 1.1, color: T.ink }}>Further your wisdom</h1></div></div>
@@ -6539,7 +6577,7 @@ function ResourcesPage({ onOpenSafety, onOpenMensShed, onBack }) {
   ];
   return (
     <>
-      <Brand right={<BackBtn onBack={onBack} label="Home" />} />
+      <Brand right={<BackBtn onBack={onBack} />} />
       <div style={{ background: "linear-gradient(135deg, #e5f5ea 0%, #f8fcf9 54%, #fff0e4 100%)", borderRadius: 24, padding: "22px 19px 20px", marginTop: 7, boxShadow: T.soft, border: `1px solid ${T.line}`, position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", width: 170, height: 170, borderRadius: "50%", background: "rgba(255,255,255,0.45)", top: -95, right: -55 }} />
         <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 8, color: T.greenDk, fontSize: 11, fontWeight: 900, letterSpacing: 1, textTransform: "uppercase" }}><BookOpen size={15} /> Practical support, close to home</div>
@@ -6612,7 +6650,7 @@ function MensShedPage({ onBack }) {
   const signPhoto = "/mens-shed/south-west-sydney-mens-shed-sign.png";
   return (
     <>
-      <Brand right={<BackBtn onBack={onBack} label="Home" />} />
+      <Brand right={<BackBtn onBack={onBack} />} />
       <div style={{ background: "linear-gradient(145deg, #e7f5eb 0%, #fbfcf8 48%, #fff0d7 100%)", borderRadius: 24, overflow: "hidden", boxShadow: T.soft, marginTop: 8, border: "1px solid rgba(44,125,80,0.14)" }}>
         <div style={{ padding: "22px 18px 18px", position: "relative" }}>
           <div style={{ position: "absolute", right: -38, top: -44, width: 150, height: 150, borderRadius: "50%", background: "rgba(255,255,255,0.52)" }} />
@@ -6669,7 +6707,7 @@ function MensShedPage({ onBack }) {
 function MensGroup({ onBack }) {
   return (
     <>
-      <Brand right={<BackBtn onBack={onBack} label="Home" />} />
+      <Brand right={<BackBtn onBack={onBack} />} />
       <div style={{ background: T.card, borderRadius: 20, overflow: "hidden", boxShadow: T.soft, marginTop: 8 }}>
         <img src="/mens_group.jpg" alt="Men's Group — Liverpool Area" style={{ width: "100%", display: "block" }} />
         <div style={{ padding: 18 }}>
@@ -6713,7 +6751,7 @@ function JournalPinGate({ onUnlock, onBack }) {
   };
   return (
     <>
-      <Brand right={<BackBtn onBack={onBack} label="Hub" />} />
+      <Brand right={<BackBtn onBack={onBack} />} />
       <div style={{ background: T.card, borderRadius: 20, padding: 24, boxShadow: T.soft, marginTop: 20, textAlign: "center" }}>
         <div style={{ width: 58, height: 58, borderRadius: "50%", background: "#eee9f8", display: "grid", placeItems: "center", margin: "0 auto 16px" }}>
           <Shield size={28} color="#7055a8" />
@@ -6770,7 +6808,7 @@ function Journal({ profile, journal, saveJournal, voiceOn, onBack }) {
 
   return (
     <>
-      <Brand right={<BackBtn onBack={onBack} label="Toolkit" />} />
+      <Brand right={<BackBtn onBack={onBack} />} />
       <div style={{ background: "linear-gradient(135deg, #eee9f8, #f8fbf8 72%)", borderRadius: 20, padding: "15px 16px", boxShadow: T.soft, marginTop: 5 }}><div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 800, color: T.ink }}><Shield size={18} color="#7055a8" /> Private space</div><div style={{ fontSize: 12.5, color: T.sub, lineHeight: 1.45, marginTop: 4 }}>Your notes stay behind your Journal PIN. Choose the kind of space you need today.</div></div>
       <div style={{ display: "flex", gap: 7, marginTop: 13 }}>{tabButton("journal", "Journal", BookOpen)}{tabButton("fleeting", "Fleeting thoughts", Sparkles)}{tabButton("services", "Help now", LifeBuoy)}</div>
 
