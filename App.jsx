@@ -1258,17 +1258,6 @@ function primeAudio() {
   return __primePromise;
 }
 let __unlockHandler = null;
-let __micWakePromise = null;
-function wakeMicForSpeech() {
-  if (typeof navigator === "undefined" || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return Promise.resolve(false);
-  if (__micWakePromise) return __micWakePromise;
-  const request = navigator.mediaDevices.getUserMedia({ audio: true })
-    .then((stream) => { stream.getTracks().forEach((track) => track.stop()); return true; })
-    .catch(() => false);
-  __micWakePromise = request.finally(() => { __micWakePromise = null; });
-  return __micWakePromise;
-}
-
 function unlockAudio() {
   // Keep trying on each early gesture until a silent play actually SUCCEEDS.
   // (Previously this ran once and removed its listeners even if that first
@@ -1500,187 +1489,125 @@ function useVoice(voiceOn) {
   return { speak, stop, speaking, paused, pauseResume, prefetch };
 }
 
-async function transcribeRecordedAudio(blob) {
-  const reader = new FileReader();
-  const dataUrl = await new Promise((resolve, reject) => {
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
-  });
-  const response = await fetch('/api/transcribe', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ audio: dataUrl, mimeType: blob.type || 'audio/mp4', language: __speechLang.split('-')[0] }),
-  });
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(data.error || 'Speech transcription failed.');
-  return cleanTranscript(data.text || '');
-}
-
-function pickRecordingMime() {
-  if (typeof MediaRecorder === 'undefined') return '';
-  const options = ['audio/mp4', 'audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus'];
-  return options.find((m) => !MediaRecorder.isTypeSupported || MediaRecorder.isTypeSupported(m)) || '';
-}
-
-function useRecordedSpeech(onText, onStart, { autoStopSilence = false } = {}) {
-  const [listening, setListening] = useState(false);
-  const [transcribing, setTranscribing] = useState(false);
-  const [error, setError] = useState("");
-  const recorderRef = useRef(null);
-  const streamRef = useRef(null);
-  const chunksRef = useRef([]);
-  const sessionRef = useRef(0);
-  const silenceTimerRef = useRef(null);
-  const audioContextRef = useRef(null);
-
-  const clearMonitor = useCallback(() => {
-    if (silenceTimerRef.current) { clearTimeout(silenceTimerRef.current); silenceTimerRef.current = null; }
-    try { audioContextRef.current?.close(); } catch {}
-    audioContextRef.current = null;
-  }, []);
-
-  const releaseStream = useCallback((stream = streamRef.current) => {
-    try { stream?.getTracks().forEach((track) => track.stop()); } catch {}
-    if (streamRef.current === stream) streamRef.current = null;
-  }, []);
-
-  // Finish keeps the session valid so recorder.onstop can upload and return text.
-  const finish = useCallback(() => {
-    const recorder = recorderRef.current;
-    if (!recorder || recorder.state === "inactive") return;
-    clearMonitor();
-    setListening(false);
-    setTranscribing(true);
-    try { recorder.requestData(); } catch {}
-    try { recorder.stop(); } catch {
-      setTranscribing(false);
-      setError("The recording could not be completed. Please try again.");
-    }
-  }, [clearMonitor]);
-
-  // Cancel deliberately invalidates callbacks and discards the recording.
-  const cancel = useCallback(() => {
-    sessionRef.current += 1;
-    clearMonitor();
-    const recorder = recorderRef.current;
-    recorderRef.current = null;
-    if (recorder) {
-      recorder.ondataavailable = null; recorder.onstop = null; recorder.onerror = null;
-      try { if (recorder.state !== "inactive") recorder.stop(); } catch {}
-    }
-    releaseStream();
-    chunksRef.current = [];
-    setListening(false);
-    setTranscribing(false);
-  }, [clearMonitor, releaseStream]);
-
-  const start = useCallback(async () => {
-    if (recorderRef.current || listening || transcribing) return;
-    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
-      const message = "Audio recording is not supported on this device.";
-      setError(message); throw new Error(message);
-    }
-    const session = ++sessionRef.current;
-    setError("");
-    onStart?.();
-    let stream;
-    try {
-      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      if (session !== sessionRef.current) { releaseStream(stream); return; }
-      streamRef.current = stream;
-      chunksRef.current = [];
-      const mime = pickRecordingMime();
-      const recorder = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
-      recorderRef.current = recorder;
-      const startedAt = Date.now();
-      recorder.ondataavailable = (event) => { if (event.data?.size) chunksRef.current.push(event.data); };
-      recorder.onerror = () => {
-        if (session !== sessionRef.current) return;
-        setError("The microphone recording stopped unexpectedly. Please try again.");
-        cancel();
-      };
-      recorder.onstop = async () => {
-        const isCurrent = session === sessionRef.current;
-        const parts = chunksRef.current.slice();
-        const type = recorder.mimeType || mime || "audio/mp4";
-        if (recorderRef.current === recorder) recorderRef.current = null;
-        clearMonitor();
-        releaseStream(stream);
-        if (!isCurrent) return;
-        setListening(false);
-        if (!parts.length) {
-          setTranscribing(false);
-          setError("No audio was captured. Please check microphone access and try again.");
-          return;
-        }
-        try {
-          const text = await transcribeRecordedAudio(new Blob(parts, { type }));
-          if (session === sessionRef.current && text) onText?.(text);
-          else if (session === sessionRef.current) setError("No speech was detected. Please try again.");
-        } catch (transcriptionError) {
-          if (session === sessionRef.current) setError(transcriptionError?.message || "Speech transcription failed. Please try again.");
-        } finally {
-          if (session === sessionRef.current) setTranscribing(false);
-        }
-      };
-      recorder.start(250);
-      setListening(true);
-      if (autoStopSilence) {
-        const AudioCtx = window.AudioContext || window.webkitAudioContext;
-        if (AudioCtx) {
-          const ctx = new AudioCtx();
-          const analyser = ctx.createAnalyser(); analyser.fftSize = 512;
-          ctx.createMediaStreamSource(stream).connect(analyser);
-          audioContextRef.current = ctx;
-          const samples = new Uint8Array(analyser.fftSize);
-          let lastSoundAt = Date.now();
-          const monitor = () => {
-            if (session !== sessionRef.current || recorderRef.current !== recorder || recorder.state !== "recording") return;
-            analyser.getByteTimeDomainData(samples);
-            let peak = 0;
-            for (const sample of samples) peak = Math.max(peak, Math.abs(sample - 128));
-            if (peak > 5) lastSoundAt = Date.now();
-            if (Date.now() - startedAt > 1200 && Date.now() - lastSoundAt > 2000) { finish(); return; }
-            silenceTimerRef.current = setTimeout(monitor, 120);
-          };
-          silenceTimerRef.current = setTimeout(monitor, 120);
-        }
-      }
-    } catch (startError) {
-      if (session === sessionRef.current) {
-        releaseStream(stream);
-        recorderRef.current = null;
-        setListening(false); setTranscribing(false);
-        const message = startError?.name === "NotAllowedError"
-          ? "Microphone access is blocked. Please allow it in your browser settings."
-          : "The microphone could not start. Please try again.";
-        setError(message);
-      }
-      throw startError;
-    }
-  }, [autoStopSilence, cancel, clearMonitor, finish, listening, onStart, onText, releaseStream, transcribing]);
-
-  useEffect(() => () => cancel(), [cancel]);
-  return { listening, transcribing, error, start, stop: finish, cancel };
-}
-
 function HoldToTalk({ onText, onStart, size = 52 }) {
-  const speech = useRecordedSpeech(onText, onStart);
-  const toggle = async () => {
-    try { if (speech.listening) speech.stop(); else if (!speech.transcribing) await speech.start(); }
-    catch (error) { console.warn('[RH voice] recording unavailable', error); }
+  const [listening, setListening] = useState(false);
+  const [err, setErr] = useState(null);
+  const recRef = useRef(null);
+  const committedRef = useRef("");   // finalized speech accumulated across this hold
+  const submittedRef = useRef(false); // one commit maximum per hold
+  const heldRef = useRef(false);     // true while the button is actually held
+  const supported = typeof window !== "undefined" && (window.SpeechRecognition || window.webkitSpeechRecognition);
+
+  // Chrome/Android's `continuous: true` mode can silently auto-restart and
+  // re-deliver overlapping results, which is what causes runaway repeated
+  // text on longer holds. Instead we run short NON-continuous sessions and
+  // manually chain them back-to-back while the button is held, only ever
+  // appending brand-new finalized text — never re-reading old results.
+  const runSession = () => {
+    if (!heldRef.current) return;
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    let r;
+    try { r = new SR(); } catch { setErr("Couldn't start the mic."); setListening(false); return; }
+    voiceDebug("tap session created");
+    r.lang = __speechLang; r.interimResults = true; r.continuous = false;
+    let sessionFinal = "", interimText = "";
+    r.onresult = (e) => {
+      // Rebuild this session's text from scratch each update — idempotent, so a
+      // sentence is never re-added — and keep the trailing interim for the tail.
+      let f = "", it = "";
+      for (let i = 0; i < e.results.length; i++) {
+        const res = e.results[i]; if (!res || !res[0]) continue;
+        if (res.isFinal) f += res[0].transcript + " "; else it += res[0].transcript;
+      }
+      sessionFinal = f.trim(); interimText = it;
+    };
+    r.onerror = (e) => {
+      if (e && (e.error === "not-allowed" || e.error === "service-not-allowed")) {
+        setErr("Mic access is blocked — check your browser/site permissions.");
+        heldRef.current = false;
+      }
+    };
+    r.onend = () => {
+      recRef.current = null;
+      const seg = sessionFinal.trim();     // only finalized recognition results are committed
+      if (seg) committedRef.current = (committedRef.current + " " + seg).trim();
+      sessionFinal = ""; interimText = "";
+      if (heldRef.current) { runSession(); return; } // still held — keep listening seamlessly
+      setListening(false);
+      const t = cleanTranscript(committedRef.current);
+      if (t && !submittedRef.current) { submittedRef.current = true; voiceDebug("tap transcript submitted", t); onText(t); }
+      else if (t) voiceDebug("tap duplicate transcript ignored");
+    };
+    try { recRef.current = r; r.start(); setListening(true); }
+    catch { recRef.current = null; /* start raced with a previous stop — the watchdog revives it */ }
   };
+
+  const watchdog = useRef(null);
+  // iOS WebKit has a known issue where, after the page has played sound
+  // through an <audio> element (a guide's voice reply), a later Speech
+  // Recognition session can start "successfully" — button lights up — but
+  // never actually receives any audio, because the OS-level audio session
+  // is still routed for playback rather than recording. Briefly grabbing
+  // (and instantly releasing) a real getUserMedia mic stream first forces
+  // iOS to hand the session back to recording mode before Speech Recognition
+  // tries to use it. Permission is already granted at this point, so this
+  // resolves near-instantly and never re-prompts; it's a no-op on browsers
+  // that don't need it.
+  const wakeMic = () => new Promise((resolve) => {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { resolve(); return; }
+    let done = false;
+    const finish = () => { if (done) return; done = true; resolve(); };
+    navigator.mediaDevices.getUserMedia({ audio: true })
+      .then((stream) => { stream.getTracks().forEach((t) => t.stop()); finish(); })
+      .catch(() => finish());
+    setTimeout(finish, 700); // never block the mic button longer than this
+  });
+  const start = () => {
+    if (!supported) { setErr("Voice input isn't supported here — please type."); return; }
+    if (onStart) onStart();
+    setErr(null); committedRef.current = ""; submittedRef.current = false; heldRef.current = true;
+    // Only pay the mic-wake delay when it's actually needed — right after a
+    // guide's voice has played. Otherwise (first message, or voice off) start
+    // listening immediately, so the beginning of what someone says isn't lost.
+    const justHeardVoice = Date.now() - __lastVoiceAt < 4000;
+    if (justHeardVoice) {
+      setTimeout(() => {
+        if (!heldRef.current) return;
+        wakeMic().then(() => { if (heldRef.current) runSession(); });
+      }, 150);
+    } else {
+      runSession();
+    }
+    // Browsers cap a single listening session (~1 min, and they stop on pauses).
+    // This keeps the mic alive no matter how long someone talks: if a session has
+    // ended and a restart didn't take, revive it. Nobody gets cut off mid-sentence.
+    clearInterval(watchdog.current);
+    watchdog.current = setInterval(() => {
+      if (heldRef.current && !recRef.current) runSession();
+    }, 1000);
+  };
+  const stop = () => {
+    heldRef.current = false;
+    clearInterval(watchdog.current);
+    try { recRef.current && recRef.current.stop(); } catch {}
+  };
+  // Tap to start, tap again to finish & send. heldRef is set synchronously in
+  // start()/stop(), so consecutive taps toggle reliably regardless of React state timing.
+  const toggle = () => { if (heldRef.current) stop(); else start(); };
+  useEffect(() => () => clearInterval(watchdog.current), []);
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-      <button onClick={toggle} disabled={speech.transcribing} aria-label={speech.listening ? 'Tap to stop and transcribe' : speech.transcribing ? 'Transcribing speech' : 'Tap to talk'}
-        style={{ width: size, height: size, borderRadius: '50%', border: 'none', cursor: 'pointer',
-          background: speech.listening ? '#e5484d' : '#fff', color: speech.listening ? '#fff' : T.ink,
-          boxShadow: T.soft, display: 'grid', placeItems: 'center',
-          animation: speech.listening ? 'rh-glow 1.2s ease-in-out infinite' : 'none', touchAction: 'none', opacity: speech.transcribing ? 0.65 : 1 }}>
-        {speech.listening ? <Square size={20} /> : <Mic size={20} />}
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+      <button
+        onPointerDown={toggle}
+        aria-label={listening ? "Tap to stop and send" : "Tap to talk"}
+        style={{ width: size, height: size, borderRadius: "50%", border: "none", cursor: "pointer",
+          background: listening ? "#e5484d" : "#fff", color: listening ? "#fff" : T.ink,
+          boxShadow: T.soft, display: "grid", placeItems: "center",
+          animation: listening ? "rh-glow 1.2s ease-in-out infinite" : "none", touchAction: "none" }}>
+        {listening ? <Square size={20} /> : <Mic size={20} />}
       </button>
-      {(speech.transcribing || speech.error) && <div style={{ maxWidth: 190, marginTop: 5, textAlign: 'center', fontSize: 11, color: speech.error ? '#a33b3b' : T.sub }}>{speech.transcribing ? 'Turning that into text…' : speech.error}</div>}
+      {err && <span style={{ fontSize: 11, color: "#c0392b", marginTop: 4, maxWidth: 120, textAlign: "center" }}>{err}</span>}
     </div>
   );
 }
@@ -4247,7 +4174,6 @@ function ChatHelp() {
     { Icon: Send, title: "Type a message", body: "Write in the box at the bottom and tap send (or press Enter). Just like texting." },
     { Icon: Mic, title: "Talk instead of typing", body: "Tap the mic button, say what you want, then tap it again to finish — it turns your voice into a message. Works best in Chrome on Android or a computer." },
     { Icon: Volume2, title: "Hear the guide's voice", body: "Tap the speaker icon at the top to turn the guide's voice on or off. Tap any of their messages to pause and resume, or tap Repeat under a message to hear it again." },
-    { Icon: Radio, title: "Hands-free chat", body: "Tap the radio icon to talk back and forth without touching the screen — the guide replies out loud and then listens for you. To prevent the guide hearing their own voice through your phone speaker, listening resumes after each reply finishes." },
     { Icon: Paperclip, title: "Send a photo", body: "Tap the paperclip to attach a photo the guide can look at and talk about with you. Photos only — our guides cannot view video files." },
     { Icon: Zap, title: "Fast Reply", body: "In a rush? Tap the ⚡ next to Send and that one reply comes back quick and to the point — it won't change your saved Response Speed in Settings." },
   ];
@@ -5791,20 +5717,8 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
     e.target.value = "";
   };
 
-  // Isolated recorded-audio controller. It replaces the old browser
-  // SpeechRecognition and barge-in watchers while keeping the same Chat API.
-  const [handsFree, setHandsFree] = useState(false);
-  const [hfListening, setHfListening] = useState(false);
-  const hfRef = useRef(false); hfRef.current = handsFree;
-  const sendRef = useRef(null);
-  const sttSupported = typeof window !== 'undefined' && !!(navigator.mediaDevices?.getUserMedia && typeof MediaRecorder !== 'undefined');
-  const hfSpeech = useRecordedSpeech((text) => { if (sendRef.current) sendRef.current(text); }, stop, { autoStopSilence: true });
-  useEffect(() => setHfListening(hfSpeech.listening), [hfSpeech.listening]);
-  const hfListen = hfSpeech.start;
-  const stopHF = hfSpeech.cancel;
-
   useEffect(() => { scrollRef.current?.scrollTo({ top: 1e6, behavior: 'smooth' }); }, [history, busy, showAllHistory]);
-  useEffect(() => () => { stop(); stopHF(); }, [stop, stopHF]);
+  useEffect(() => () => { stop(); }, [stop]);
 
   const send = async (raw, opts) => {
     const text = (raw ?? input).trim();
@@ -5817,8 +5731,6 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
     }
     sendLockRef.current = true;
     if (!img) lastSubmittedTextRef.current = { text, at: now };
-    // Invalidate any pending recognition before a new AI reply can speak.
-    stopHF();
     // Response speed: the person's saved Settings preference, unless this one
     // reply was sent via the ⚡ Fast Reply button, which overrides it just once.
     const effSpeed = (opts && opts.forceFast) ? "fast" : (responseSpeed || "normal");
@@ -5891,23 +5803,12 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
       const clean = reply.replace(/<tool>\s*(breathing|grounding|meditation|affirmations|calm)\s*<\/tool>/gi, "").trim();
       const withReply = [...newHist, { role: "assistant", content: clean, tool, ts: Date.now() }];
       setHistory(withReply);
-      if (voiceOn) { spoken.current.add(withReply.length - 1); speak(clean, char, hfRef.current ? hfListen : undefined); }
-      else if (hfRef.current) { setTimeout(() => hfListen(), 300); }
+      if (voiceOn) { spoken.current.add(withReply.length - 1); speak(clean, char); }
       if (onConversation) onConversation(withReply); // quietly refresh long-term memory in the background
     } catch (e) {
       setErr(e.message || "Something went wrong.");
     } finally { sendLockRef.current = false; setBusy(false); }
   };
-  sendRef.current = send;
-
-  const toggleHandsFree = () => {
-    if (!sttSupported) { setErr("Hands-free needs voice input — try Chrome on Android or desktop."); return; }
-    const next = !handsFree;
-    setHandsFree(next); hfRef.current = next;
-    if (next) { setErr(null); if (!busy && !speaking) hfListen(); }
-    else { stopHF(); stop(); }
-  };
-
   const starters = char.slug === "rex"
     ? ["What is this place?", "Who should I talk to?", "I'm new here"]
     : char.slug === "juan"
@@ -5940,27 +5841,8 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
         </button>
         <ChatHelp />
         <VoiceToggle on={voiceOn} set={setVoiceOn} />
-        {sttSupported && (
-          <button onClick={toggleHandsFree} aria-label={handsFree ? "Turn off hands-free" : "Turn on hands-free"}
-            title={handsFree ? "Hands-free on" : "Hands-free"}
-            style={{ background: handsFree ? T.green : "#fff", border: `1px solid ${handsFree ? T.green : T.line}`,
-              borderRadius: 999, width: 38, height: 38, display: "grid", placeItems: "center", cursor: "pointer",
-              color: handsFree ? "#fff" : T.ink, boxShadow: T.soft,
-              animation: (handsFree && (hfListening || speaking)) ? "rh-glow 1.2s ease-in-out infinite" : "none" }}>
-            <Radio size={17} />
-          </button>
-        )}
       </div>
 
-      {handsFree && (
-        <div onClick={speaking ? () => { stop(); hfListen(); } : undefined}
-          style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 8,
-          fontSize: 12.5, color: T.greenDk, fontWeight: 600, cursor: speaking ? "pointer" : "default" }}>
-          <span style={{ width: 7, height: 7, borderRadius: "50%", background: T.green,
-            animation: "rh-glow 1.2s ease-in-out infinite" }} />
-          Hands-free on — {speaking ? `${char.name} is talking — listening resumes when they finish, or tap here to stop them` : hfListening ? "listening…" : hfSpeech.transcribing ? "turning that into text…" : hfSpeech.error ? hfSpeech.error : "getting ready…"}
-        </div>
-      )}
 
       {searchOpen && (
         <div style={{ display: "flex", gap: 8, alignItems: "center", padding: "8px 2px", position: "sticky", top: 84, zIndex: 19, background: T.bgMid }}>
@@ -6091,7 +5973,7 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
         </button>
       </div>
       {speaking && (
-        <button onClick={() => { voiceDebug("Interrupt pressed"); stopHF(); stop(); if (handsFree) setTimeout(() => { if (hfRef.current) hfListen(); }, 120); }} aria-label="Interrupt"
+        <button onClick={() => { voiceDebug("Interrupt pressed"); stop(); }} aria-label="Interrupt"
           style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, margin: "10px auto 0",
             background: "#e5484d", color: "#fff", border: "none", borderRadius: 999, padding: "11px 22px",
             fontSize: 15, fontWeight: 700, cursor: "pointer", boxShadow: "0 6px 16px rgba(229,72,77,0.32)",
