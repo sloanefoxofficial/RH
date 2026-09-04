@@ -1430,28 +1430,50 @@ function useVoice(voiceOn) {
     // Prefer natural voices when the guide has a voiceId; fall back to the
     // browser voice if the key isn't set, the call fails, or playback is blocked.
     if (char && char.voiceId) {
+      const chunks = splitForTts(text);
+      const first = chunks[0] || text;
       try {
-        const url = await fetchTtsUrl(text, char.voiceId); // instant if pre-fetched
-        if (stale()) return;      // a newer speak() superseded this
-        const audio = getTtsAudio() || new Audio();  // reuse the gesture-unlocked element
-        audioRef.current = audio;
-        audio.onplay = () => { try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch {} __lastVoiceAt = Date.now(); setSpeaking(true); };
-        audio.onended = () => {
+        // Start the first short request immediately. The remaining response no
+        // longer blocks the first spoken sentence; the next chunk is warmed in
+        // parallel while this one is synthesising/playing.
+        const firstUrlPromise = fetchTtsUrl(first, char.voiceId);
+        if (chunks[1]) fetchTtsUrl(chunks[1], char.voiceId).catch(() => {});
+        const playChunk = async (index, urlPromise) => {
           if (stale()) return;
-          if (audioRef.current === audio) audioRef.current = null;
-          setSpeaking(false);
-          if (onDone) onDone();
+          const chunk = chunks[index] || text;
+          let url;
+          try { url = await (urlPromise || fetchTtsUrl(chunk, char.voiceId)); }
+          catch { if (!stale()) browserSpeak(chunk, char, index + 1 < chunks.length ? () => playChunk(index + 1) : onDone); return; }
+          if (stale()) return;
+          const audio = getTtsAudio() || new Audio();
+          audioRef.current = audio;
+          audio.onplay = () => { try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch {} __lastVoiceAt = Date.now(); setSpeaking(true); };
+          audio.onended = () => {
+            if (stale()) return;
+            if (audioRef.current === audio) audioRef.current = null;
+            if (index + 1 < chunks.length) {
+              // Fetch the following chunk just-in-time; the prior prefetch makes
+              // this normally a cache hit and keeps the transition quick.
+              playChunk(index + 1);
+            } else {
+              setSpeaking(false);
+              if (onDone) onDone();
+            }
+          };
+          audio.onerror = () => {
+            if (audioRef.current === audio) audioRef.current = null;
+            if (stale()) return;
+            if (index + 1 < chunks.length) browserSpeak(chunk, char, () => playChunk(index + 1));
+            else { setSpeaking(false); browserSpeak(chunk, char, onDone); }
+          };
+          try { audio.src = url; audio.currentTime = 0; await audio.play(); return; }
+          catch {
+            try { await primeAudio(); if (stale()) return; audio.src = url; audio.currentTime = 0; await audio.play(); return; }
+            catch { if (!stale()) browserSpeak(chunk, char, index + 1 < chunks.length ? () => playChunk(index + 1) : onDone); }
+          }
         };
-        audio.onerror = () => {
-          if (audioRef.current === audio) audioRef.current = null;
-          setSpeaking(false);
-          if (!stale()) browserSpeak(text, char, onDone);
-        };
-        try { audio.src = url; audio.currentTime = 0; await audio.play(); return; }
-        catch {
-          try { await primeAudio(); if (stale()) return; audio.src = url; audio.currentTime = 0; await audio.play(); return; }
-          catch { if (!stale()) browserSpeak(text, char, onDone); return; }
-        }
+        await playChunk(0, firstUrlPromise);
+        return;
       } catch { /* fall through to browser voice */ }
       if (stale()) return;
     }
@@ -5716,9 +5738,11 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
   const sendRef = useRef(null);
   const sttSupported = typeof window !== "undefined" && (window.SpeechRecognition || window.webkitSpeechRecognition);
 
+  const hfSilenceRef = useRef(null);
   const stopHF = useCallback(() => {
-    voiceDebug("hands-free cleanup", hfSessionRef.current + 1);
+    voiceDebug("hands-free cleanup");
     hfSessionRef.current += 1;
+    if (hfSilenceRef.current) { clearTimeout(hfSilenceRef.current); hfSilenceRef.current = null; }
     const active = hfRecRef.current;
     hfRecRef.current = null;
     if (active) {
@@ -5732,114 +5756,63 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
     if (!hfRef.current) return;
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) { setHandsFree(false); hfRef.current = false; return; }
-    // There is exactly one owner of recognition. Invalidate the old instance
-    // before creating a new one so its late callbacks cannot submit text.
-    const old = hfRecRef.current;
-    if (old) {
-      old.onresult = null; old.onend = null; old.onerror = null;
-      try { old.abort(); } catch { try { old.stop(); } catch {} }
-      hfRecRef.current = null;
-    }
+    // The rebuilt controller has one owner. A new session always invalidates
+    // the previous one before it creates a recogniser.
+    stopHF();
     const sessionId = ++hfSessionRef.current;
     voiceDebug("hands-free session created", sessionId);
     try {
-      // Keep one continuous session open while the person speaks, but only accept
-      // final results. This avoids rolling interim fragments while allowing
-      // natural pauses between words and sentences.
-      const r = new SR(); r.lang = __speechLang; r.interimResults = false; r.continuous = true;
-      const finalParts = []; const seenFinalIndexes = new Set(); let lastFinalText = ""; let done = false; let silence = null;
-      const arm = () => { clearTimeout(silence); silence = setTimeout(() => { try { r.stop(); } catch {} }, 2600); };
-      r.onstart = () => { if (sessionId === hfSessionRef.current) arm(); };
-      r.onresult = (e) => {
-        if (sessionId !== hfSessionRef.current || done) { voiceDebug("stale hands-free result ignored", sessionId); return; }
-        for (let i = e.resultIndex || 0; i < e.results.length; i++) {
-          const res = e.results[i]; if (!res || !res.isFinal || !res[0]) continue;
-          const part = String(res[0].transcript || "").trim();
-          if (part && !seenFinalIndexes.has(i) && part !== lastFinalText) { seenFinalIndexes.add(i); finalParts.push(part); lastFinalText = part; }
-        }
-        arm();
+      const r = new SR();
+      r.lang = __speechLang;
+      r.interimResults = false;
+      r.continuous = true;
+      let finalText = "";
+      let lastResultIndex = -1;
+      let submitted = false;
+      const finishAfterPause = () => {
+        if (hfSilenceRef.current) clearTimeout(hfSilenceRef.current);
+        hfSilenceRef.current = setTimeout(() => { try { r.stop(); } catch {} }, 2600);
       };
-      r.onerror = (e) => { voiceDebug("hands-free recognition error", sessionId, e?.error || "unknown"); };
+      r.onstart = () => { if (sessionId === hfSessionRef.current) finishAfterPause(); };
+      r.onresult = (event) => {
+        if (sessionId !== hfSessionRef.current || submitted) { voiceDebug("stale hands-free result ignored", sessionId); return; }
+        for (let i = event.resultIndex || 0; i < event.results.length; i++) {
+          const result = event.results[i];
+          if (!result || !result.isFinal || !result[0] || i <= lastResultIndex) continue;
+          lastResultIndex = i;
+          finalText += (finalText ? " " : "") + String(result[0].transcript || "").trim();
+        }
+        finishAfterPause();
+      };
+      r.onerror = (event) => voiceDebug("hands-free recognition error", sessionId, event?.error || "unknown");
       r.onend = () => {
-        clearTimeout(silence);
-        if (sessionId !== hfSessionRef.current || done) { voiceDebug("stale hands-free onend ignored", sessionId); return; }
-        done = true;
+        if (hfSilenceRef.current) { clearTimeout(hfSilenceRef.current); hfSilenceRef.current = null; }
+        if (sessionId !== hfSessionRef.current || submitted) { voiceDebug("stale hands-free end ignored", sessionId); return; }
+        submitted = true;
         if (hfRecRef.current === r) hfRecRef.current = null;
         setHfListening(false);
         if (!hfRef.current) return;
-        const t = cleanTranscript(finalParts.join(" "));
-        if (t) {
+        const text = cleanTranscript(finalText);
+        if (text) {
           hfEmpty.current = 0;
           if (hfSubmittedSessionRef.current !== sessionId) {
             hfSubmittedSessionRef.current = sessionId;
-            voiceDebug("hands-free transcript submitted", sessionId, t);
-            if (sendRef.current) sendRef.current(t);
-          } else voiceDebug("hands-free duplicate transcript ignored", sessionId);
-          return;
+            voiceDebug("hands-free transcript submitted", sessionId, text);
+            if (sendRef.current) sendRef.current(text);
+          }
+        } else {
+          hfEmpty.current += 1;
+          if (hfEmpty.current >= 3) { setHandsFree(false); hfRef.current = false; }
+          else setTimeout(() => { if (hfRef.current && sessionId === hfSessionRef.current) hfListen(); }, 500);
         }
-        hfEmpty.current += 1;
-        if (hfEmpty.current >= 3) { setHandsFree(false); hfRef.current = false; }
-        else setTimeout(() => { if (hfRef.current && sessionId === hfSessionRef.current) hfListen(); }, 500);
       };
-      hfRecRef.current = r; r.start(); setHfListening(true);
+      hfRecRef.current = r;
+      r.start();
+      setHfListening(true);
     } catch {
       if (sessionId === hfSessionRef.current) setTimeout(() => { if (hfRef.current) hfListen(); }, 800);
     }
-  }, []);
-
-  // Do not open Speech Recognition while guide audio is playing. On phones and
-  // speaker devices it hears the guide's own voice and creates a feedback loop.
-  // Hands-free resumes automatically through speak()'s onDone callback instead.
-  const bargeRecRef = useRef(null);
-  const bargeArmTimer = useRef(null);
-  const bargeSpeakingRef = useRef(false);
-  const startBargeWatch = useCallback(() => {
-    if (!hfRef.current || !bargeSpeakingRef.current) return;
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) return;
-    try {
-      const r = new SR(); r.lang = __speechLang; r.interimResults = true; r.continuous = true;
-      let triggered = false;
-      r.onresult = (e) => {
-        if (triggered) return;
-        let seg = "";
-        for (let i = e.resultIndex; i < e.results.length; i++) {
-          if (e.results[i] && e.results[i][0]) seg += e.results[i][0].transcript + " ";
-        }
-        seg = seg.trim();
-        // A couple of real words = the person is talking over the guide → cut in.
-        if (seg.split(/\s+/).filter(Boolean).length >= 2 && seg.length >= 5) {
-          triggered = true;
-          try { r.stop(); } catch {}
-          stop();            // stop the guide's voice immediately
-          hfListen();        // switch to full listening for what they're saying
-        }
-      };
-      r.onerror = () => {};
-      r.onend = () => {
-        bargeRecRef.current = null;
-        // If the guide is still talking and the person hasn't cut in yet, the
-        // recogniser ending early shouldn't leave us deaf — start it again.
-        if (!triggered && hfRef.current && bargeSpeakingRef.current) {
-          setTimeout(() => { if (hfRef.current && bargeSpeakingRef.current) startBargeWatch(); }, 150);
-        }
-      };
-      bargeRecRef.current = r; r.start();
-    } catch {}
-  }, [stop, hfListen]);
-  const stopBargeWatch = useCallback(() => {
-    if (bargeArmTimer.current) { clearTimeout(bargeArmTimer.current); bargeArmTimer.current = null; }
-    try { bargeRecRef.current && bargeRecRef.current.stop(); } catch {}
-    bargeRecRef.current = null;
-  }, []);
-
-  useEffect(() => {
-    // Always keep the mic closed during guide speech. This is more reliable than
-    // trying to distinguish the guide from the person on a phone speaker.
-    bargeSpeakingRef.current = false;
-    stopBargeWatch();
-    return stopBargeWatch;
-  }, [handsFree, speaking, stopBargeWatch]);
+  }, [stopHF]);
 
   useEffect(() => { scrollRef.current?.scrollTo({ top: 1e6, behavior: "smooth" }); }, [history, busy, showAllHistory]);
   useEffect(() => () => { stop(); stopHF(); }, [stop, stopHF]);
