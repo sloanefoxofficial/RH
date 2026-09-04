@@ -1525,49 +1525,104 @@ function pickRecordingMime() {
 
 function useRecordedSpeech(onText, onStart, { autoStopSilence = false } = {}) {
   const [listening, setListening] = useState(false);
+  const [transcribing, setTranscribing] = useState(false);
+  const [error, setError] = useState("");
   const recorderRef = useRef(null);
   const streamRef = useRef(null);
   const chunksRef = useRef([]);
-  const tokenRef = useRef(0);
+  const sessionRef = useRef(0);
   const silenceTimerRef = useRef(null);
-  const analyserRef = useRef(null);
   const audioContextRef = useRef(null);
-  const lastSoundRef = useRef(0);
-  const stop = useCallback(() => {
-    tokenRef.current += 1;
+
+  const clearMonitor = useCallback(() => {
     if (silenceTimerRef.current) { clearTimeout(silenceTimerRef.current); silenceTimerRef.current = null; }
-    try { recorderRef.current?.stop(); } catch {}
-    try { streamRef.current?.getTracks().forEach((track) => track.stop()); } catch {}
     try { audioContextRef.current?.close(); } catch {}
-    recorderRef.current = null; streamRef.current = null; analyserRef.current = null; audioContextRef.current = null;
-    setListening(false);
+    audioContextRef.current = null;
   }, []);
-  const start = useCallback(async () => {
-    if (recorderRef.current || listening) return;
-    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
-      throw new Error('Audio recording is not supported on this device.');
+
+  const releaseStream = useCallback((stream = streamRef.current) => {
+    try { stream?.getTracks().forEach((track) => track.stop()); } catch {}
+    if (streamRef.current === stream) streamRef.current = null;
+  }, []);
+
+  // Finish keeps the session valid so recorder.onstop can upload and return text.
+  const finish = useCallback(() => {
+    const recorder = recorderRef.current;
+    if (!recorder || recorder.state === "inactive") return;
+    clearMonitor();
+    setListening(false);
+    setTranscribing(true);
+    try { recorder.requestData(); } catch {}
+    try { recorder.stop(); } catch {
+      setTranscribing(false);
+      setError("The recording could not be completed. Please try again.");
     }
-    const token = ++tokenRef.current;
+  }, [clearMonitor]);
+
+  // Cancel deliberately invalidates callbacks and discards the recording.
+  const cancel = useCallback(() => {
+    sessionRef.current += 1;
+    clearMonitor();
+    const recorder = recorderRef.current;
+    recorderRef.current = null;
+    if (recorder) {
+      recorder.ondataavailable = null; recorder.onstop = null; recorder.onerror = null;
+      try { if (recorder.state !== "inactive") recorder.stop(); } catch {}
+    }
+    releaseStream();
+    chunksRef.current = [];
+    setListening(false);
+    setTranscribing(false);
+  }, [clearMonitor, releaseStream]);
+
+  const start = useCallback(async () => {
+    if (recorderRef.current || listening || transcribing) return;
+    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
+      const message = "Audio recording is not supported on this device.";
+      setError(message); throw new Error(message);
+    }
+    const session = ++sessionRef.current;
+    setError("");
     onStart?.();
+    let stream;
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      if (token !== tokenRef.current) { stream.getTracks().forEach((track) => track.stop()); return; }
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      if (session !== sessionRef.current) { releaseStream(stream); return; }
       streamRef.current = stream;
       chunksRef.current = [];
-      const recorder = new MediaRecorder(stream, pickRecordingMime() ? { mimeType: pickRecordingMime() } : undefined);
+      const mime = pickRecordingMime();
+      const recorder = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
       recorderRef.current = recorder;
+      const startedAt = Date.now();
       recorder.ondataavailable = (event) => { if (event.data?.size) chunksRef.current.push(event.data); };
+      recorder.onerror = () => {
+        if (session !== sessionRef.current) return;
+        setError("The microphone recording stopped unexpectedly. Please try again.");
+        cancel();
+      };
       recorder.onstop = async () => {
-        const myChunks = chunksRef.current.slice();
-        const type = recorder.mimeType || pickRecordingMime() || 'audio/mp4';
-        try { stream.getTracks().forEach((track) => track.stop()); } catch {}
-        if (streamRef.current === stream) streamRef.current = null;
-        if (token !== tokenRef.current) return;
-        if (!myChunks.length) return;
+        const isCurrent = session === sessionRef.current;
+        const parts = chunksRef.current.slice();
+        const type = recorder.mimeType || mime || "audio/mp4";
+        if (recorderRef.current === recorder) recorderRef.current = null;
+        clearMonitor();
+        releaseStream(stream);
+        if (!isCurrent) return;
+        setListening(false);
+        if (!parts.length) {
+          setTranscribing(false);
+          setError("No audio was captured. Please check microphone access and try again.");
+          return;
+        }
         try {
-          const text = await transcribeRecordedAudio(new Blob(myChunks, { type }));
-          if (token === tokenRef.current && text) onText?.(text);
-        } catch (error) { console.warn('[RH voice] transcription failed', error); }
+          const text = await transcribeRecordedAudio(new Blob(parts, { type }));
+          if (session === sessionRef.current && text) onText?.(text);
+          else if (session === sessionRef.current) setError("No speech was detected. Please try again.");
+        } catch (transcriptionError) {
+          if (session === sessionRef.current) setError(transcriptionError?.message || "Speech transcription failed. Please try again.");
+        } finally {
+          if (session === sessionRef.current) setTranscribing(false);
+        }
       };
       recorder.start(250);
       setListening(true);
@@ -1577,43 +1632,55 @@ function useRecordedSpeech(onText, onStart, { autoStopSilence = false } = {}) {
           const ctx = new AudioCtx();
           const analyser = ctx.createAnalyser(); analyser.fftSize = 512;
           ctx.createMediaStreamSource(stream).connect(analyser);
+          audioContextRef.current = ctx;
           const samples = new Uint8Array(analyser.fftSize);
-          analyserRef.current = analyser; audioContextRef.current = ctx; lastSoundRef.current = Date.now();
+          let lastSoundAt = Date.now();
           const monitor = () => {
-            if (token !== tokenRef.current || recorderRef.current !== recorder) return;
+            if (session !== sessionRef.current || recorderRef.current !== recorder || recorder.state !== "recording") return;
             analyser.getByteTimeDomainData(samples);
-            let peak = 0; for (const sample of samples) peak = Math.max(peak, Math.abs(sample - 128));
-            if (peak > 5) lastSoundRef.current = Date.now();
-            if (Date.now() - lastSoundRef.current > 1800 && Date.now() - token > 900) { stop(); return; }
+            let peak = 0;
+            for (const sample of samples) peak = Math.max(peak, Math.abs(sample - 128));
+            if (peak > 5) lastSoundAt = Date.now();
+            if (Date.now() - startedAt > 1200 && Date.now() - lastSoundAt > 2000) { finish(); return; }
             silenceTimerRef.current = setTimeout(monitor, 120);
           };
           silenceTimerRef.current = setTimeout(monitor, 120);
         }
       }
-    } catch (error) {
-      try { streamRef.current?.getTracks().forEach((track) => track.stop()); } catch {}
-      recorderRef.current = null; streamRef.current = null; setListening(false); throw error;
+    } catch (startError) {
+      if (session === sessionRef.current) {
+        releaseStream(stream);
+        recorderRef.current = null;
+        setListening(false); setTranscribing(false);
+        const message = startError?.name === "NotAllowedError"
+          ? "Microphone access is blocked. Please allow it in your browser settings."
+          : "The microphone could not start. Please try again.";
+        setError(message);
+      }
+      throw startError;
     }
-  }, [autoStopSilence, listening, onStart, onText, stop]);
-  useEffect(() => () => stop(), [stop]);
-  return { listening, start, stop };
+  }, [autoStopSilence, cancel, clearMonitor, finish, listening, onStart, onText, releaseStream, transcribing]);
+
+  useEffect(() => () => cancel(), [cancel]);
+  return { listening, transcribing, error, start, stop: finish, cancel };
 }
 
 function HoldToTalk({ onText, onStart, size = 52 }) {
   const speech = useRecordedSpeech(onText, onStart);
   const toggle = async () => {
-    try { if (speech.listening) speech.stop(); else await speech.start(); }
+    try { if (speech.listening) speech.stop(); else if (!speech.transcribing) await speech.start(); }
     catch (error) { console.warn('[RH voice] recording unavailable', error); }
   };
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-      <button onClick={toggle} aria-label={speech.listening ? 'Tap to stop and send' : 'Tap to talk'}
+      <button onClick={toggle} disabled={speech.transcribing} aria-label={speech.listening ? 'Tap to stop and transcribe' : speech.transcribing ? 'Transcribing speech' : 'Tap to talk'}
         style={{ width: size, height: size, borderRadius: '50%', border: 'none', cursor: 'pointer',
           background: speech.listening ? '#e5484d' : '#fff', color: speech.listening ? '#fff' : T.ink,
           boxShadow: T.soft, display: 'grid', placeItems: 'center',
-          animation: speech.listening ? 'rh-glow 1.2s ease-in-out infinite' : 'none', touchAction: 'none' }}>
+          animation: speech.listening ? 'rh-glow 1.2s ease-in-out infinite' : 'none', touchAction: 'none', opacity: speech.transcribing ? 0.65 : 1 }}>
         {speech.listening ? <Square size={20} /> : <Mic size={20} />}
       </button>
+      {(speech.transcribing || speech.error) && <div style={{ maxWidth: 190, marginTop: 5, textAlign: 'center', fontSize: 11, color: speech.error ? '#a33b3b' : T.sub }}>{speech.transcribing ? 'Turning that into text…' : speech.error}</div>}
     </div>
   );
 }
@@ -5734,7 +5801,7 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
   const hfSpeech = useRecordedSpeech((text) => { if (sendRef.current) sendRef.current(text); }, stop, { autoStopSilence: true });
   useEffect(() => setHfListening(hfSpeech.listening), [hfSpeech.listening]);
   const hfListen = hfSpeech.start;
-  const stopHF = hfSpeech.stop;
+  const stopHF = hfSpeech.cancel;
 
   useEffect(() => { scrollRef.current?.scrollTo({ top: 1e6, behavior: 'smooth' }); }, [history, busy, showAllHistory]);
   useEffect(() => () => { stop(); stopHF(); }, [stop, stopHF]);
@@ -5836,7 +5903,7 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
   const toggleHandsFree = () => {
     if (!sttSupported) { setErr("Hands-free needs voice input — try Chrome on Android or desktop."); return; }
     const next = !handsFree;
-    setHandsFree(next); hfRef.current = next; hfEmpty.current = 0;
+    setHandsFree(next); hfRef.current = next;
     if (next) { setErr(null); if (!busy && !speaking) hfListen(); }
     else { stopHF(); stop(); }
   };
@@ -5891,7 +5958,7 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
           fontSize: 12.5, color: T.greenDk, fontWeight: 600, cursor: speaking ? "pointer" : "default" }}>
           <span style={{ width: 7, height: 7, borderRadius: "50%", background: T.green,
             animation: "rh-glow 1.2s ease-in-out infinite" }} />
-          Hands-free on — {speaking ? `${char.name} is talking — listening resumes when they finish, or tap here to stop them` : hfListening ? "listening…" : "getting ready…"}
+          Hands-free on — {speaking ? `${char.name} is talking — listening resumes when they finish, or tap here to stop them` : hfListening ? "listening…" : hfSpeech.transcribing ? "turning that into text…" : hfSpeech.error ? hfSpeech.error : "getting ready…"}
         </div>
       )}
 
