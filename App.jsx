@@ -1489,8 +1489,9 @@ function useVoice(voiceOn) {
   return { speak, stop, speaking, paused, pauseResume, prefetch };
 }
 
-function HoldToTalk({ onText, onStart, size = 52 }) {
+function HoldToTalk({ onText, onStart, onIosDictation, size = 52 }) {
   const [listening, setListening] = useState(false);
+  const isIOS = typeof navigator !== "undefined" && (/iPad|iPhone|iPod/.test(navigator.userAgent || "") || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1));
   const [err, setErr] = useState(null);
   const recRef = useRef(null);
   const committedRef = useRef("");   // finalized speech accumulated across this hold
@@ -1563,6 +1564,13 @@ function HoldToTalk({ onText, onStart, size = 52 }) {
     setTimeout(finish, 700); // never block the mic button longer than this
   });
   const start = () => {
+    // iPhone home-screen PWAs do not offer reliable browser speech recognition.
+    // Focus the native text field instead so Apple keyboard dictation can handle it free of charge.
+    if (isIOS) {
+      onIosDictation?.();
+      setErr("Use the microphone on your iPhone keyboard to speak.");
+      return;
+    }
     if (!supported) { setErr("Voice input isn't supported here — please type."); return; }
     if (onStart) onStart();
     setErr(null); committedRef.current = ""; submittedRef.current = false; heldRef.current = true;
@@ -5945,7 +5953,7 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
       )}
 
       <div style={{ display: "flex", alignItems: "flex-end", gap: 8, paddingTop: 6 }}>
-        <HoldToTalk onText={(t) => send(t)} onStart={stop} size={48} />
+        <HoldToTalk onText={(t) => send(t)} onStart={stop} onIosDictation={() => composerRef.current?.focus({ preventScroll: true })} size={48} />
         <button onClick={() => imgFileRef.current && imgFileRef.current.click()} aria-label="Attach a photo" title="Attach a photo"
           style={{ width: 44, height: 44, borderRadius: "50%", border: `1px solid ${T.line}`, background: "#fff",
             display: "grid", placeItems: "center", cursor: "pointer", color: T.ink, flexShrink: 0 }}>
@@ -5984,7 +5992,7 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
       <div style={{ background: T.card, borderRadius: 16, marginTop: 12, padding: "12px 16px",
         boxShadow: T.soft, display: "flex", flexDirection: "column", alignItems: "center", gap: 5 }}>
         <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "center", gap: "4px 10px" }}>
-          <span style={{ fontSize: 11, color: T.sub }}>Tap the mic to talk</span>
+          <span style={{ fontSize: 11, color: T.sub }}>Tap the mic to talk — on iPhone, use the microphone on your keyboard</span>
           {history.length > 0 && (
             <>
               <span style={{ fontSize: 11, color: T.line }}>•</span>
