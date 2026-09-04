@@ -1258,6 +1258,17 @@ function primeAudio() {
   return __primePromise;
 }
 let __unlockHandler = null;
+let __micWakePromise = null;
+function wakeMicForSpeech() {
+  if (typeof navigator === "undefined" || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return Promise.resolve(false);
+  if (__micWakePromise) return __micWakePromise;
+  const request = navigator.mediaDevices.getUserMedia({ audio: true })
+    .then((stream) => { stream.getTracks().forEach((track) => track.stop()); return true; })
+    .catch(() => false);
+  __micWakePromise = request.finally(() => { __micWakePromise = null; });
+  return __micWakePromise;
+}
+
 function unlockAudio() {
   // Keep trying on each early gesture until a silent play actually SUCCEEDS.
   // (Previously this ran once and removed its listeners even if that first
@@ -1498,11 +1509,9 @@ function HoldToTalk({ onText, onStart, size = 52 }) {
   const heldRef = useRef(false);     // true while the button is actually held
   const supported = typeof window !== "undefined" && (window.SpeechRecognition || window.webkitSpeechRecognition);
 
-  // Chrome/Android's `continuous: true` mode can silently auto-restart and
-  // re-deliver overlapping results, which is what causes runaway repeated
-  // text on longer holds. Instead we run short NON-continuous sessions and
-  // manually chain them back-to-back while the button is held, only ever
-  // appending brand-new finalized text — never re-reading old results.
+  const startTokenRef = useRef(0);
+  // A tap-to-talk hold owns one recogniser at a time and waits for iOS to hand
+  // the audio session back to recording after guide playback.
   const runSession = () => {
     if (!heldRef.current) return;
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -1543,41 +1552,14 @@ function HoldToTalk({ onText, onStart, size = 52 }) {
   };
 
   const watchdog = useRef(null);
-  // iOS WebKit has a known issue where, after the page has played sound
-  // through an <audio> element (a guide's voice reply), a later Speech
-  // Recognition session can start "successfully" — button lights up — but
-  // never actually receives any audio, because the OS-level audio session
-  // is still routed for playback rather than recording. Briefly grabbing
-  // (and instantly releasing) a real getUserMedia mic stream first forces
-  // iOS to hand the session back to recording mode before Speech Recognition
-  // tries to use it. Permission is already granted at this point, so this
-  // resolves near-instantly and never re-prompts; it's a no-op on browsers
-  // that don't need it.
-  const wakeMic = () => new Promise((resolve) => {
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { resolve(); return; }
-    let done = false;
-    const finish = () => { if (done) return; done = true; resolve(); };
-    navigator.mediaDevices.getUserMedia({ audio: true })
-      .then((stream) => { stream.getTracks().forEach((t) => t.stop()); finish(); })
-      .catch(() => finish());
-    setTimeout(finish, 700); // never block the mic button longer than this
-  });
   const start = () => {
     if (!supported) { setErr("Voice input isn't supported here — please type."); return; }
     if (onStart) onStart();
     setErr(null); committedRef.current = ""; submittedRef.current = false; heldRef.current = true;
-    // Only pay the mic-wake delay when it's actually needed — right after a
-    // guide's voice has played. Otherwise (first message, or voice off) start
-    // listening immediately, so the beginning of what someone says isn't lost.
-    const justHeardVoice = Date.now() - __lastVoiceAt < 4000;
-    if (justHeardVoice) {
-      setTimeout(() => {
-        if (!heldRef.current) return;
-        wakeMic().then(() => { if (heldRef.current) runSession(); });
-      }, 150);
-    } else {
-      runSession();
-    }
+    const token = ++startTokenRef.current;
+    wakeMicForSpeech().then(() => {
+      if (heldRef.current && token === startTokenRef.current) runSession();
+    });
     // Browsers cap a single listening session (~1 min, and they stop on pauses).
     // This keeps the mic alive no matter how long someone talks: if a session has
     // ended and a restart didn't take, revive it. Nobody gets cut off mid-sentence.
@@ -1588,6 +1570,7 @@ function HoldToTalk({ onText, onStart, size = 52 }) {
   };
   const stop = () => {
     heldRef.current = false;
+    startTokenRef.current += 1;
     clearInterval(watchdog.current);
     try { recRef.current && recRef.current.stop(); } catch {}
   };
@@ -5739,6 +5722,7 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
   const sttSupported = typeof window !== "undefined" && (window.SpeechRecognition || window.webkitSpeechRecognition);
 
   const hfSilenceRef = useRef(null);
+  const hfWakePendingRef = useRef(false);
   const stopHF = useCallback(() => {
     voiceDebug("hands-free cleanup");
     hfSessionRef.current += 1;
@@ -5752,8 +5736,19 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
     setHfListening(false);
   }, []);
 
-  const hfListen = useCallback(() => {
+  const hfListen = useCallback((skipWake = false) => {
     if (!hfRef.current) return;
+    // iOS can leave the audio session in playback mode after guide speech. Wake
+    // the microphone once before recognition, then enter the normal controller.
+    if (!skipWake && Date.now() - __lastVoiceAt < 5000 && !hfWakePendingRef.current) {
+      hfWakePendingRef.current = true;
+      stopHF();
+      wakeMicForSpeech().finally(() => {
+        hfWakePendingRef.current = false;
+        if (hfRef.current) hfListen(true);
+      });
+      return;
+    }
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) { setHandsFree(false); hfRef.current = false; return; }
     // The rebuilt controller has one owner. A new session always invalidates
