@@ -202,7 +202,7 @@ You ARE Rex, the friendly face of The Resilience Hub — the first hello. Your O
 - IMPORTANT — always be upfront that the guides (including you) are AI, not real people. Say it plainly and kindly; never let someone believe they're talking to a real human.
 - That they can reach the REAL Juan — an actual person — using the "Message Juan" button at the bottom of the hub; a real human reads and replies, though not instantly. They can use it for anything at all — a chat, a question, or to report a bug, a glitch, or any technical problem they run into with the app.
 - The toolkit (breathing, grounding, meditation, staying safe, self-help videos, quick calm), the journal, the 8-week plan, and notifications.
-- Accessibility & settings: there's a gear/settings icon at the top of the home screen. Tapping it opens Settings, where they can change the TEXT SIZE (XS up to XL — this makes everything in the app bigger or smaller, just for their device), choose a RESPONSE SPEED (Chilled for slower and more thoughtful replies, Normal, or Fast for quick and direct ones), turn on "reduce motion", and toggle "talk to interrupt guides". So if someone asks how to make the text bigger or smaller in the app, tell them to tap the settings (gear) icon at the top of the home screen and choose a text size — do NOT send them to their phone's own settings, because the app has its own text-size control.
+- Accessibility & settings: there's a gear/settings icon at the top of the home screen. Tapping it opens Settings, where they can change the TEXT SIZE (XS up to XL — this makes everything in the app bigger or smaller, just for their device), choose a RESPONSE SPEED (Chilled for slower and more thoughtful replies, Normal, or Fast for quick and direct ones), turn on "reduce motion", and turn on "reduce motion". So if someone asks how to make the text bigger or smaller in the app, tell them to tap the settings (gear) icon at the top of the home screen and choose a text size — do NOT send them to their phone's own settings, because the app has its own text-size control.
 - Fast Reply: inside any chat, there's a small lightning-bolt (⚡) button next to Send. Tapping it sends the message and asks that ONE reply to come back quick and to the point — it doesn't change their saved Response Speed setting, it's just a one-off for when they're in a rush.
 - The profile: the person icon at the top of the home screen opens their profile — their name and details, password, the reset option, and "What the guides remember" (their memory controls).
 - What the guides remember: to feel familiar, guides keep a few plain notes about the person; sensitive things (like anything about feeling unsafe) are never kept; and they can view, edit, turn it off, or clear it all under "What the guides remember" in their profile.
@@ -368,7 +368,6 @@ export default function App() {
   const [memoryOn, setMemoryOn] = useState(true);        // person can switch memory off entirely
   const [textScale, setTextScale] = useState(1);         // per-device text size (0.85–1.3)
   const [reduceMotion, setReduceMotion] = useState(false);
-  const [bargeIn, setBargeIn] = useState(false);         // let user talk over the guide in hands-free (off by default — conflicts with audio on some phones)
   const [guestMode, setGuestMode] = useState(false);      // testing/preview mode — no account, nothing account-synced, for people (or AIs) previewing the app who can't or don't want to sign in yet
   const showAuth = authEnabled && !guestMode;             // treat the app as "no auth" for the rest of this session while guestMode is on
   const [rexIntroReplay, setRexIntroReplay] = useState(false); // true when Rex's intro was opened from inside chat (not first-time onboarding) — changes where "I'm ready" / close sends them back to
@@ -411,8 +410,6 @@ export default function App() {
       if (typeof ts === "number" && ts >= 0.8 && ts <= 1.4) setTextScale(ts);
       const rm = await sget("rh_reduce_motion");
       if (typeof rm === "boolean") setReduceMotion(rm);
-      const bi = await sget("rh_barge");
-      if (typeof bi === "boolean") setBargeIn(bi);
       const rs = await sget("rh_response_speed");
       if (rs === "chilled" || rs === "normal" || rs === "fast") setResponseSpeed(rs);
       const sl = await sget("rh_speech_lang");
@@ -580,10 +577,9 @@ export default function App() {
     }
   }, []);
 
-  const saveSettings = useCallback(({ textScale: ts, reduceMotion: rm, bargeIn: bi, responseSpeed: rs, speechLang: sl }) => {
+  const saveSettings = useCallback(({ textScale: ts, reduceMotion: rm, responseSpeed: rs, speechLang: sl }) => {
     if (typeof ts === "number") { setTextScale(ts); sset("rh_text_scale", ts); }
     if (typeof rm === "boolean") { setReduceMotion(rm); sset("rh_reduce_motion", rm); }
-    if (typeof bi === "boolean") { setBargeIn(bi); sset("rh_barge", bi); }
     if (rs === "chilled" || rs === "normal" || rs === "fast") { setResponseSpeed(rs); sset("rh_response_speed", rs); }
     if (sl && SPEECH_LANGS.some((l) => l.code === sl)) { setSpeechLang(sl); __speechLang = sl; sset("rh_speech_lang", sl); }
   }, []);
@@ -604,8 +600,8 @@ export default function App() {
   }, [syncMemberData]);
 
   const restoreDefaultSettings = useCallback(() => {
-    setTextScale(1); setReduceMotion(false); setBargeIn(false); setResponseSpeed("normal"); setSpeechLang("en-AU"); __speechLang = "en-AU";
-    sset("rh_text_scale", 1); sset("rh_reduce_motion", false); sset("rh_barge", false); sset("rh_response_speed", "normal"); sset("rh_speech_lang", "en-AU");
+    setTextScale(1); setReduceMotion(false); setResponseSpeed("normal"); setSpeechLang("en-AU"); __speechLang = "en-AU";
+    sset("rh_text_scale", 1); sset("rh_reduce_motion", false); sset("rh_response_speed", "normal"); sset("rh_speech_lang", "en-AU");
   }, []);
 
   useEffect(() => {
@@ -910,7 +906,6 @@ export default function App() {
             memories={memoryOn ? memories : []}
             onConversation={refreshMemory}
             answers={answers}
-            bargeIn={bargeIn}
             rexPersona={guidePrompts.rex ?? PERSONALITY_DEFAULTS.rex}
           />
         ) : screen === "program" ? (
@@ -919,7 +914,7 @@ export default function App() {
             answers={answers} journalCount={journal.length} chats={chats}
             onSaveChat={saveCharChat} memories={memoryOn ? memories : []}
             onConversation={refreshMemory} voiceOn={voiceOn} setVoiceOn={setVoiceOn}
-            bargeIn={bargeIn} responseSpeed={responseSpeed} onOpenTool={openTool}
+            responseSpeed={responseSpeed} onOpenTool={openTool}
             persona={guidePrompts.carlos ?? PERSONALITY_DEFAULTS.carlos}
             onOpenChat={(slug) => go("chat", slug)}
             onOpenJournal={() => go("journal")}
@@ -948,7 +943,6 @@ export default function App() {
             memories={memoryOn ? memories : []}
             onConversation={refreshMemory}
             voiceOn={voiceOn} setVoiceOn={setVoiceOn}
-            bargeIn={bargeIn}
             responseSpeed={responseSpeed}
             onBack={back}
             onOpenTool={openTool}
@@ -991,7 +985,7 @@ export default function App() {
           <MemoryManager memories={memories} memoryOn={memoryOn}
             onSave={(list, on) => saveMemories(list, on)} onBack={back} />
         ) : screen === "settings" ? (
-              <Settings textScale={textScale} reduceMotion={reduceMotion} bargeIn={bargeIn} responseSpeed={responseSpeed} speechLang={speechLang}
+              <Settings textScale={textScale} reduceMotion={reduceMotion} responseSpeed={responseSpeed} speechLang={speechLang}
             journalPinSet={journalPinSet} onSetJournalPin={setJournalPin} onClearJournalPin={clearJournalPin}
             installPromptAvailable={Boolean(installPromptEvent)} isStandalone={isStandalone} onPromptInstall={promptAppInstall}
             session={session} authEnabled={showAuth} onSave={saveSettings} onRestoreDefaults={restoreDefaultSettings} onBack={back}
@@ -1719,8 +1713,8 @@ function NevernSpotlightContent() {
           <div style={{ fontSize: 12.5, color: T.sub }}>Somatic tools for stress and nervous-system regulation</div>
         </div>
         <a href={NEVERN_CHANNEL_URL} target="_blank" rel="noopener noreferrer"
-          style={{ fontSize: 12.5, fontWeight: 700, color: T.greenDk, textDecoration: "none", flexShrink: 0 }}>
-          Channel
+          style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12.5, fontWeight: 700, color: T.greenDk, textDecoration: "none", flexShrink: 0 }}>
+          Channel <ExternalLink size={13} />
         </a>
       </div>
 
@@ -1806,8 +1800,8 @@ function CarlosSpotlight() {
           <div style={{ fontSize: 12.5, color: T.sub }}>Clinical oversight for the Resilience Hub</div>
         </div>
         <a href={CARLOS_TIKTOK_URL} target="_blank" rel="noopener noreferrer"
-          style={{ fontSize: 12.5, fontWeight: 700, color: T.greenDk, textDecoration: "none", flexShrink: 0 }}>
-          TikTok
+          style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12.5, fontWeight: 700, color: T.greenDk, textDecoration: "none", flexShrink: 0 }}>
+          TikTok <ExternalLink size={13} />
         </a>
       </div>
       <p style={{ fontSize: 13.5, color: T.ink, lineHeight: 1.55, margin: "0 0 14px" }}>
@@ -2796,7 +2790,7 @@ function AdminBugReports({ onBack }) {
             {screenshotUrls[r.id] && (
               <a href={screenshotUrls[r.id]} target="_blank" rel="noopener noreferrer" style={{ display: "block", marginBottom: 10 }}>
                 <img src={screenshotUrls[r.id]} alt="Screenshot attached to this bug report" style={{ display: "block", width: "100%", maxHeight: 260, objectFit: "contain", borderRadius: 12, border: `1px solid ${T.line}`, background: "#f7faf8" }} />
-                <span style={{ display: "block", color: T.greenDk, fontSize: 12, fontWeight: 700, marginTop: 5 }}>Open full-size screenshot</span>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 5, color: T.greenDk, fontSize: 12, fontWeight: 700, marginTop: 5 }}>Open full-size screenshot <ExternalLink size={13} /></span>
               </a>
             )}
             <button onClick={() => archive(r.id, !r.archived)} style={{ background: "none", border: `1px solid ${T.line}`,
@@ -3874,7 +3868,7 @@ function MemoryManager({ memories, memoryOn, onSave, onBack }) {
 }
 
 /* ---------- accessibility settings ---------- */
-function Settings({ textScale, reduceMotion, bargeIn, responseSpeed, speechLang, journalPinSet, onSetJournalPin, onClearJournalPin, installPromptAvailable, isStandalone, onPromptInstall, session, authEnabled, onSave, onRestoreDefaults, onBack, onOpenBugReport, onOpenFeedback }) {
+function Settings({ textScale, reduceMotion, responseSpeed, speechLang, journalPinSet, onSetJournalPin, onClearJournalPin, installPromptAvailable, isStandalone, onPromptInstall, session, authEnabled, onSave, onRestoreDefaults, onBack, onOpenBugReport, onOpenFeedback }) {
   const [pushState, setPushState] = useState("checking"); // "checking" | "on" | "off" | "denied" | "unsupported" | "error"
   const [pushDetail, setPushDetail] = useState("");
   const [pushBusy, setPushBusy] = useState(false);
@@ -4093,20 +4087,6 @@ function Settings({ textScale, reduceMotion, bargeIn, responseSpeed, speechLang,
           )}
         </div>
       )}
-
-      <div style={{ background: T.card, borderRadius: 18, padding: 16, boxShadow: T.soft, marginTop: 14,
-        display: "flex", alignItems: "center", gap: 12 }}>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontWeight: 700 }}>Talk to interrupt guides</div>
-          <div style={{ fontSize: 12.5, color: T.sub, lineHeight: 1.4 }}>Lets you cut in by speaking during hands-free. Off is best — on some phones it makes the guide's voice pause or cut out. You can always use the Interrupt button instead.</div>
-        </div>
-        <button onClick={() => onSave({ bargeIn: !bargeIn })} aria-label="Toggle talk to interrupt"
-          style={{ width: 52, height: 30, borderRadius: 999, border: "none", cursor: "pointer", flexShrink: 0,
-            background: bargeIn ? T.green : "#cfc6da", position: "relative", transition: "background .2s" }}>
-          <span style={{ position: "absolute", top: 3, left: bargeIn ? 25 : 3, width: 24, height: 24,
-            borderRadius: "50%", background: "#fff", transition: "left .2s" }} />
-        </button>
-      </div>
 
       <div style={{ background: T.card, borderRadius: 18, padding: 16, boxShadow: T.soft, marginTop: 14 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
@@ -5124,19 +5104,19 @@ function MerchPage({ onBack }) {
         style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 16,
           background: `linear-gradient(180deg, #3fb072, ${T.green})`, color: "#fff", textDecoration: "none",
           borderRadius: 16, padding: "15px", fontSize: 16, fontWeight: 800, boxShadow: "0 10px 24px rgba(55,160,101,0.3)" }}>
-        <ShoppingBag size={18} /> Shop the full store
+        <ShoppingBag size={18} /> Shop the full store <ExternalLink size={16} />
       </a>
 
       <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
         <a href={`${MERCH_URL}collections/all`} target="_blank" rel="noopener noreferrer"
           style={{ flex: 1, textAlign: "center", background: T.card, borderRadius: 12, padding: "11px", fontSize: 13,
-            fontWeight: 600, color: T.ink, textDecoration: "none", boxShadow: T.soft }}>All apparel</a>
+            fontWeight: 600, color: T.ink, textDecoration: "none", boxShadow: T.soft, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 5 }}>All apparel <ExternalLink size={14} /></a>
         <a href={`${MERCH_URL}pages/shipping`} target="_blank" rel="noopener noreferrer"
           style={{ flex: 1, textAlign: "center", background: T.card, borderRadius: 12, padding: "11px", fontSize: 13,
-            fontWeight: 600, color: T.ink, textDecoration: "none", boxShadow: T.soft }}>Shipping</a>
+            fontWeight: 600, color: T.ink, textDecoration: "none", boxShadow: T.soft, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 5 }}>Shipping <ExternalLink size={14} /></a>
         <a href={`${MERCH_URL}pages/contact`} target="_blank" rel="noopener noreferrer"
           style={{ flex: 1, textAlign: "center", background: T.card, borderRadius: 12, padding: "11px", fontSize: 13,
-            fontWeight: 600, color: T.ink, textDecoration: "none", boxShadow: T.soft }}>Contact</a>
+            fontWeight: 600, color: T.ink, textDecoration: "none", boxShadow: T.soft, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 5 }}>Contact <ExternalLink size={14} /></a>
       </div>
 
       <p style={{ fontSize: 11.5, color: T.sub, textAlign: "center", marginTop: 16, lineHeight: 1.5 }}>
@@ -5147,7 +5127,7 @@ function MerchPage({ onBack }) {
 }
 
 /* ---------- Your 8-week program page ---------- */
-function ProgramPage({ profile, plan, progress, saveProgress, answers, journalCount, chats, onSaveChat, memories, onConversation, voiceOn, setVoiceOn, bargeIn, responseSpeed, onOpenTool, persona, onOpenChat, onOpenJournal, onStartPlan, isSignupLanding, onBack }) {
+function ProgramPage({ profile, plan, progress, saveProgress, answers, journalCount, chats, onSaveChat, memories, onConversation, voiceOn, setVoiceOn, responseSpeed, onOpenTool, persona, onOpenChat, onOpenJournal, onStartPlan, isSignupLanding, onBack }) {
   const [coachOpen, setCoachOpen] = useState(false);
   const weeks = plan?.weeks || [];
   // Support day-based plans ({days:[{d,tasks:[]}]}) and legacy step-based plans ({steps:[]}).
@@ -5333,7 +5313,7 @@ function ProgramPage({ profile, plan, progress, saveProgress, answers, journalCo
         <div style={{ position: "fixed", inset: 0, zIndex: 120, background: "rgba(44,42,51,0.45)", display: "flex", alignItems: "flex-end", justifyContent: "center", padding: 10 }}>
           <div style={{ width: "100%", maxWidth: 460, maxHeight: "88vh", overflowY: "auto", background: T.bgMid, borderRadius: "24px 24px 16px 16px", boxShadow: T.lift, padding: "10px 12px 14px" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "2px 2px 8px" }}><div style={{ fontWeight: 800, fontSize: 15 }}>Carlos · plan coach</div><button onClick={() => setCoachOpen(false)} aria-label="Close Carlos plan coach" style={{ width: 34, height: 34, borderRadius: "50%", border: "none", background: "#fff", color: T.ink, cursor: "pointer", display: "grid", placeItems: "center" }}><X size={18} /></button></div>
-            <Chat char={CHARS.carlos} profile={profile} answers={answers} history={chats?.carlos || []} setHistory={(h) => onSaveChat && onSaveChat("carlos", h)} plan={plan} progress={progress} saveProgress={saveProgress} persona={persona} memories={memories} onConversation={onConversation} voiceOn={voiceOn} setVoiceOn={setVoiceOn} bargeIn={bargeIn} responseSpeed={responseSpeed} onBack={() => setCoachOpen(false)} onOpenTool={onOpenTool} embedded planCoachContext={coachContext} />
+            <Chat char={CHARS.carlos} profile={profile} answers={answers} history={chats?.carlos || []} setHistory={(h) => onSaveChat && onSaveChat("carlos", h)} plan={plan} progress={progress} saveProgress={saveProgress} persona={persona} memories={memories} onConversation={onConversation} voiceOn={voiceOn} setVoiceOn={setVoiceOn} responseSpeed={responseSpeed} onBack={() => setCoachOpen(false)} onOpenTool={onOpenTool} embedded planCoachContext={coachContext} />
           </div>
         </div>
       )}
@@ -5409,7 +5389,7 @@ function ResourcesIcon({ size = 24, color = "currentColor", strokeWidth = 2.2 })
   </svg>;
 }
 
-function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, setVoiceOn, onOpenChat, onOpenProgram, onOpenJournal, onOpenGuides, onOpenMerch, onOpenCarlosLibrary, onOpenGames, onOpenToolkit, onOpenResources, onOpenSafety, onOpenNotifications, onOpenCoordinator, onOpenSettings, onOpenMensGroup, onOpenMensShed, onOpenAdminMessages, onOpenProgramInfo, onReset, isAdmin, authEnabled, guestMode, onExitGuest, onOpenAdmin, onOpenProfile, onSignOut, session, rexHistory, onSaveRexChat, memories, onConversation, answers, bargeIn, rexPersona }) {
+function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, setVoiceOn, onOpenChat, onOpenProgram, onOpenJournal, onOpenGuides, onOpenMerch, onOpenCarlosLibrary, onOpenGames, onOpenToolkit, onOpenResources, onOpenSafety, onOpenNotifications, onOpenCoordinator, onOpenSettings, onOpenMensGroup, onOpenMensShed, onOpenAdminMessages, onOpenProgramInfo, onReset, isAdmin, authEnabled, guestMode, onExitGuest, onOpenAdmin, onOpenProfile, onSignOut, session, rexHistory, onSaveRexChat, memories, onConversation, answers, rexPersona }) {
   const { speak, stop, speaking } = useVoice(voiceOn);
   const [notifRefresh, setNotifRefresh] = useState(0);
   const [shareMsg, setShareMsg] = useState("");
@@ -5648,7 +5628,12 @@ function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, set
           <div style={{ flex: 1, minWidth: 0 }}><div style={{ display: "inline-block", color: "#336f52", fontSize: 10, fontWeight: 900, letterSpacing: 0.9, marginBottom: 2 }}>COMMUNITY CONNECTION</div><div style={{ fontWeight: 800, fontSize: 16 }}>The Men’s Table</div><div style={{ fontSize: 13, color: T.sub, lineHeight: 1.35 }}>Safe conversation, belonging & connection</div></div>
           <ExternalLink size={19} color="#336f52" />
         </a>
-        {card(onOpenCoordinator, "#dceee2", "#2c7d50", MessageCircle, "Message Juan", unreadCoord > 0 ? `${unreadCoord} reply from Juan` : "Private message to the real Juan", unreadCoord)}
+        <button onClick={onOpenCoordinator} aria-label={unreadCoord > 0 ? `${unreadCoord} reply from Juan` : "Message the real Juan privately"} style={{ width: "100%", background: "linear-gradient(125deg, #e2f4e8 0%, #ffffff 57%, #fff1e4 100%)", border: "1px solid rgba(44,125,80,0.18)", borderRadius: 20, padding: 13, boxShadow: T.soft, cursor: "pointer", display: "flex", alignItems: "center", gap: 12, textAlign: "left", position: "relative", overflow: "hidden" }}>
+          <div style={{ position: "absolute", right: -26, top: -33, width: 112, height: 112, borderRadius: "50%", background: "rgba(255,255,255,0.46)" }} />
+          <div style={{ width: 50, height: 50, borderRadius: 16, overflow: "hidden", background: "#dceee2", flexShrink: 0, border: "2px solid rgba(255,255,255,0.92)", boxShadow: "0 5px 13px rgba(32,95,72,0.15)", position: "relative" }}><img src={CHARS.juan.img} alt="Juan Carroso" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "50% 24%" }} /></div>
+          <div style={{ flex: 1, minWidth: 0, position: "relative" }}><div style={{ color: T.greenDk, fontSize: 10, fontWeight: 900, letterSpacing: 0.9, marginBottom: 2 }}>REAL PERSON · PRIVATE MESSAGE</div><div style={{ fontWeight: 800, fontSize: 16, color: T.ink }}>Message Juan</div><div style={{ fontSize: 13, color: T.sub, lineHeight: 1.35 }}>{unreadCoord > 0 ? `${unreadCoord} reply from Juan` : "Send a private message to the real Juan"}</div></div>
+          <div style={{ width: 34, height: 34, borderRadius: "50%", background: "rgba(255,255,255,0.86)", display: "grid", placeItems: "center", position: "relative", flexShrink: 0 }}><MessageCircle size={17} color={T.greenDk} />{unreadCoord > 0 && <span style={{ position: "absolute", top: -5, right: -5, minWidth: 17, height: 17, borderRadius: 999, background: "#e5484d", color: "#fff", fontSize: 10, fontWeight: 800, display: "grid", placeItems: "center", padding: "0 3px" }}>{unreadCoord}</span>}</div>
+        </button>
       </div>
 
       <SectionTitle>A little extra</SectionTitle>
@@ -5716,7 +5701,7 @@ function GuideRow({ char, onClick, big }) {
 }
 
 /* ---------- chat ---------- */
-function Chat({ char, profile, answers, history, setHistory, plan, progress, saveProgress, persona, memories, onConversation, voiceOn, setVoiceOn, onBack, onOpenTool, embedded, planCoachContext, bargeIn, responseSpeed, onReplayIntro }) {
+function Chat({ char, profile, answers, history, setHistory, plan, progress, saveProgress, persona, memories, onConversation, voiceOn, setVoiceOn, onBack, onOpenTool, embedded, planCoachContext, responseSpeed, onReplayIntro }) {
   const { speak, stop, speaking, paused, pauseResume } = useVoice(voiceOn);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
@@ -6096,7 +6081,7 @@ function BookAppointment({ onBack }) {
         <div className="calendly-inline-widget" data-url={CALENDLY_URL} style={{ minWidth: 280, height: 700 }} />
       </div>
       <p style={{ fontSize: 12, color: T.sub, textAlign: "center", marginTop: 12 }}>
-        Trouble loading? <a href={CALENDLY_URL} target="_blank" rel="noopener noreferrer" style={{ color: T.greenDk, fontWeight: 700 }}>Open the booking page directly</a>.
+        Trouble loading? <a href={CALENDLY_URL} target="_blank" rel="noopener noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 4, color: T.greenDk, fontWeight: 700 }}>Open the booking page directly <ExternalLink size={12} /></a>.
       </p>
     </>
   );
@@ -6567,9 +6552,10 @@ function ResourcesPage({ onOpenSafety, onOpenMensShed, onBack }) {
   const jump = (id) => document.getElementById(id)?.scrollIntoView({ behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
   const sectionLabel = (id, Icon, title, sub, color) => <div id={id} style={{ scrollMarginTop: 18, margin: "24px 2px 9px" }}><div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 15.5, fontWeight: 800 }}><span style={{ width: 30, height: 30, borderRadius: 10, background: `${color}18`, display: "grid", placeItems: "center" }}><Icon size={16} color={color} /></span>{title}</div><div style={{ fontSize: 12.5, color: T.sub, margin: "5px 0 0 38px", lineHeight: 1.4 }}>{sub}</div></div>;
   const resourceCard = ({ Icon, tint, color, eyebrow, title, children, href, phone, email, onClick, actionLabel }) => {
-    const body = <><div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}><div style={{ width: 44, height: 44, borderRadius: 14, background: tint, display: "grid", placeItems: "center", flexShrink: 0 }}><Icon size={22} color={color} /></div><div style={{ flex: 1, minWidth: 0 }}><div style={{ color, fontSize: 10, fontWeight: 900, letterSpacing: 0.9, textTransform: "uppercase", marginBottom: 3 }}>{eyebrow}</div><div style={{ fontWeight: 800, fontSize: 16, color: T.ink }}>{title}</div><div style={{ fontSize: 13, color: T.sub, lineHeight: 1.48, marginTop: 5 }}>{children}</div></div>{(href || onClick) && <ChevronRight size={19} color={T.sub} style={{ flexShrink: 0, marginTop: 12 }} />}</div>{(phone || email || actionLabel) && <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginTop: 11 }}><span style={{ padding: "7px 10px", borderRadius: 999, background: "rgba(255,255,255,0.78)", color: T.ink, fontWeight: 750, fontSize: 11.5 }}>{phone ? `Phone: ${phone}` : email ? `Email: ${email}` : actionLabel}</span></div>}</>;
+    const opensExternal = /^https?:\/\//i.test(href || "");
+    const body = <><div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}><div style={{ width: 44, height: 44, borderRadius: 14, background: tint, display: "grid", placeItems: "center", flexShrink: 0 }}><Icon size={22} color={color} /></div><div style={{ flex: 1, minWidth: 0 }}><div style={{ color, fontSize: 10, fontWeight: 900, letterSpacing: 0.9, textTransform: "uppercase", marginBottom: 3 }}>{eyebrow}</div><div style={{ fontWeight: 800, fontSize: 16, color: T.ink }}>{title}</div><div style={{ fontSize: 13, color: T.sub, lineHeight: 1.48, marginTop: 5 }}>{children}</div></div>{(href || onClick) && (opensExternal ? <ExternalLink size={18} color={color} style={{ flexShrink: 0, marginTop: 12 }} /> : <ChevronRight size={19} color={T.sub} style={{ flexShrink: 0, marginTop: 12 }} />)}</div>{(phone || email || actionLabel) && <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginTop: 11 }}><span style={{ padding: "7px 10px", borderRadius: 999, background: "rgba(255,255,255,0.78)", color: T.ink, fontWeight: 750, fontSize: 11.5 }}>{phone ? `Phone: ${phone}` : email ? `Email: ${email}` : actionLabel}</span></div>}</>;
     const style = { display: "block", width: "100%", textAlign: "left", background: `linear-gradient(135deg, ${tint} 0%, #fff 74%)`, border: `1px solid ${T.line}`, borderRadius: 19, padding: 14, boxShadow: T.soft, textDecoration: "none", color: T.ink, cursor: "pointer" };
-    if (href) { const isWeb = /^https?:\/\//i.test(href); return <a href={href} target={isWeb ? "_blank" : undefined} rel={isWeb ? "noopener noreferrer" : undefined} style={style}>{body}</a>; }
+    if (href) { return <a href={href} target={opensExternal ? "_blank" : undefined} rel={opensExternal ? "noopener noreferrer" : undefined} style={style}>{body}</a>; }
     return <button type="button" onClick={onClick} style={style}>{body}</button>;
   };
   const toc = [
@@ -6582,6 +6568,7 @@ function ResourcesPage({ onOpenSafety, onOpenMensShed, onBack }) {
         <div style={{ position: "absolute", width: 170, height: 170, borderRadius: "50%", background: "rgba(255,255,255,0.45)", top: -95, right: -55 }} />
         <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 8, color: T.greenDk, fontSize: 11, fontWeight: 900, letterSpacing: 1, textTransform: "uppercase" }}><BookOpen size={15} /> Practical support, close to home</div>
         <h1 style={{ position: "relative", fontSize: 26, lineHeight: 1.12, margin: "9px 0 7px", color: T.greenDk }}>Resources</h1>
+        <div style={{ position: "relative", display: "flex", alignItems: "flex-start", gap: 7, padding: "9px 10px", margin: "0 0 10px", borderRadius: 12, background: "rgba(255,255,255,0.64)", border: "1px solid rgba(77,159,104,0.14)", color: T.sub, fontSize: 11.5, lineHeight: 1.42 }}><Shield size={15} color={T.greenDk} style={{ flexShrink: 0, marginTop: 1 }} /><span>All listed services are recommendations only. We do not run or manage them. Always check directly with each provider for current details.</span></div>
         <p style={{ position: "relative", fontSize: 13.5, color: T.sub, lineHeight: 1.55, margin: 0 }}>A clear starting place for food, housing, recovery, safety, legal help, and everyday support. Information and availability can change, so check before travelling.</p>
         <div id="resources-toc" style={{ position: "relative", scrollMarginTop: 18, marginTop: 16, padding: 13, borderRadius: 17, background: "rgba(255,255,255,0.68)", border: "1px solid rgba(77,159,104,0.14)" }}>
           <div style={{ fontWeight: 800, color: T.greenDk, fontSize: 13.5, marginBottom: 8 }}>On this page</div>
@@ -6673,7 +6660,7 @@ function MensShedPage({ onBack }) {
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 12 }}>
         <a href="tel:0287860040" style={{ textDecoration: "none", color: T.ink, background: "#fff", borderRadius: 17, padding: 13, boxShadow: T.soft, display: "flex", flexDirection: "column", gap: 7 }}><Phone size={19} color={T.greenDk} /><span style={{ fontWeight: 800, fontSize: 13.5 }}>Call the shed</span><span style={{ color: T.sub, fontSize: 12 }}>02 8786 0040</span></a>
-        <a href="https://maps.google.com/?daddr=-33.8925139,150.8891497" target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none", color: T.ink, background: "#fff", borderRadius: 17, padding: 13, boxShadow: T.soft, display: "flex", flexDirection: "column", gap: 7 }}><MapPin size={19} color="#c48755" /><span style={{ fontWeight: 800, fontSize: 13.5 }}>Get directions</span><span style={{ color: T.sub, fontSize: 12 }}>Open in Maps</span></a>
+        <a href="https://maps.google.com/?daddr=-33.8925139,150.8891497" target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none", color: T.ink, background: "#fff", borderRadius: 17, padding: 13, boxShadow: T.soft, display: "flex", flexDirection: "column", gap: 7 }}><MapPin size={19} color="#c48755" /><span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontWeight: 800, fontSize: 13.5 }}>Get directions <ExternalLink size={14} /></span><span style={{ color: T.sub, fontSize: 12 }}>Open in Maps</span></a>
       </div>
 
       <div style={{ background: T.card, borderRadius: 20, padding: 17, boxShadow: T.soft, marginTop: 12 }}>
@@ -6726,7 +6713,7 @@ function MensGroup({ onBack }) {
           <p style={{ fontSize: 14, color: T.ink, lineHeight: 1.5, margin: "0 0 16px" }}>
             Come be seen. Come be known. You don't have to carry it alone.
           </p>
-          <Btn onClick={() => window.open("https://www.facebook.com/share/p/18g3cxQsVP/", "_blank", "noopener,noreferrer")}>Visit to join</Btn>
+          <Btn onClick={() => window.open("https://www.facebook.com/share/p/18g3cxQsVP/", "_blank", "noopener,noreferrer")}><span style={{ display: "inline-flex", alignItems: "center", gap: 7 }}>Visit to join <ExternalLink size={16} /></span></Btn>
         </div>
       </div>
     </>
