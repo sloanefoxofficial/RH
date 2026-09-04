@@ -1556,10 +1556,11 @@ function HoldToTalk({ onText, onStart, size = 52 }) {
     if (!supported) { setErr("Voice input isn't supported here — please type."); return; }
     if (onStart) onStart();
     setErr(null); committedRef.current = ""; submittedRef.current = false; heldRef.current = true;
-    const token = ++startTokenRef.current;
-    wakeMicForSpeech().then(() => {
-      if (heldRef.current && token === startTokenRef.current) runSession();
-    });
+    ++startTokenRef.current;
+    // Start recognition directly from the tap. Waiting for getUserMedia() here
+    // loses iOS's user-gesture window and can produce a silent recogniser.
+    wakeMicForSpeech();
+    runSession();
     // Browsers cap a single listening session (~1 min, and they stop on pauses).
     // This keeps the mic alive no matter how long someone talks: if a session has
     // ended and a restart didn't take, revive it. Nobody gets cut off mid-sentence.
@@ -5594,15 +5595,6 @@ function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, set
           <div style={{ flex: 1, minWidth: 0 }}><div style={{ display: "inline-block", color: "#336f52", fontSize: 10, fontWeight: 900, letterSpacing: 0.9, marginBottom: 2 }}>COMMUNITY CONNECTION</div><div style={{ fontWeight: 800, fontSize: 16 }}>The Men’s Table</div><div style={{ fontSize: 13, color: T.sub, lineHeight: 1.35 }}>Safe conversation, belonging & connection</div></div>
           <ExternalLink size={19} color="#336f52" />
         </a>
-        <button onClick={onOpenMensGroup} style={{ width: "100%", background: T.card, borderRadius: 20, padding: 12,
-          boxShadow: T.soft, border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 12, textAlign: "left" }}>
-          <img src="/mens_group.jpg" alt="Men's Group" style={{ width: 46, height: 46, borderRadius: 14, objectFit: "cover", flexShrink: 0 }} />
-          <div style={{ flex: 1 }}>
-            <div style={{ fontWeight: 700, fontSize: 16 }}>💙 Men's Group</div>
-            <div style={{ fontSize: 13, color: T.sub }}>Real conversations, brotherhood — Liverpool Area</div>
-          </div>
-          <ChevronRight size={20} color={T.sub} />
-        </button>
         {card(onOpenCoordinator, "#dceee2", "#2c7d50", MessageCircle, "Message Juan", unreadCoord > 0 ? `${unreadCoord} reply from Juan` : "Private message to the real Juan", unreadCoord)}
       </div>
 
@@ -5722,7 +5714,6 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
   const sttSupported = typeof window !== "undefined" && (window.SpeechRecognition || window.webkitSpeechRecognition);
 
   const hfSilenceRef = useRef(null);
-  const hfWakePendingRef = useRef(false);
   const stopHF = useCallback(() => {
     voiceDebug("hands-free cleanup");
     hfSessionRef.current += 1;
@@ -5736,19 +5727,11 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
     setHfListening(false);
   }, []);
 
-  const hfListen = useCallback((skipWake = false) => {
+  const hfListen = useCallback(() => {
     if (!hfRef.current) return;
-    // iOS can leave the audio session in playback mode after guide speech. Wake
-    // the microphone once before recognition, then enter the normal controller.
-    if (!skipWake && Date.now() - __lastVoiceAt < 5000 && !hfWakePendingRef.current) {
-      hfWakePendingRef.current = true;
-      stopHF();
-      wakeMicForSpeech().finally(() => {
-        hfWakePendingRef.current = false;
-        if (hfRef.current) hfListen(true);
-      });
-      return;
-    }
+    // Wake iOS recording mode in parallel, but never await it: SpeechRecognition
+    // must start from the current user gesture when hands-free is first enabled.
+    wakeMicForSpeech();
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) { setHandsFree(false); hfRef.current = false; return; }
     // The rebuilt controller has one owner. A new session always invalidates
