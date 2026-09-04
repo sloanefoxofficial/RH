@@ -6360,11 +6360,11 @@ const INTAKE_PACK = [
 
 function FounderVideoSection() {
   const videos = [
-    { title: "The Story Behind The Resilience Hub", url: "https://streamable.com/m4edih" },
-    { title: "Men’s Mental Health: Breaking the Silence", url: "https://streamable.com/y5gx96" },
-    { title: "Personalising Support: The Resilience Hub Mission", url: "https://streamable.com/gmng1v" },
-    { title: "Building a New Network for Success", url: "https://streamable.com/dco6ex" },
-    { title: "Authentic Support Through Shared Experience", url: "https://streamable.com/axzg87" },
+    { title: "The Story Behind The Resilience Hub", url: "/founder-videos/story-behind-resilience-hub.mp4" },
+    { title: "Men’s Mental Health: Breaking the Silence", url: "/founder-videos/mens-mental-health.mp4" },
+    { title: "Personalising Support: The Resilience Hub Mission", url: "/founder-videos/personalised-support.mp4" },
+    { title: "Building a New Network for Success", url: "/founder-videos/building-new-network.mp4" },
+    { title: "Authentic Support Through Shared Experience", url: "/founder-videos/authentic-shared-experience.mp4" },
   ];
   return (
     <div id="program-juans-founder-videos" style={{ background: "linear-gradient(135deg, #e5f5ea 0%, #f7fbf8 48%, #fff1e5 100%)", borderRadius: 22, padding: 16, boxShadow: T.soft, marginTop: 14, border: "1px solid rgba(55,160,101,0.16)", overflow: "hidden", position: "relative" }}>
@@ -6388,7 +6388,7 @@ function FounderVideoSection() {
         <div style={{ fontSize: 11.5, color: T.sub, fontWeight: 700, letterSpacing: 0.3, textTransform: "uppercase", marginBottom: 8 }}>Studio Venture interview series</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
           {videos.map((video, index) => (
-            <a key={video.url} href={video.url} target="_blank" rel="noopener noreferrer" aria-label={`Watch ${video.title} on Streamable`}
+            <a key={video.url} href={video.url} target="_blank" rel="noopener noreferrer" aria-label={`Watch ${video.title}`}
               style={{ display: "flex", alignItems: "center", gap: 11, background: index % 2 === 0 ? "linear-gradient(110deg, rgba(255,255,255,0.9), rgba(238,249,241,0.94))" : "linear-gradient(110deg, rgba(255,255,255,0.86), rgba(255,245,235,0.94))", borderRadius: 15, padding: 11, border: "1px solid rgba(55,128,82,0.14)", textDecoration: "none", color: T.ink, boxShadow: "0 4px 12px rgba(47,97,72,0.05)" }}>
               <div style={{ width: 37, height: 37, borderRadius: 11, background: index % 2 === 0 ? "linear-gradient(145deg, #3f9d68, #8acb8c)" : "linear-gradient(145deg, #c48755, #e5b17d)", display: "grid", placeItems: "center", flexShrink: 0, position: "relative" }}>
                 <Play size={15} color="#fff" fill="#fff" />
@@ -6396,7 +6396,7 @@ function FounderVideoSection() {
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 13.5, fontWeight: 800, color: T.ink, lineHeight: 1.3 }}>{video.title}</div>
-                <div style={{ fontSize: 11, color: T.sub, marginTop: 3 }}>Juan Carroso • Studio Venture • Watch on Streamable</div>
+                <div style={{ fontSize: 11, color: T.sub, marginTop: 3 }}>Juan Carroso • Studio Venture • Watch video</div>
               </div>
               <ExternalLink size={16} color={index % 2 === 0 ? T.greenDk : "#bd7540"} />
             </a>
