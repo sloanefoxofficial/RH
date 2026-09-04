@@ -1500,98 +1500,120 @@ function useVoice(voiceOn) {
   return { speak, stop, speaking, paused, pauseResume, prefetch };
 }
 
-function HoldToTalk({ onText, onStart, size = 52 }) {
+async function transcribeRecordedAudio(blob) {
+  const reader = new FileReader();
+  const dataUrl = await new Promise((resolve, reject) => {
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+  const response = await fetch('/api/transcribe', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ audio: dataUrl, mimeType: blob.type || 'audio/mp4', language: __speechLang.split('-')[0] }),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.error || 'Speech transcription failed.');
+  return cleanTranscript(data.text || '');
+}
+
+function pickRecordingMime() {
+  if (typeof MediaRecorder === 'undefined') return '';
+  const options = ['audio/mp4', 'audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus'];
+  return options.find((m) => !MediaRecorder.isTypeSupported || MediaRecorder.isTypeSupported(m)) || '';
+}
+
+function useRecordedSpeech(onText, onStart, { autoStopSilence = false } = {}) {
   const [listening, setListening] = useState(false);
-  const [err, setErr] = useState(null);
-  const recRef = useRef(null);
-  const committedRef = useRef("");   // finalized speech accumulated across this hold
-  const submittedRef = useRef(false); // one commit maximum per hold
-  const heldRef = useRef(false);     // true while the button is actually held
-  const supported = typeof window !== "undefined" && (window.SpeechRecognition || window.webkitSpeechRecognition);
-
-  const startTokenRef = useRef(0);
-  // A tap-to-talk hold owns one recogniser at a time and waits for iOS to hand
-  // the audio session back to recording after guide playback.
-  const runSession = () => {
-    if (!heldRef.current) return;
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    let r;
-    try { r = new SR(); } catch { setErr("Couldn't start the mic."); setListening(false); return; }
-    voiceDebug("tap session created");
-    r.lang = __speechLang; r.interimResults = true; r.continuous = false;
-    let sessionFinal = "", interimText = "";
-    r.onresult = (e) => {
-      // Rebuild this session's text from scratch each update — idempotent, so a
-      // sentence is never re-added — and keep the trailing interim for the tail.
-      let f = "", it = "";
-      for (let i = 0; i < e.results.length; i++) {
-        const res = e.results[i]; if (!res || !res[0]) continue;
-        if (res.isFinal) f += res[0].transcript + " "; else it += res[0].transcript;
+  const recorderRef = useRef(null);
+  const streamRef = useRef(null);
+  const chunksRef = useRef([]);
+  const tokenRef = useRef(0);
+  const silenceTimerRef = useRef(null);
+  const analyserRef = useRef(null);
+  const audioContextRef = useRef(null);
+  const lastSoundRef = useRef(0);
+  const stop = useCallback(() => {
+    tokenRef.current += 1;
+    if (silenceTimerRef.current) { clearTimeout(silenceTimerRef.current); silenceTimerRef.current = null; }
+    try { recorderRef.current?.stop(); } catch {}
+    try { streamRef.current?.getTracks().forEach((track) => track.stop()); } catch {}
+    try { audioContextRef.current?.close(); } catch {}
+    recorderRef.current = null; streamRef.current = null; analyserRef.current = null; audioContextRef.current = null;
+    setListening(false);
+  }, []);
+  const start = useCallback(async () => {
+    if (recorderRef.current || listening) return;
+    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
+      throw new Error('Audio recording is not supported on this device.');
+    }
+    const token = ++tokenRef.current;
+    onStart?.();
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      if (token !== tokenRef.current) { stream.getTracks().forEach((track) => track.stop()); return; }
+      streamRef.current = stream;
+      chunksRef.current = [];
+      const recorder = new MediaRecorder(stream, pickRecordingMime() ? { mimeType: pickRecordingMime() } : undefined);
+      recorderRef.current = recorder;
+      recorder.ondataavailable = (event) => { if (event.data?.size) chunksRef.current.push(event.data); };
+      recorder.onstop = async () => {
+        const myChunks = chunksRef.current.slice();
+        const type = recorder.mimeType || pickRecordingMime() || 'audio/mp4';
+        try { stream.getTracks().forEach((track) => track.stop()); } catch {}
+        if (streamRef.current === stream) streamRef.current = null;
+        if (token !== tokenRef.current) return;
+        if (!myChunks.length) return;
+        try {
+          const text = await transcribeRecordedAudio(new Blob(myChunks, { type }));
+          if (token === tokenRef.current && text) onText?.(text);
+        } catch (error) { console.warn('[RH voice] transcription failed', error); }
+      };
+      recorder.start(250);
+      setListening(true);
+      if (autoStopSilence) {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (AudioCtx) {
+          const ctx = new AudioCtx();
+          const analyser = ctx.createAnalyser(); analyser.fftSize = 512;
+          ctx.createMediaStreamSource(stream).connect(analyser);
+          const samples = new Uint8Array(analyser.fftSize);
+          analyserRef.current = analyser; audioContextRef.current = ctx; lastSoundRef.current = Date.now();
+          const monitor = () => {
+            if (token !== tokenRef.current || recorderRef.current !== recorder) return;
+            analyser.getByteTimeDomainData(samples);
+            let peak = 0; for (const sample of samples) peak = Math.max(peak, Math.abs(sample - 128));
+            if (peak > 5) lastSoundRef.current = Date.now();
+            if (Date.now() - lastSoundRef.current > 1800 && Date.now() - token > 900) { stop(); return; }
+            silenceTimerRef.current = setTimeout(monitor, 120);
+          };
+          silenceTimerRef.current = setTimeout(monitor, 120);
+        }
       }
-      sessionFinal = f.trim(); interimText = it;
-    };
-    r.onerror = (e) => {
-      if (e && (e.error === "not-allowed" || e.error === "service-not-allowed")) {
-        setErr("Mic access is blocked — check your browser/site permissions.");
-        heldRef.current = false;
-      }
-    };
-    r.onend = () => {
-      recRef.current = null;
-      const seg = sessionFinal.trim();     // only finalized recognition results are committed
-      if (seg) committedRef.current = (committedRef.current + " " + seg).trim();
-      sessionFinal = ""; interimText = "";
-      if (heldRef.current) { runSession(); return; } // still held — keep listening seamlessly
-      setListening(false);
-      const t = cleanTranscript(committedRef.current);
-      if (t && !submittedRef.current) { submittedRef.current = true; voiceDebug("tap transcript submitted", t); onText(t); }
-      else if (t) voiceDebug("tap duplicate transcript ignored");
-    };
-    try { recRef.current = r; r.start(); setListening(true); }
-    catch { recRef.current = null; /* start raced with a previous stop — the watchdog revives it */ }
-  };
+    } catch (error) {
+      try { streamRef.current?.getTracks().forEach((track) => track.stop()); } catch {}
+      recorderRef.current = null; streamRef.current = null; setListening(false); throw error;
+    }
+  }, [autoStopSilence, listening, onStart, onText, stop]);
+  useEffect(() => () => stop(), [stop]);
+  return { listening, start, stop };
+}
 
-  const watchdog = useRef(null);
-  const start = () => {
-    if (!supported) { setErr("Voice input isn't supported here — please type."); return; }
-    if (onStart) onStart();
-    setErr(null); committedRef.current = ""; submittedRef.current = false; heldRef.current = true;
-    ++startTokenRef.current;
-    // Start recognition directly from the tap. Waiting for getUserMedia() here
-    // loses iOS's user-gesture window and can produce a silent recogniser.
-    wakeMicForSpeech();
-    runSession();
-    // Browsers cap a single listening session (~1 min, and they stop on pauses).
-    // This keeps the mic alive no matter how long someone talks: if a session has
-    // ended and a restart didn't take, revive it. Nobody gets cut off mid-sentence.
-    clearInterval(watchdog.current);
-    watchdog.current = setInterval(() => {
-      if (heldRef.current && !recRef.current) runSession();
-    }, 1000);
+function HoldToTalk({ onText, onStart, size = 52 }) {
+  const speech = useRecordedSpeech(onText, onStart);
+  const toggle = async () => {
+    try { if (speech.listening) speech.stop(); else await speech.start(); }
+    catch (error) { console.warn('[RH voice] recording unavailable', error); }
   };
-  const stop = () => {
-    heldRef.current = false;
-    startTokenRef.current += 1;
-    clearInterval(watchdog.current);
-    try { recRef.current && recRef.current.stop(); } catch {}
-  };
-  // Tap to start, tap again to finish & send. heldRef is set synchronously in
-  // start()/stop(), so consecutive taps toggle reliably regardless of React state timing.
-  const toggle = () => { if (heldRef.current) stop(); else start(); };
-  useEffect(() => () => clearInterval(watchdog.current), []);
-
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-      <button
-        onPointerDown={toggle}
-        aria-label={listening ? "Tap to stop and send" : "Tap to talk"}
-        style={{ width: size, height: size, borderRadius: "50%", border: "none", cursor: "pointer",
-          background: listening ? "#e5484d" : "#fff", color: listening ? "#fff" : T.ink,
-          boxShadow: T.soft, display: "grid", placeItems: "center",
-          animation: listening ? "rh-glow 1.2s ease-in-out infinite" : "none", touchAction: "none" }}>
-        {listening ? <Square size={20} /> : <Mic size={20} />}
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      <button onClick={toggle} aria-label={speech.listening ? 'Tap to stop and send' : 'Tap to talk'}
+        style={{ width: size, height: size, borderRadius: '50%', border: 'none', cursor: 'pointer',
+          background: speech.listening ? '#e5484d' : '#fff', color: speech.listening ? '#fff' : T.ink,
+          boxShadow: T.soft, display: 'grid', placeItems: 'center',
+          animation: speech.listening ? 'rh-glow 1.2s ease-in-out infinite' : 'none', touchAction: 'none' }}>
+        {speech.listening ? <Square size={20} /> : <Mic size={20} />}
       </button>
-      {err && <span style={{ fontSize: 11, color: "#c0392b", marginTop: 4, maxWidth: 120, textAlign: "center" }}>{err}</span>}
     </div>
   );
 }
@@ -5702,97 +5724,19 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
     e.target.value = "";
   };
 
-  // Hands-free voice conversation — works while the app is open on screen.
+  // Isolated recorded-audio controller. It replaces the old browser
+  // SpeechRecognition and barge-in watchers while keeping the same Chat API.
   const [handsFree, setHandsFree] = useState(false);
   const [hfListening, setHfListening] = useState(false);
   const hfRef = useRef(false); hfRef.current = handsFree;
-  const hfRecRef = useRef(null);
-  const hfSessionRef = useRef(0);
-  const hfSubmittedSessionRef = useRef(0);
-  const hfEmpty = useRef(0);
   const sendRef = useRef(null);
-  const sttSupported = typeof window !== "undefined" && (window.SpeechRecognition || window.webkitSpeechRecognition);
+  const sttSupported = typeof window !== 'undefined' && !!(navigator.mediaDevices?.getUserMedia && typeof MediaRecorder !== 'undefined');
+  const hfSpeech = useRecordedSpeech((text) => { if (sendRef.current) sendRef.current(text); }, stop, { autoStopSilence: true });
+  useEffect(() => setHfListening(hfSpeech.listening), [hfSpeech.listening]);
+  const hfListen = hfSpeech.start;
+  const stopHF = hfSpeech.stop;
 
-  const hfSilenceRef = useRef(null);
-  const stopHF = useCallback(() => {
-    voiceDebug("hands-free cleanup");
-    hfSessionRef.current += 1;
-    if (hfSilenceRef.current) { clearTimeout(hfSilenceRef.current); hfSilenceRef.current = null; }
-    const active = hfRecRef.current;
-    hfRecRef.current = null;
-    if (active) {
-      active.onresult = null; active.onend = null; active.onerror = null;
-      try { active.abort(); } catch { try { active.stop(); } catch {} }
-    }
-    setHfListening(false);
-  }, []);
-
-  const hfListen = useCallback(() => {
-    if (!hfRef.current) return;
-    // Wake iOS recording mode in parallel, but never await it: SpeechRecognition
-    // must start from the current user gesture when hands-free is first enabled.
-    wakeMicForSpeech();
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) { setHandsFree(false); hfRef.current = false; return; }
-    // The rebuilt controller has one owner. A new session always invalidates
-    // the previous one before it creates a recogniser.
-    stopHF();
-    const sessionId = ++hfSessionRef.current;
-    voiceDebug("hands-free session created", sessionId);
-    try {
-      const r = new SR();
-      r.lang = __speechLang;
-      r.interimResults = false;
-      r.continuous = true;
-      let finalText = "";
-      let lastResultIndex = -1;
-      let submitted = false;
-      const finishAfterPause = () => {
-        if (hfSilenceRef.current) clearTimeout(hfSilenceRef.current);
-        hfSilenceRef.current = setTimeout(() => { try { r.stop(); } catch {} }, 2600);
-      };
-      r.onstart = () => { if (sessionId === hfSessionRef.current) finishAfterPause(); };
-      r.onresult = (event) => {
-        if (sessionId !== hfSessionRef.current || submitted) { voiceDebug("stale hands-free result ignored", sessionId); return; }
-        for (let i = event.resultIndex || 0; i < event.results.length; i++) {
-          const result = event.results[i];
-          if (!result || !result.isFinal || !result[0] || i <= lastResultIndex) continue;
-          lastResultIndex = i;
-          finalText += (finalText ? " " : "") + String(result[0].transcript || "").trim();
-        }
-        finishAfterPause();
-      };
-      r.onerror = (event) => voiceDebug("hands-free recognition error", sessionId, event?.error || "unknown");
-      r.onend = () => {
-        if (hfSilenceRef.current) { clearTimeout(hfSilenceRef.current); hfSilenceRef.current = null; }
-        if (sessionId !== hfSessionRef.current || submitted) { voiceDebug("stale hands-free end ignored", sessionId); return; }
-        submitted = true;
-        if (hfRecRef.current === r) hfRecRef.current = null;
-        setHfListening(false);
-        if (!hfRef.current) return;
-        const text = cleanTranscript(finalText);
-        if (text) {
-          hfEmpty.current = 0;
-          if (hfSubmittedSessionRef.current !== sessionId) {
-            hfSubmittedSessionRef.current = sessionId;
-            voiceDebug("hands-free transcript submitted", sessionId, text);
-            if (sendRef.current) sendRef.current(text);
-          }
-        } else {
-          hfEmpty.current += 1;
-          if (hfEmpty.current >= 3) { setHandsFree(false); hfRef.current = false; }
-          else setTimeout(() => { if (hfRef.current && sessionId === hfSessionRef.current) hfListen(); }, 500);
-        }
-      };
-      hfRecRef.current = r;
-      r.start();
-      setHfListening(true);
-    } catch {
-      if (sessionId === hfSessionRef.current) setTimeout(() => { if (hfRef.current) hfListen(); }, 800);
-    }
-  }, [stopHF]);
-
-  useEffect(() => { scrollRef.current?.scrollTo({ top: 1e6, behavior: "smooth" }); }, [history, busy, showAllHistory]);
+  useEffect(() => { scrollRef.current?.scrollTo({ top: 1e6, behavior: 'smooth' }); }, [history, busy, showAllHistory]);
   useEffect(() => () => { stop(); stopHF(); }, [stop, stopHF]);
 
   const send = async (raw, opts) => {
