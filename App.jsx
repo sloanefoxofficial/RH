@@ -5795,7 +5795,16 @@ function GuideRow({ char, onClick, big }) {
 
 /* ---------- chat ---------- */
 function Chat({ char, profile, answers, history, setHistory, plan, progress, saveProgress, persona, memories, onConversation, voiceOn, setVoiceOn, onBack, onOpenTool, embedded, planCoachContext, responseSpeed, onReplayIntro }) {
-  const { speak, stop, speaking, paused, pauseResume } = useVoice(voiceOn);
+  const { speak, stop, speaking, paused, pauseResume, prefetch } = useVoice(voiceOn);
+  const guideWelcome = char.slug === "juan"
+    ? "G'day, I'm Juan. Ask me anything — I'm here for it all. No question is too small, and no topic is off-limits."
+    : char.slug === "carlos"
+    ? "Hi, I'm Carlos, an AI guide inspired by our Registered Psychologist, Carlos Camacho. We can take things one step at a time."
+    : char.slug === "lila"
+    ? "Hi, I'm Lila. We can talk through family, relationships, and boundaries at your pace."
+    : char.slug === "mick"
+    ? "Hi, I'm Mick. We can break practical things down into clear, manageable next steps."
+    : "Hi, I'm Rex. I can help you find your way around The Resilience Hub.";
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const sendLockRef = useRef(false);
@@ -5834,6 +5843,16 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
   };
 
   useEffect(() => { scrollRef.current?.scrollTo({ top: 1e6, behavior: 'smooth' }); }, [history, busy, showAllHistory]);
+  useEffect(() => {
+    if (!voiceOn || !guideWelcome) return undefined;
+    // Warm the guide welcome immediately, then play the same in-flight request.
+    // This avoids waiting for a second TTS network round-trip after navigation.
+    prefetch(guideWelcome, char);
+    const timer = setTimeout(() => speak(guideWelcome, char), 70);
+    return () => { clearTimeout(timer); stop(); };
+    // The welcome should replay when a different guide is opened or voice is enabled.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [voiceOn, char?.slug]);
   useEffect(() => () => { stop(); }, [stop]);
 
   const send = async (raw, opts) => {
