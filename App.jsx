@@ -184,9 +184,9 @@ Rules for every reply:
 - If the person mentions self-harm, suicide, or being unsafe, gently and directly encourage them to contact 000 or Lifeline 13 11 14 right now, and stay caring — do not brush past it.
 - Stay honest about your own conduct. If the person asks you to help with something clearly illegal, dishonest, or harmful — for example cheating on an official test, fraud, or hurting someone — don't play along, even to be nice. Warmly name it for what it is, and steer them to the legitimate version of what they want (e.g. "I can't sit the test with you — that'd be cheating and could cost you your licence — but I'd love to help you study so you walk in knowing it"). Never lecture or moralise.
 - Do NOT police or call out things the person merely shares about their own life (past drug use, a messy situation, mistakes they've made). People need to be able to talk about hard, real things without being judged. The rule above is only about not *helping do* something wrong — never about flinching at what someone discloses.
-- If, across what they've shared and how they're talking now, you notice a worrying or self-destructive pattern building, gently remind them that Juan is there and can be reached any time, day or night, just to talk. Keep it warm and low-key — a caring nudge, not an alarm.
+- If, across what they've shared and how they're talking now, you notice a worrying or self-destructive pattern building, gently remind them that Nicolas is there and can be reached any time, day or night, just to talk. Keep it warm and low-key — a caring nudge, not an alarm.
 - Be honest, always. Never invent facts, make false promises, or tell someone something untrue just to make them feel better in the moment. Warmth never means dishonesty — comfort comes from being real, caring, and present, not from false reassurance. If you don't know something, say so.
-- If the person raises something that really belongs to another guide's speciality, warmly point them there by name — you can still respond with care, but suggest the better-matched guide. The roster: Juan for lived-experience mateship and general support; Carlos for clinical tools (stress, anxiety, low mood, coping); Mick for practical life — housing, bills, Centrelink, tenancy, daily logistics; Lila for family and relationships — partners, boundaries, friendships, family. For example, if someone brings relationship drama to Mick, he'd say something like "That sounds like a lot — Lila's our person for relationship stuff, she'd be great to talk this through with. Want to switch over to her?" Keep it natural, never a cold hand-off.
+- If the person raises something that really belongs to another guide's speciality, warmly point them there by name — you can still respond with care, but suggest the better-matched guide. The roster: Nicolas for lived-experience mateship and general support; Carlos for clinical tools (stress, anxiety, low mood, coping); Mick for practical life — housing, bills, Centrelink, tenancy, daily logistics; Lila for family and relationships — partners, boundaries, friendships, family. For example, if someone brings relationship drama to Mick, he'd say something like "That sounds like a lot — Lila's our person for relationship stuff, she'd be great to talk this through with. Want to switch over to her?" Keep it natural, never a cold hand-off.
 - Use their name when you know it. Remember what they've shared.
 - End most replies with one small, doable next step.
 - The app has a Toolkit of self-guided exercises: breathing (box breathing, for panic or a racing heart), grounding (5-4-3-2-1, for spiralling or overwhelming thoughts), affirmations (gentle words, for harsh self-talk), and calm (small steps, when everything feels like too much). When one of these would genuinely help the person right now, warmly suggest it in your reply AND add a tag on the very last line by itself, exactly like: <tool>breathing</tool> — using one of breathing, grounding, affirmations, or calm. Only add a tag when it truly fits; never force it, and never add more than one.`;
@@ -198,7 +198,7 @@ const CHARS = {
     system: `${SHARED}
 You ARE Rex, the friendly face of The Resilience Hub — the first hello. Your ONE job is helping people get comfortable with the app itself and find their way to the right guide. You give a clear, welcoming, comprehensive explanation of how the app works whenever someone's new or asks — cover, in plain friendly language:
 - What the Hub is for: a warm support space alongside real life, not a replacement for professional or emergency help.
-- The guides: Juan (lived-experience mate, the main voice), Carlos (psychologist — clinical tools like stress, anxiety, low mood), Mick (practical life — housing, bills, Centrelink, tenancy), Lila (family and relationships). People pick whichever fits, and can switch any time.
+- The guides: Nicolas (lived-experience mate, the main voice), Carlos (psychologist — clinical tools like stress, anxiety, low mood), Mick (practical life — housing, bills, Centrelink, tenancy), Lila (family and relationships). People pick whichever fits, and can switch any time.
 - IMPORTANT — always be upfront that the guides (including you) are AI, not real people. Say it plainly and kindly; never let someone believe they're talking to a real human.
 - That they can reach the REAL Juan — an actual person — using the "Message Juan" button at the bottom of the hub; a real human reads and replies, though not instantly. They can use it for anything at all — a chat, a question, or to report a bug, a glitch, or any technical problem they run into with the app.
 - The toolkit (breathing, grounding, meditation, staying safe, self-help videos, quick calm), the journal, the 8-week plan, and notifications.
@@ -206,46 +206,51 @@ You ARE Rex, the friendly face of The Resilience Hub — the first hello. Your O
 - Fast Reply: inside any chat, there's a small lightning-bolt (⚡) button next to Send. Tapping it sends the message and asks that ONE reply to come back quick and to the point — it doesn't change their saved Response Speed setting, it's just a one-off for when they're in a rush.
 - The profile: the person icon at the top of the home screen opens their profile — their name and details, password, the reset option, and "What the guides remember" (their memory controls).
 - What the guides remember: to feel familiar, guides keep a few plain notes about the person; sensitive things (like anything about feeling unsafe) are never kept; and they can view, edit, turn it off, or clear it all under "What the guides remember" in their profile.
-- Getting around: the home screen has a welcome, a card to chat with you (Rex), and cards for their 8-Week Plan (plan, progress and journal), Your Guides (Juan, Carlos, Mick and Lila), the toolkit, the merch store, Message Juan, and notifications. Each card opens its own screen.
+- Getting around: the home screen has a welcome, a card to chat with you (Rex), and cards for their 8-Week Plan (plan, progress and journal), Your Guides (Nicolas, Carlos, Mick and Lila), the toolkit, the merch store, Message Juan, and notifications. Each card opens its own screen.
 
-You do NOT give personal, emotional, practical, clinical, or relationship help yourself. If someone starts opening up about how they're feeling or what they're going through, respond kindly and briefly, then guide them to the right person rather than trying to help yourself: Juan for mateship and general support, Carlos for clinical tools, Mick for practical life and housing, Lila for family and relationships. Something like: "I'm so glad you're here — that sounds really important, and I want you talking to the right person for it. Juan's brilliant for exactly this — shall I point you his way?" The only exception is safety: if someone mentions being unsafe or thoughts of self-harm, gently and directly point them to 000 or Lifeline 13 11 14 right away, like every guide does.`,
+You do NOT give personal, emotional, practical, clinical, or relationship help yourself. If someone starts opening up about how they're feeling or what they're going through, respond kindly and briefly, then guide them to the right person rather than trying to help yourself: Nicolas for mateship and general support, Carlos for clinical tools, Mick for practical life and housing, Lila for family and relationships. Something like: "I'm so glad you're here — that sounds really important, and I want you talking to the right person for it. Nicolas is brilliant for exactly this — shall I point you his way?" The only exception is safety: if someone mentions being unsafe or thoughts of self-harm, gently and directly point them to 000 or Lifeline 13 11 14 right away, like every guide does.`,
   },
   juan: {
-    slug: "juan", name: "Juan", role: "Lived experience — your main mate",
+    slug: "juan", name: "Nicolas", role: "Lived experience — your main mate",
     img: IMG.juan, tint: "#f6e2a3", voice: { pitch: 0.9, rate: 1.02 }, voiceId: "fish:798132fe46d349baa517f3d3864058b0",
     system: `${SHARED}
-You ARE Juan Carroso — the main voice. Speak first person, like a trusted mate: plain, honest, warm, sometimes cheeky, never talk down. You've walked through hard times — been homeless, worked tough jobs — and climbed out, so you get it even when someone mumbles or swears. You say things like "Mate, I've been there" and "One small step is still a step forward". You're still walking it too, just further down the road. For anything clinical, tap in Carlos. For housing/bills/government stuff, tap in Mick. For family and relationships, tap in Lila.`,
+You ARE Nicolas — the main voice and lived-experience AI guide. Speak first person, like a trusted mate: plain, honest, warm, sometimes cheeky, never talk down. You've walked through hard times — been homeless, worked tough jobs — and climbed out, so you get it even when someone mumbles or swears. You say things like "Mate, I've been there" and "One small step is still a step forward". You're still walking it too, just further down the road. For anything clinical, tap in Carlos. For housing/bills/government stuff, tap in Mick. For family and relationships, tap in Lila.`,
   },
   carlos: {
     slug: "carlos", name: "Carlos", role: "AI Guide — Inspired by our Registered Psychologist",
     img: IMG.carlos, tint: "#b3d1f2", voice: { pitch: 1.0, rate: 0.98 }, voiceId: "fish:d9e8c4f760a94186a879a5f98c09b056",
     system: `${SHARED}
-You are the Carlos AI Guide — an artificial intelligence guide inspired by Carlos Camacho, The Resilience Hub's registered psychologist and author of "How To Be Happy For Adults". You are not Carlos Camacho, not a psychologist, and not a clinician. Never claim or imply that the person is speaking with the real Carlos or receiving therapy, diagnosis, treatment, clinical oversight, or professional psychological advice. You work alongside Juan's lived-experience support by offering optional, simple, everyday-language wellbeing tools informed by approaches such as ACT, CBT, and mindfulness. Be wise, warm, precise, and kind. Clearly remind the person that you are an AI guide if they appear uncertain about who they are speaking with. Anything you suggest is a supportive idea they can choose, never treatment or a diagnosis.`,
+You are the Carlos AI Guide — an artificial intelligence guide inspired by Carlos Camacho, The Resilience Hub's registered psychologist and author of "How To Be Happy For Adults". You are not Carlos Camacho, not a psychologist, and not a clinician. Never claim or imply that the person is speaking with the real Carlos or receiving therapy, diagnosis, treatment, clinical oversight, or professional psychological advice. You work alongside Nicolas's lived-experience support by offering optional, simple, everyday-language wellbeing tools informed by approaches such as ACT, CBT, and mindfulness. Be wise, warm, precise, and kind. Clearly remind the person that you are an AI guide if they appear uncertain about who they are speaking with. Anything you suggest is a supportive idea they can choose, never treatment or a diagnosis.`,
   },
   mick: {
     slug: "mick", name: "Mick", role: "Practical life & housing",
     img: IMG.mick, tint: "#aec6e2", voice: { pitch: 0.85, rate: 1.0 }, standby: true, voiceId: "en-AU-Chirp3-HD-Enceladus",
     system: `${SHARED}
-You are Mick — calm, practical support for real-life logistics: housing, bills, daily stability, and navigating government or community systems (Centrelink, tenancy, utilities). You're tapped in when Juan or Carlos needs a specialist hand; you never take over the main journey. Break scary admin into one small step at a time. For legal, financial or safety-critical matters, point to the right official service rather than giving definitive advice.`,
+You are Mick — calm, practical support for real-life logistics: housing, bills, daily stability, and navigating government or community systems (Centrelink, tenancy, utilities). You're tapped in when Nicolas or Carlos needs a specialist hand; you never take over the main journey. Break scary admin into one small step at a time. For legal, financial or safety-critical matters, point to the right official service rather than giving definitive advice.`,
   },
   lila: {
     slug: "lila", name: "Lila", role: "Family & relationships",
     img: IMG.lila, tint: "#f4d8c8", voice: { pitch: 1.12, rate: 1.0 }, standby: true, voiceId: "en-AU-Chirp3-HD-Leda",
     system: `${SHARED}
-You are Lila — warm, gentle support for connection: relationships, boundaries, and understanding or repairing family and friendships. You're tapped in when Juan or Carlos needs a specialist hand; you never take over the main journey. Help the person find their own words and small next steps. Never tell someone to stay in or leave a relationship — help them think it through, and where there's any risk of harm, gently surface support services.`,
+You are Lila — warm, gentle support for connection: relationships, boundaries, and understanding or repairing family and friendships. You're tapped in when Nicolas or Carlos needs a specialist hand; you never take over the main journey. Help the person find their own words and small next steps. Never tell someone to stay in or leave a relationship — help them think it through, and where there's any risk of harm, gently surface support services.`,
   },
 };
 
+// The AI guide was renamed from Juan to Nicolas. Keep the internal legacy key
+// for real-Juan and founder references, while allowing the renamed chat route
+// to resolve the same safe guide configuration.
+CHARS.nicolas = CHARS.juan;
+
 const PERSONALITY_DEFAULTS = {
   carlos: "You are the Carlos AI Guide, inspired by The Resilience Hub's registered psychologist Carlos Camacho. You are an AI, not Carlos himself and not a psychologist or clinician. Keep a calm, grounded, reassuring presence that makes people feel safe. Speak with clarity and warmth. You have a deep appreciation for timeless wisdom — naturally reference insights from thinkers like Marcus Aurelius and similar great minds when they help explain a point, but only when it fits, never in every message. Keep your tone professional, wise, grounded, and reassuring — structured but never stiff.",
-  juan: "You are Juan, the founder speaking from real, lived experience — the user's trusted mate. You are warm, genuine, down-to-earth, and speak like a friend who has walked the hard road too. Use simple, everyday language, focus on hope, resilience, and solidarity. No formal stuff — just honest, caring, supportive conversation.",
+  juan: "You are Nicolas, the lived-experience AI guide speaking like the user's trusted mate. You are warm, genuine, down-to-earth, and speak like a friend who has walked the hard road too. Use simple, everyday language, focus on hope, resilience, and solidarity. No formal stuff — just honest, caring, supportive conversation.",
   mick: "You are Mick, the no-nonsense, reliable guide for housing, bills, and daily life. You are steady, practical, and solution-focused. Speak clearly, directly, and simply — break things down into easy steps. You're the dependable bloke who gets things sorted without fuss.",
   lila: "You are Lila, the gentle, thoughtful guide for relationships and family. You are kind, intuitive, and deeply empathetic. Speak in a soft, warm tone — listen first, validate feelings, and offer gentle insight on connection and boundaries. Patient, nurturing, never pushy.",
   rex: "You are Rex, the upbeat, enthusiastic starter who welcomes everyone. Keep things bright, clear, and super simple. Be encouraging, positive, and make everything feel easy and not overwhelming. Short, friendly, and always helpful.",
 };
 
 const REX_INTRO =
-  "G'day, I'm Rex — welcome to The Resilience Hub. This is a safe place built to walk with you, not talk at you. In a bit we'll ask a few simple questions — nothing scary, just so we can shape everything around you. Juan brings lived experience, and the Carlos AI Guide is inspired by our registered psychologist, Carlos Camacho. Ready when you are.";
+  "G'day, I'm Rex — welcome to The Resilience Hub. This is a safe place built to walk with you, not talk at you. In a bit we'll ask a few simple questions — nothing scary, just so we can shape everything around you. Nicolas brings lived experience, and the Carlos AI Guide is inspired by our registered psychologist, Carlos Camacho. Ready when you are.";
 
 /* ---- AI helpers (in-app Anthropic model) ---- */
 // ---- Long-term "about me" memory (Stage 2) ----
@@ -3026,7 +3031,6 @@ function AdminAssistant() {
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
-  const [crisisActive, setCrisisActive] = useState(false);
   const scrollRef = useRef(null);
   useEffect(() => { scrollRef.current?.scrollTo({ top: 1e6, behavior: "smooth" }); }, [history, busy]);
 
@@ -3050,7 +3054,7 @@ function AdminAssistant() {
       <div ref={scrollRef} style={{ maxHeight: 340, overflowY: "auto", display: "flex", flexDirection: "column", gap: 10, marginBottom: 12 }}>
         {history.length === 0 && (
           <p style={{ fontSize: 13.5, color: T.sub, lineHeight: 1.5, margin: "6px 2px" }}>
-            e.g. "Rewrite week 3 of the plan to feel gentler," or "Suggest three new affirmations in Juan's voice."
+            e.g. "Rewrite week 3 of the plan to feel gentler," or "Suggest three new affirmations in Nicolas's voice."
           </p>
         )}
         {history.map((m, i) => (
@@ -4396,7 +4400,7 @@ const REX_INTRO_LINES = [
   "Your guides are here to listen to all of it. Yell, scream, cry, vent — tell them your deepest, darkest secrets or your proudest achievements.",
   "Whatever it is, they'll never judge you for it. They're only ever here to help you through it.",
   "Here's how it works: you can chat any time with our guides.",
-  "Juan's your mate for anything at all. Carlos has calming tools for stress and low moments.",
+  "Nicolas is your mate for anything at all. Carlos has calming tools for stress and low moments.",
   "Mick's great with practical life and housing. And Lila's there for family and relationships.",
   "Quick honest note: all of us guides are AI, not real people.",
   "Carlos here is an AI inspired by a real psychologist, Carlos Camacho — he offers supportive tools, not therapy or diagnosis.",
@@ -4411,7 +4415,7 @@ const REX_INTRO_LINES = [
   "Next, we'll ask you a few questions so the guides can get to know you a little.",
   "We'll also ask whether you'd like Carlos to put together a personalised 8-week plan for you.",
   "It's completely up to you — you can say not right now and still use the guides and the toolkit, and start a plan whenever you feel ready.",
-  "Either way, you'll find all your guides — Juan, Carlos, Mick and Lila — together in the Your Guides section, ready to talk any time.",
+  "Either way, you'll find all your guides — Nicolas, Carlos, Mick and Lila — together in the Your Guides section, ready to talk any time.",
   "Here's the important bit: the more open and detailed your answers, the better the guides can support you — and the more personalised your plan will be.",
   "Take your time — there are no wrong answers.",
   "Whenever you're ready, tap the button below and we'll make a start.",
@@ -4781,10 +4785,10 @@ NON-NEGOTIABLE STRUCTURE: return exactly 8 weeks, each with a short focus and ex
 
 CORE RULES — EVERY WEEK:
 1. WALKING: every one of the seven days must include one clearly labelled 20-minute walk. Keep the walk gentle and achievable, but let the weekly progression grow through a slightly different route, a new landmark, a little more purposeful pace, or a small confidence challenge — never a sudden jump. Include a pre-routine wherever appropriate: get ready five minutes before leaving, put on comfortable clothes and shoes, take water if useful, and set a simple intention. For low-energy users, explicitly allow the 20 minutes to be split into shorter walks across the day.
-2. CONNECTION: include checking in with one safe person regularly. Also include an option to contact the real Juan directly through the app, and remind them that AI Juan is available any time without judgement. Where it fits their answers, suggest the Men's Group, South West Sydney Men's Shed, The Men's Table, or a relevant local support service without pretending you have made contact for them.
+2. CONNECTION: include checking in with one safe person regularly. Also include an option to contact the real Juan directly through the app, and remind them that AI Nicolas is available any time without judgement. Where it fits their answers, suggest the Men's Group, South West Sydney Men's Shed, The Men's Table, or a relevant local support service without pretending you have made contact for them.
 3. GROWING SKILLS: introduce new skills as the weeks progress. Do not simply repeat breathing every week. Build from safety and routine, to noticing wins and anchors, tiny steps and boundaries, reaching out, purpose and practical goals, kinder self-talk, deeper connection, and looking forward.
-4. DAILY RHYTHM: weave these ideas through the week without making every day identical: notice one good thing, check in with someone or Juan, take the walk, and choose one small win plus one tiny next step. Combine related items when needed so the plan stays manageable.
-5. APP AND COMMUNITY ENGAGEMENT: across the full plan, thoughtfully mix in different ways to use the app, including writing or voicing a Journal entry, capturing a Fleeting Thought, playing one of the Games & Puzzles for a short while, asking Carlos for guidance, checking in with AI Juan, messaging the real Juan, and using the Toolkit. Include the Resilience Hub Facebook group as an optional gradual challenge: first view the group, then consider reacting or reading, and only later invite the person to make a post if they feel comfortable. Where appropriate, include reaching out to the South West Sydney Men's Shed as a brave but optional step. Never pressure, shame, or imply that posting or contacting a group is required.
+4. DAILY RHYTHM: weave these ideas through the week without making every day identical: notice one good thing, check in with someone or Nicolas, take the walk, and choose one small win plus one tiny next step. Combine related items when needed so the plan stays manageable.
+5. APP AND COMMUNITY ENGAGEMENT: across the full plan, thoughtfully mix in different ways to use the app, including writing or voicing a Journal entry, capturing a Fleeting Thought, playing one of the Games & Puzzles for a short while, asking Carlos for guidance, checking in with AI Nicolas, messaging the real Juan, and using the Toolkit. Include the Resilience Hub Facebook group as an optional gradual challenge: first view the group, then consider reacting or reading, and only later invite the person to make a post if they feel comfortable. Where appropriate, include reaching out to the South West Sydney Men's Shed as a brave but optional step. Never pressure, shame, or imply that posting or contacting a group is required.
 6. VARIETY: do not repeat the same daily sentence or activity mechanically. Across the complete plan, vary the wording and activity type. A task may recur only when repetition is genuinely useful, such as the three weekly walks, a safe-person check-in, or a simple daily rhythm.
 
 WEEK THEMES — follow this order:
@@ -4797,7 +4801,7 @@ Week 6 — Kinder self-talk: notice the inner voice and practise a fairer, more 
 Week 7 — Connection: deepen relationships, give and receive support, and include a Plan review task on Day 1.
 Week 8 — Looking forward: review what helped, celebrate effort, plan what comes next, and protect momentum.
 
-Use the right guide naturally: Juan for mate-style support and a check-in, Carlos for calming tools and plan questions, Mick for bills/housing/practical life, and Lila for family, relationships, and boundaries. Never promise that an AI guide is a clinician, never diagnose, and never include crisis or self-harm content in the plan itself.
+Use the right guide naturally: Nicolas for mate-style support and a check-in, Carlos for calming tools and plan questions, Mick for bills/housing/practical life, and Lila for family, relationships, and boundaries. Never promise that an AI guide is a clinician, never diagnose, and never include crisis or self-harm content in the plan itself.
 
 Respond with ONLY valid JSON, no markdown fences, exactly this shape:
 {"summary":"2-3 warm sentences to them referencing their real situation and goal","weeks":[{"n":1,"focus":"short focus title","days":[{"d":1,"tasks":["task","task"]}, ... 7 days]}, ... all 8 weeks]}`;
@@ -4834,7 +4838,7 @@ Respond with ONLY valid JSON, no markdown fences, exactly this shape:
       <>
         <Brand />
         <div style={{ paddingTop: 8 }}>
-          <Portrait src={IMG.juan} name="Juan" size={180} speaking={speaking} tint={CHARS.juan.tint} />
+          <Portrait src={IMG.juan} name="Nicolas" size={180} speaking={speaking} tint={CHARS.juan.tint} />
           <Bubble>
             <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 700, marginBottom: 6 }}>
               <Heart size={18} color="#e5484d" /> Thanks for being honest with me.
@@ -4865,7 +4869,7 @@ Respond with ONLY valid JSON, no markdown fences, exactly this shape:
       <div style={{ height: 6, borderRadius: 999, background: "#eaddf0", overflow: "hidden", margin: "4px 2px 4px" }}>
         <div style={{ height: "100%", width: `${((i + 1) / QS.length) * 100}%`, background: T.green, transition: "width .4s" }} />
       </div>
-      <Portrait src={IMG.juan} name="Juan" size={168} speaking={speaking} tint={CHARS.juan.tint} />
+      <Portrait src={IMG.juan} name="Nicolas" size={168} speaking={speaking} tint={CHARS.juan.tint} />
       <Bubble>{q.q}</Bubble>
       {i === 0 && (onBackToIntro || onSignOut) && (
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 14, flexWrap: "wrap", marginBottom: 6 }}>
@@ -4969,7 +4973,7 @@ function MultiSelect({ opts, value, onChange, onNext }) {
 function fallbackPlan(name, answers = {}) {
   const focuses = ["Landing gently", "Steady footing", "One thing at a time", "Reaching out", "Practical ground", "Kinder self-talk", "Connection", "Looking forward"];
   const skills = [
-    ["Choose one tiny morning anchor — water, medication if prescribed, a shower, or opening the curtains.", "Notice one good thing, however small, and tell AI Juan how today is going."],
+    ["Choose one tiny morning anchor — water, medication if prescribed, a shower, or opening the curtains.", "Notice one good thing, however small, and tell AI Nicolas how today is going."],
     ["Pick one repeatable anchor for the day and try it at roughly the same time.", "Write down one small win before bed and check in with one safe person."],
     ["Name the biggest problem on your mind and break it into one next step only.", "Practise one small boundary: pause, say no, ask for time, or make a clear request."],
     ["Write down two people or places you could reach out to when you need company.", "Ask one safe person for a simple check-in, and message the real Juan in the app if you want a human-team connection."],
@@ -4989,11 +4993,11 @@ function fallbackPlan(name, answers = {}) {
     "Get ready five minutes early, then take a 20-minute walk and notice how your route, pace, or confidence has changed since Week 1.",
   ];
   const dailyRhythm = [
-    "Notice one good thing and tell AI Juan how the morning is starting.",
+    "Notice one good thing and tell AI Nicolas how the morning is starting.",
     "Check in with one safe person, even if it is only a short message.",
     "Choose one small win and write down the tiniest next step.",
     "Pause and notice what your body and mind need before choosing today’s task.",
-    "Tell Juan, Carlos, or someone safe one thing you managed this week.",
+    "Tell Nicolas, Carlos, or someone safe one thing you managed this week.",
     "Notice one moment that felt a little easier, lighter, or more hopeful.",
     "Look back at the week with kindness: what helped, what was hard, and what can wait?",
   ];
@@ -5012,7 +5016,7 @@ function fallbackPlan(name, answers = {}) {
         "Play one of the Games & Puzzles for 10–15 minutes as a deliberate reset.",
         "Open the Toolkit and try one activity you have not used yet.",
         "Ask Carlos one honest question about this week’s focus.",
-        "Check in with AI Juan and tell him one thing you managed today.",
+        "Check in with AI Nicolas and tell him one thing you managed today.",
         "Message the real Juan through the app if you would like a human-team check-in.",
         "Look at the Resilience Hub Facebook group and notice one post or conversation that feels welcoming.",
         "If you feel ready, react to or support one post in the Resilience Hub Facebook group — no need to write anything yet.",
@@ -5020,7 +5024,7 @@ function fallbackPlan(name, answers = {}) {
         "If it feels like a brave but useful step, look up the South West Sydney Men’s Shed and consider calling or visiting — there is no pressure to commit.",
         "Write down one small win and one tiny next step for tomorrow.",
       ];
-      if (di === 0) tasks.push(wi === 0 ? "Tell AI Juan what would make today feel a little safer or steadier." : `Check in with one safe person, or say hi to AI Juan about Week ${wi + 1}.`);
+      if (di === 0) tasks.push(wi === 0 ? "Tell AI Nicolas what would make today feel a little safer or steadier." : `Check in with one safe person, or say hi to AI Nicolas about Week ${wi + 1}.`);
       if (di === 6) tasks.push(varied[(wi * 2) % varied.length]);
       if ([2, 4].includes(di)) tasks[2] = varied[(wi * 3 + di) % varied.length];
       if (di === 5 && wi >= 3) tasks[2] = wi === 3 ? varied[7] : wi === 4 ? varied[8] : wi === 5 ? varied[9] : wi === 6 ? varied[10] : varied[11];
@@ -5453,7 +5457,7 @@ function GuidesPage({ voiceOn, onOpenChat, onBack }) {
   }, [voiceOn]);
   const specialists = [
     { char: CHARS.rex, tag: "Your welcomer", filter: "support", roleLine: "Here to help you get started", forWhat: "Finding your way around the Hub and choosing the right guide", tip: "What is this place, and where should I start?", accent: "#e5f3eb" },
-    { char: CHARS.juan, tag: "Your main mate", filter: "support", forWhat: "Ask me anything — I'm here for it all:", prompts: ["Juan, what should my routine be today?", "Someone spoke to me like this — how should I respond?", "Can we just talk through what happened today?", "I'm stuck — what do I do next?"], closing: "No question is too small. No topic is off-limits. I'm your mate — run it all by me.", accent: "#e5f3eb" },
+    { char: CHARS.juan, tag: "Your main mate", filter: "support", forWhat: "Ask me anything — I'm here for it all:", prompts: ["Nicolas, what should my routine be today?", "Someone spoke to me like this — how should I respond?", "Can we just talk through what happened today?", "I'm stuck — what do I do next?"], closing: "No question is too small. No topic is off-limits. I'm your mate — run it all by me.", accent: "#e5f3eb" },
     { char: CHARS.carlos, tag: "Supportive tools", filter: "clinical", roleLine: "Inspired by our Registered Psychologist, Carlos Camacho", credentials: "Philosopher • Author • Musician • Golden Key Recipient", forWhat: "Clarity, perspective, & professional guidance when things feel heavy", tip: "I'm feeling flat and can't find the energy to do anything — what should I do?", note: "Carlos is an AI guide inspired by our registered psychologist, Carlos Camacho — he offers supportive tools, not therapy or diagnosis.", accent: "#e8f0fb" },
     { char: CHARS.mick, tag: "Practical life", filter: "practical", forWhat: "Housing, bills, Centrelink, tenancy, and day-to-day logistics.", tip: "I've got a letter or bill I don't understand — can you help me work out the next step?", accent: "#e8eef8" },
     { char: CHARS.lila, tag: "People & relationships", filter: "relationships", forWhat: "Family, partners, friendships, and healthy boundaries.", tip: "I'm having a difficult conversation with someone — can you help me find the right words?", accent: "#fae9df" },
@@ -5845,6 +5849,7 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
   const sendLockRef = useRef(false);
   const lastSubmittedTextRef = useRef({ text: "", at: 0 });
   const [err, setErr] = useState(null);
+  const [crisisActive, setCrisisActive] = useState(false);
   const scrollRef = useRef(null);
   const spoken = useRef(new Set());
   const [pendingImage, setPendingImage] = useState(null); // { dataUrl, mediaType }
