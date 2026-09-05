@@ -32,7 +32,7 @@ const T = {
 const SCREEN_BACK_LABELS = {
   welcome: "Welcome", hub: "Home", onboarding: "Get Started", program: "8-Week Plan",
   guides: "Guides", chat: "Guide Chat", toolkit: "Toolkit", journal: "Private Journal",
-  resources: "Resources", games: "Games & Puzzles", merch: "Sloane Fox Merch",
+  resources: "Support & Community", games: "Games & Puzzles", merch: "Sloane Fox Merch",
   carlosLibrary: "Carlos Library", programInfo: "Program", bookAppointment: "Program",
   mensShed: "Men’s Shed", mensGroup: "Men’s Group", settings: "Settings", profile: "Profile",
   memory: "Profile", notifications: "Home", coordinator: "Message Juan", admin: "Admin",
@@ -1037,6 +1037,8 @@ function StyleTag() {
         background-image:radial-gradient(rgba(77,159,104,0.07) 1px, transparent 1px);background-size:24px 24px}
       @media (prefers-reduced-motion: no-preference){ button:hover,a:hover{transform:translateY(-1px)} }
       @media (prefers-reduced-motion: reduce){ .rh-float,.rh-in,button:hover,a:hover{animation:none!important;transform:none!important} }
+      /* Keep the Hub’s navigation cards generous and visually consistent. */
+      .rh-hub-card-stack > button,.rh-hub-card-stack > a{min-height:92px}
     `}</style>
   );
 }
@@ -1530,7 +1532,7 @@ function splitForTts(text) {
   for (const s0 of sentences) {
     const s = s0.trim(); if (!s) continue;
     if (chunks.length === 0 && cur) { chunks.push(cur.trim()); cur = s; continue; }
-    if ((cur + " " + s).trim().length > 160) { if (cur) chunks.push(cur.trim()); cur = s; }
+    if ((cur + " " + s).trim().length > 260) { if (cur) chunks.push(cur.trim()); cur = s; }
     else cur = (cur ? cur + " " : "") + s;
   }
   if (cur.trim()) chunks.push(cur.trim());
@@ -1628,14 +1630,18 @@ function useVoice(voiceOn) {
         // Start the first short request immediately. The remaining response no
         // longer blocks the first spoken sentence; the next chunk is warmed in
         // parallel while this one is synthesising/playing.
-        const firstUrlPromise = fetchTtsUrl(first, char.voiceId);
-        if (chunks[1]) fetchTtsUrl(chunks[1], char.voiceId).catch(() => {});
+        // Warm every remaining chunk in parallel. Previously only the second
+        // chunk was prefetched, so longer replies could pause after sentence
+        // two while the following audio was still being generated.
+        const chunkPromises = chunks.map((chunk, i) => i === 0
+          ? fetchTtsUrl(chunk, char.voiceId)
+          : fetchTtsUrl(chunk, char.voiceId));
         const playChunk = async (index, urlPromise) => {
           if (stale()) return;
           const chunk = chunks[index] || text;
           let url;
           try { url = await (urlPromise || fetchTtsUrl(chunk, char.voiceId)); }
-          catch { if (!stale()) browserSpeak(chunk, char, index + 1 < chunks.length ? () => playChunk(index + 1) : onDone); return; }
+          catch { if (!stale()) browserSpeak(chunk, char, index + 1 < chunks.length ? () => playChunk(index + 1, chunkPromises[index + 1]) : onDone); return; }
           if (stale()) return;
           const audio = getTtsAudio() || new Audio();
           audioRef.current = audio;
@@ -1646,7 +1652,7 @@ function useVoice(voiceOn) {
             if (index + 1 < chunks.length) {
               // Fetch the following chunk just-in-time; the prior prefetch makes
               // this normally a cache hit and keeps the transition quick.
-              playChunk(index + 1);
+              playChunk(index + 1, chunkPromises[index + 1]);
             } else {
               setSpeaking(false);
               if (onDone) onDone();
@@ -1655,16 +1661,16 @@ function useVoice(voiceOn) {
           audio.onerror = () => {
             if (audioRef.current === audio) audioRef.current = null;
             if (stale()) return;
-            if (index + 1 < chunks.length) browserSpeak(chunk, char, () => playChunk(index + 1));
+            if (index + 1 < chunks.length) browserSpeak(chunk, char, () => playChunk(index + 1, chunkPromises[index + 1]));
             else { setSpeaking(false); browserSpeak(chunk, char, onDone); }
           };
           try { audio.src = url; audio.currentTime = 0; await audio.play(); return; }
           catch {
             try { await primeAudio(); if (stale()) return; audio.src = url; audio.currentTime = 0; await audio.play(); return; }
-            catch { if (!stale()) browserSpeak(chunk, char, index + 1 < chunks.length ? () => playChunk(index + 1) : onDone); }
+            catch { if (!stale()) browserSpeak(chunk, char, index + 1 < chunks.length ? () => playChunk(index + 1, chunkPromises[index + 1]) : onDone); }
           }
         };
-        await playChunk(0, firstUrlPromise);
+        await playChunk(0, chunkPromises[0]);
         return;
       } catch { /* fall through to browser voice */ }
       if (stale()) return;
@@ -5809,7 +5815,7 @@ function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, set
 
       {/* menu cards — grouped for clarity */}
       <SectionTitle>Your journey</SectionTitle>
-      <div style={{ display: "flex", flexDirection: "column", gap: 11 }}>
+      <div className="rh-hub-card-stack" style={{ display: "flex", flexDirection: "column", gap: 11 }}>
         {card(onOpenProgramInfo, "#e9f5ee", "#2c7d50", Heart, "Resilience & Recovery Program", "Our free 8-week in-person program — how it works & how to join")}
         {card(onOpenGuides, "#f4e3d9", "#c9803f", Users, "Your guides", "Nicolas, Carlos, Mick & Lila — chat any time")}
         {card(onOpenToolkit, "#dceee2", "#2c7d50", Wrench, "Toolkit", "Calm down, reflect & grow, stay safe")}
@@ -5830,8 +5836,29 @@ function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, set
 
       </div>
 
+      <SectionTitle>Resources</SectionTitle>
+      <p style={{ margin: "-3px 2px 12px", fontSize: 12, color: T.sub, lineHeight: 1.5 }}>Practical services, community connections, and support options — all in one place.</p>
+      <div className="rh-hub-card-stack" style={{ display: "flex", flexDirection: "column", gap: 11 }}>
+        <button onClick={onOpenResources} aria-label="Open Resources" style={{ width: "100%", background: "linear-gradient(135deg, #e0f3e7 0%, #f7fbf7 54%, #fff0dc 100%)", border: "1px solid rgba(61, 142, 91, 0.2)", borderRadius: 20, padding: 14, boxShadow: T.soft, cursor: "pointer", display: "flex", alignItems: "center", gap: 12, textAlign: "left" }}>
+          <div style={{ width: 48, height: 48, borderRadius: 16, background: "linear-gradient(145deg, #236b4d, #58a878)", display: "grid", placeItems: "center", flexShrink: 0, boxShadow: "0 7px 15px rgba(35,107,77,0.2)" }}><ResourcesIcon size={27} color="#fff" /></div>
+          <div style={{ flex: 1, minWidth: 0 }}><div style={{ display: "inline-block", color: T.greenDk, fontSize: 10, fontWeight: 900, letterSpacing: 1, marginBottom: 2 }}>PRACTICAL SUPPORT</div><div style={{ fontWeight: 800, fontSize: 16 }}>Resources</div><div style={{ fontSize: 13, color: T.sub, lineHeight: 1.4 }}>Food, recovery, safety, housing and everyday help</div></div><ChevronRight size={20} color={T.greenDk} />
+        </button>
+        <a href="https://www.facebook.com/Uranastreet/" target="_blank" rel="noopener noreferrer" aria-label="Visit Urana St Community Centre on Facebook" style={{ display: "flex", alignItems: "center", gap: 12, background: "linear-gradient(135deg, #fff0f0 0%, #fff9f6 58%, #f7efe9 100%)", border: "1px solid rgba(198,40,59,0.18)", borderRadius: 20, padding: 14, boxShadow: T.soft, textDecoration: "none", color: T.ink }}>
+          <div style={{ width: 48, height: 48, borderRadius: 15, background: "#fff", display: "grid", placeItems: "center", overflow: "hidden", flexShrink: 0, border: "1px solid rgba(198,40,59,0.16)" }}><img src="/community/salvation-army-shield.jpg" alt="The Salvation Army shield" style={{ width: "100%", height: "100%", objectFit: "contain", padding: 3, borderRadius: 12 }} /></div>
+          <div style={{ flex: 1, minWidth: 0 }}><div style={{ display: "inline-block", color: "#b6263a", fontSize: 10, fontWeight: 900, letterSpacing: 0.9, marginBottom: 2 }}>VILLAWOOD COMMUNITY</div><div style={{ fontWeight: 800, fontSize: 16 }}>Urana St Community Centre</div><div style={{ fontSize: 13, color: T.sub, lineHeight: 1.4 }}>Local community information, updates and ways to connect through the Villawood Salvos</div></div>
+          <ExternalLink size={19} color="#b6263a" />
+        </a>
+        {card(onOpenGames, "#efeaf5", "#6d55b0", Gamepad2, "Games & puzzles", "A little light relief when you need it")}
+        <button onClick={onOpenCoordinator} aria-label={unreadCoord > 0 ? `${unreadCoord} reply from Juan` : "Message the real Juan privately"} style={{ width: "100%", background: "linear-gradient(125deg, #e2f4e8 0%, #ffffff 57%, #fff1e4 100%)", border: "1px solid rgba(44,125,80,0.18)", borderRadius: 20, padding: 13, boxShadow: T.soft, cursor: "pointer", display: "flex", alignItems: "center", gap: 12, textAlign: "left", position: "relative", overflow: "hidden" }}>
+          <div style={{ position: "absolute", right: -26, top: -33, width: 112, height: 112, borderRadius: "50%", background: "rgba(255,255,255,0.46)" }} />
+          <div style={{ width: 50, height: 50, borderRadius: 16, overflow: "hidden", background: "#dceee2", flexShrink: 0, border: "2px solid rgba(255,255,255,0.92)", boxShadow: "0 5px 13px rgba(32,95,72,0.15)", position: "relative" }}><img src={CHARS.juan.img} alt="Juan Carroso" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "50% 24%" }} /></div>
+          <div style={{ flex: 1, minWidth: 0, position: "relative" }}><div style={{ color: T.greenDk, fontSize: 10, fontWeight: 900, letterSpacing: 0.9, marginBottom: 2 }}>REAL PERSON · PRIVATE MESSAGE</div><div style={{ fontWeight: 800, fontSize: 16, color: T.ink }}>Message Juan</div><div style={{ fontSize: 13, color: T.sub, lineHeight: 1.35 }}>{unreadCoord > 0 ? `${unreadCoord} reply from Juan` : "Send a private message to the real Juan"}</div></div>
+          <div style={{ width: 34, height: 34, borderRadius: "50%", background: "rgba(255,255,255,0.86)", display: "grid", placeItems: "center", position: "relative", flexShrink: 0 }}><MessageCircle size={17} color={T.greenDk} />{unreadCoord > 0 && <span style={{ position: "absolute", top: -5, right: -5, minWidth: 17, height: 17, borderRadius: 999, background: "#e5484d", color: "#fff", fontSize: 10, fontWeight: 800, display: "grid", placeItems: "center", padding: "0 3px" }}>{unreadCoord}</span>}</div>
+        </button>
+      </div>
+
       <SectionTitle>Support us</SectionTitle>
-      <div style={{ display: "flex", flexDirection: "column", gap: 11 }}>
+      <div className="rh-hub-card-stack" style={{ display: "flex", flexDirection: "column", gap: 11 }}>
         <a href="https://gofund.me/4ce6afdc4" target="_blank" rel="noopener noreferrer" aria-label="Support The Resilience Hub on GoFundMe"
           style={{ display: "flex", alignItems: "center", gap: 12, background: "linear-gradient(135deg, #fff0f0 0%, #fff8f4 58%, #ffe7e1 100%)", border: "1px solid rgba(201, 79, 79, 0.18)", borderRadius: 20, padding: 14, boxShadow: T.soft, textDecoration: "none", color: T.ink }}>
           <div style={{ width: 46, height: 46, borderRadius: 14, background: "linear-gradient(145deg, #e5484d, #f38a73)", display: "grid", placeItems: "center", flexShrink: 0, boxShadow: "0 6px 14px rgba(201, 79, 79, 0.2)" }}>
@@ -5857,77 +5884,6 @@ function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, set
           <div style={{ flex: 1, minWidth: 0 }}><div style={{ display: "inline-block", color: T.blueDk, fontSize: 10, fontWeight: 900, letterSpacing: 0.9, marginBottom: 2 }}>CARLOS CAMACHO</div><div style={{ fontWeight: 800, fontSize: 16 }}>Support Carlos Camacho</div><div style={{ fontSize: 13, color: T.sub, lineHeight: 1.4 }}>Explore his books on happiness, philosophy and life</div></div>
           <ChevronRight size={20} color={T.blueDk} />
         </button>
-      </div>
-
-      <SectionTitle>Stay connected</SectionTitle>
-      <p style={{ margin: "-3px 2px 12px", fontSize: 12, color: T.sub, lineHeight: 1.5 }}>All listed services are recommendations only. We do not run or manage them. Always check directly with each provider for current details.</p>
-      <div style={{ display: "flex", flexDirection: "column", gap: 11 }}>
-        <button onClick={onOpenResources} aria-label="Open Resources" style={{ width: "100%", background: "linear-gradient(135deg, #e0f3e7 0%, #f7fbf7 54%, #fff0dc 100%)", border: "1px solid rgba(61, 142, 91, 0.2)", borderRadius: 20, padding: 14, boxShadow: T.soft, cursor: "pointer", display: "flex", alignItems: "center", gap: 12, textAlign: "left" }}>
-          <div style={{ width: 48, height: 48, borderRadius: 16, background: "linear-gradient(145deg, #236b4d, #58a878)", display: "grid", placeItems: "center", flexShrink: 0, boxShadow: "0 7px 15px rgba(35,107,77,0.2)" }}><ResourcesIcon size={27} color="#fff" /></div>
-          <div style={{ flex: 1, minWidth: 0 }}><div style={{ display: "inline-block", color: T.greenDk, fontSize: 10, fontWeight: 900, letterSpacing: 1, marginBottom: 2 }}>PRACTICAL SUPPORT</div><div style={{ fontWeight: 800, fontSize: 16 }}>Resources</div><div style={{ fontSize: 13, color: T.sub, lineHeight: 1.4 }}>Food, recovery, safety, housing and everyday help</div></div><ChevronRight size={20} color={T.greenDk} />
-        </button>
-        {[
-          { name: "Resilience Hub group", sub: "Our community — support, chat & connection", url: "https://www.facebook.com/share/g/1Edkyyez1t/" },
-        ].map((f) => (
-          <a key={f.name} href={f.url} target="_blank" rel="noopener noreferrer"
-            style={{ display: "flex", alignItems: "center", gap: 12, background: T.card, borderRadius: 20, padding: 16,
-              boxShadow: T.soft, textDecoration: "none", color: T.ink }}>
-            <div style={{ width: 46, height: 46, borderRadius: 14, background: f.img ? "#050505" : "#1877F2", display: "grid", placeItems: "center", overflow: "hidden", flexShrink: 0 }}>
-              {f.img ? <img src={f.img} alt="Sloane Fox logo" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ color: "#fff", fontWeight: 900, fontSize: 26, fontFamily: "Georgia, serif", lineHeight: 1 }}>f</span>}
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontWeight: 700, fontSize: 16 }}>{f.name}</div>
-              <div style={{ fontSize: 13, color: T.sub }}>{f.sub}</div>
-            </div>
-            <ExternalLink size={18} color={T.sub} />
-          </a>
-        ))}
-        <a href="https://resiliencehub.s.gy/website" target="_blank" rel="noopener noreferrer" aria-label="Visit The Resilience Hub website"
-          style={{ display: "flex", alignItems: "center", gap: 12, background: "linear-gradient(135deg, #e5f5ea 0%, #f7fbf8 62%, #fff1e5 100%)", border: "1px solid rgba(78, 158, 103, 0.18)", borderRadius: 20, padding: 14,
-            boxShadow: T.soft, textDecoration: "none", color: T.ink }}>
-          <div style={{ width: 46, height: 46, borderRadius: 14, background: "linear-gradient(145deg, #1d6b4b, #79b852)", display: "grid", placeItems: "center", flexShrink: 0, boxShadow: "0 6px 14px rgba(38, 111, 76, 0.18)" }}>
-            <span style={{ color: "#fff", fontWeight: 900, fontSize: 22, lineHeight: 1 }}>RH</span>
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontWeight: 800, fontSize: 16 }}>The Resilience Hub website</div>
-            <div style={{ fontSize: 13, color: T.sub, lineHeight: 1.4 }}>Meet the team, learn more, and stay connected</div>
-          </div>
-          <ExternalLink size={18} color={T.greenDk} />
-        </a>
-        <a href="https://linkfoundationaod.org.au/" target="_blank" rel="noopener noreferrer" aria-label="Visit Link Foundation website"
-          style={{ display: "flex", alignItems: "center", gap: 12, background: "linear-gradient(135deg, #fff2e4 0%, #fffaf5 42%, #e3f1ed 100%)", border: "1px solid rgba(211,137,71,0.24)", borderRadius: 20, padding: 14, boxShadow: "0 8px 18px rgba(181,110,53,0.10)", textDecoration: "none", color: T.ink, position: "relative", overflow: "hidden" }}>
-          <div style={{ position: "absolute", width: 92, height: 92, borderRadius: "50%", right: -35, top: -42, background: "rgba(77,155,138,0.12)" }} />
-          <div style={{ width: 48, height: 48, borderRadius: 15, background: "#fff", display: "grid", placeItems: "center", overflow: "hidden", flexShrink: 0, border: "1px solid rgba(211,137,71,0.20)", position: "relative" }}><img src="/link-foundation-logo.webp" alt="Link Foundation logo" style={{ width: "100%", height: "100%", objectFit: "contain", padding: 4 }} /></div>
-          <div style={{ flex: 1, minWidth: 0, position: "relative" }}><div style={{ display: "inline-block", color: "#b56e35", fontSize: 10, fontWeight: 900, letterSpacing: 0.9, marginBottom: 2 }}>LINK FOUNDATION AOD</div><div style={{ fontWeight: 800, fontSize: 16 }}>Link Foundation</div><div style={{ fontSize: 13, color: T.sub, lineHeight: 1.35 }}>Free counselling and recovery support for people and families affected by substance use</div></div>
-          <ExternalLink size={19} color="#b56e35" style={{ position: "relative", flexShrink: 0 }} />
-        </a>
-        <button onClick={onOpenMensShed} aria-label="Open South West Sydney Men's Shed"
-          style={{ width: "100%", background: "linear-gradient(135deg, #e8f5ec 0%, #fffdf7 62%, #fff1d1 100%)", border: "1px solid rgba(41,126,77,0.14)", borderRadius: 20, padding: 12, boxShadow: T.soft, cursor: "pointer", display: "flex", alignItems: "center", gap: 12, textAlign: "left" }}>
-          <img src="/mens-shed/south-west-sydney-mens-shed-sign.png" alt="South West Sydney Men’s Shed sign" style={{ width: 46, height: 46, borderRadius: 14, objectFit: "cover", objectPosition: "50% 50%", flexShrink: 0 }} />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: "inline-block", color: "#2b7b4c", fontSize: 10, fontWeight: 900, letterSpacing: 0.9, marginBottom: 2 }}>COMMUNITY CONNECTION</div>
-            <div style={{ fontWeight: 800, fontSize: 16 }}>South West Sydney Men’s Shed</div>
-            <div style={{ fontSize: 13, color: T.sub, lineHeight: 1.35 }}>Mateship, new skills & support — Bonnyrigg</div>
-          </div>
-          <ChevronRight size={20} color={T.greenDk} />
-        </button>
-        <a href="https://www.themenstable.org" target="_blank" rel="noopener noreferrer" aria-label="Visit The Men’s Table website"
-          style={{ display: "flex", alignItems: "center", gap: 12, background: "linear-gradient(135deg, #fffaf0 0%, #ffffff 58%, #edf6f1 100%)", border: "1px solid rgba(51,111,82,0.15)", borderRadius: 20, padding: 12, boxShadow: T.soft, textDecoration: "none", color: T.ink }}>
-          <div style={{ width: 46, height: 46, borderRadius: 14, background: "#fff", display: "grid", placeItems: "center", overflow: "hidden", flexShrink: 0, border: "1px solid rgba(51,111,82,0.12)" }}><img src="/community/mens-table-logo.png" alt="The Men’s Table logo" style={{ width: "100%", height: "100%", objectFit: "contain", padding: 4 }} /></div>
-          <div style={{ flex: 1, minWidth: 0 }}><div style={{ display: "inline-block", color: "#336f52", fontSize: 10, fontWeight: 900, letterSpacing: 0.9, marginBottom: 2 }}>COMMUNITY CONNECTION</div><div style={{ fontWeight: 800, fontSize: 16 }}>The Men’s Table</div><div style={{ fontSize: 13, color: T.sub, lineHeight: 1.35 }}>Safe conversation, belonging & connection</div></div>
-          <ExternalLink size={19} color="#336f52" />
-        </a>
-        <button onClick={onOpenCoordinator} aria-label={unreadCoord > 0 ? `${unreadCoord} reply from Juan` : "Message the real Juan privately"} style={{ width: "100%", background: "linear-gradient(125deg, #e2f4e8 0%, #ffffff 57%, #fff1e4 100%)", border: "1px solid rgba(44,125,80,0.18)", borderRadius: 20, padding: 13, boxShadow: T.soft, cursor: "pointer", display: "flex", alignItems: "center", gap: 12, textAlign: "left", position: "relative", overflow: "hidden" }}>
-          <div style={{ position: "absolute", right: -26, top: -33, width: 112, height: 112, borderRadius: "50%", background: "rgba(255,255,255,0.46)" }} />
-          <div style={{ width: 50, height: 50, borderRadius: 16, overflow: "hidden", background: "#dceee2", flexShrink: 0, border: "2px solid rgba(255,255,255,0.92)", boxShadow: "0 5px 13px rgba(32,95,72,0.15)", position: "relative" }}><img src={CHARS.juan.img} alt="Juan Carroso" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "50% 24%" }} /></div>
-          <div style={{ flex: 1, minWidth: 0, position: "relative" }}><div style={{ color: T.greenDk, fontSize: 10, fontWeight: 900, letterSpacing: 0.9, marginBottom: 2 }}>REAL PERSON · PRIVATE MESSAGE</div><div style={{ fontWeight: 800, fontSize: 16, color: T.ink }}>Message Juan</div><div style={{ fontSize: 13, color: T.sub, lineHeight: 1.35 }}>{unreadCoord > 0 ? `${unreadCoord} reply from Juan` : "Send a private message to the real Juan"}</div></div>
-          <div style={{ width: 34, height: 34, borderRadius: "50%", background: "rgba(255,255,255,0.86)", display: "grid", placeItems: "center", position: "relative", flexShrink: 0 }}><MessageCircle size={17} color={T.greenDk} />{unreadCoord > 0 && <span style={{ position: "absolute", top: -5, right: -5, minWidth: 17, height: 17, borderRadius: 999, background: "#e5484d", color: "#fff", fontSize: 10, fontWeight: 800, display: "grid", placeItems: "center", padding: "0 3px" }}>{unreadCoord}</span>}</div>
-        </button>
-      </div>
-
-      <SectionTitle>A little extra</SectionTitle>
-      <div style={{ display: "flex", flexDirection: "column", gap: 11 }}>
-        {card(onOpenGames, "#efeaf5", "#6d55b0", Gamepad2, "Games & puzzles", "A little light relief when you need it")}
       </div>
 
       <Disclaimer />
@@ -5964,8 +5920,8 @@ function Stat({ label, value }) {
 
 function SectionTitle({ children }) {
   return (
-    <h2 style={{ fontSize: 15, fontWeight: 700, margin: "22px 2px 10px", display: "flex", alignItems: "center", gap: 8 }}>
-      <span style={{ width: 4, height: 15, borderRadius: 2, background: `linear-gradient(${T.teal}, ${T.green})`, display: "inline-block" }} />
+    <h2 style={{ fontSize: 18, fontWeight: 850, color: T.greenDk, letterSpacing: 0.15, margin: "27px 2px 12px", paddingBottom: 9, display: "flex", alignItems: "center", gap: 9, borderBottom: "1px solid rgba(77,159,104,0.18)" }}>
+      <span style={{ width: 7, height: 23, borderRadius: 999, background: `linear-gradient(180deg, ${T.teal}, ${T.green})`, display: "inline-block", boxShadow: "0 3px 8px rgba(77,159,104,0.18)" }} />
       {children}
     </h2>
   );
@@ -6894,26 +6850,27 @@ function ResourcesPage({ onOpenSafety, onOpenMensShed, onBack }) {
     requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "auto" }));
   }, []);
   const jump = (id) => document.getElementById(id)?.scrollIntoView({ behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
-  const sectionLabel = (id, Icon, title, sub, color) => <div id={id} style={{ scrollMarginTop: 18, margin: "24px 2px 9px" }}><div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 15.5, fontWeight: 800 }}><span style={{ width: 30, height: 30, borderRadius: 10, background: `${color}18`, display: "grid", placeItems: "center" }}><Icon size={16} color={color} /></span>{title}</div><div style={{ fontSize: 12.5, color: T.sub, margin: "5px 0 0 38px", lineHeight: 1.4 }}>{sub}</div></div>;
-  const resourceCard = ({ Icon, tint, color, eyebrow, title, children, href, phone, email, onClick, actionLabel }) => {
+  const sectionLabel = (id, Icon, title, sub, color) => <div id={id} style={{ scrollMarginTop: 18, margin: "28px 2px 10px", paddingBottom: 9, borderBottom: "1px solid rgba(77,159,104,0.18)" }}><div style={{ display: "flex", alignItems: "center", gap: 9, color: T.greenDk, fontSize: 17, fontWeight: 850, letterSpacing: 0.1 }}><span style={{ width: 34, height: 34, borderRadius: 11, background: `${color}18`, display: "grid", placeItems: "center" }}><Icon size={18} color={color} /></span>{title}</div><div style={{ fontSize: 12.5, color: T.sub, margin: "6px 0 0 43px", lineHeight: 1.4 }}>{sub}</div></div>;
+  const resourceCard = ({ Icon, image, imageAlt, tint, color, eyebrow, title, children, href, phone, email, onClick, actionLabel }) => {
     const opensExternal = /^https?:\/\//i.test(href || "");
-    const body = <><div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}><div style={{ width: 44, height: 44, borderRadius: 14, background: tint, display: "grid", placeItems: "center", flexShrink: 0 }}><Icon size={22} color={color} /></div><div style={{ flex: 1, minWidth: 0 }}><div style={{ color, fontSize: 10, fontWeight: 900, letterSpacing: 0.9, textTransform: "uppercase", marginBottom: 3 }}>{eyebrow}</div><div style={{ fontWeight: 800, fontSize: 16, color: T.ink }}>{title}</div><div style={{ fontSize: 13, color: T.sub, lineHeight: 1.48, marginTop: 5 }}>{children}</div></div>{(href || onClick) && (opensExternal ? <ExternalLink size={18} color={color} style={{ flexShrink: 0, marginTop: 12 }} /> : <ChevronRight size={19} color={T.sub} style={{ flexShrink: 0, marginTop: 12 }} />)}</div>{(phone || email || actionLabel) && <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginTop: 11 }}><span style={{ padding: "7px 10px", borderRadius: 999, background: "rgba(255,255,255,0.78)", color: T.ink, fontWeight: 750, fontSize: 11.5 }}>{phone ? `Phone: ${phone}` : email ? `Email: ${email}` : actionLabel}</span></div>}</>;
+    const body = <><div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}><div style={{ width: 44, height: 44, borderRadius: 14, background: tint, display: "grid", placeItems: "center", overflow: "hidden", flexShrink: 0, padding: image ? 4 : 0 }}>{image ? <img src={image} alt={imageAlt || title} style={{ width: "100%", height: "100%", objectFit: "contain", borderRadius: 10 }} /> : <Icon size={22} color={color} />}</div><div style={{ flex: 1, minWidth: 0 }}><div style={{ color, fontSize: 10, fontWeight: 900, letterSpacing: 0.9, textTransform: "uppercase", marginBottom: 3 }}>{eyebrow}</div><div style={{ fontWeight: 800, fontSize: 16, color: T.ink }}>{title}</div><div style={{ fontSize: 13, color: T.sub, lineHeight: 1.48, marginTop: 5 }}>{children}</div></div>{(href || onClick) && (opensExternal ? <ExternalLink size={18} color={color} style={{ flexShrink: 0, marginTop: 12 }} /> : <ChevronRight size={19} color={T.sub} style={{ flexShrink: 0, marginTop: 12 }} />)}</div>{(phone || email || actionLabel) && <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginTop: 11 }}><span style={{ padding: "7px 10px", borderRadius: 999, background: "rgba(255,255,255,0.78)", color: T.ink, fontWeight: 750, fontSize: 11.5 }}>{phone ? `Phone: ${phone}` : email ? `Email: ${email}` : actionLabel}</span></div>}</>;
+
     const style = { display: "block", width: "100%", textAlign: "left", background: `linear-gradient(135deg, ${tint} 0%, #fff 74%)`, border: `1px solid ${T.line}`, borderRadius: 19, padding: 14, boxShadow: T.soft, textDecoration: "none", color: T.ink, cursor: "pointer" };
     if (href) { return <a href={href} target={opensExternal ? "_blank" : undefined} rel={opensExternal ? "noopener noreferrer" : undefined} style={style}>{body}</a>; }
     return <button type="button" onClick={onClick} style={style}>{body}</button>;
   };
   const toc = [
-    ["resources-immediate", "Immediate support"], ["resources-food", "Food and meals"], ["resources-housing", "Housing and essentials"], ["resources-money", "Legal, money and bills"], ["resources-recovery", "Addiction recovery"], ["resources-family", "Family, children and youth"], ["resources-health", "Health and wellbeing"], ["resources-safety", "Stay safe"],
+    ["resources-immediate", "Immediate support"], ["resources-community", "Community and connection"], ["resources-food", "Food and meals"], ["resources-housing", "Housing and essentials"], ["resources-money", "Legal, money and bills"], ["resources-recovery", "Addiction recovery"], ["resources-family", "Family, children and youth"], ["resources-health", "Health and wellbeing"], ["resources-safety", "Stay safe"],
   ];
   return (
     <>
       <Brand right={<BackBtn onBack={onBack} />} />
       <div style={{ background: "linear-gradient(135deg, #e5f5ea 0%, #f8fcf9 54%, #fff0e4 100%)", borderRadius: 24, padding: "22px 19px 20px", marginTop: 7, boxShadow: T.soft, border: `1px solid ${T.line}`, position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", width: 170, height: 170, borderRadius: "50%", background: "rgba(255,255,255,0.45)", top: -95, right: -55 }} />
-        <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 8, color: T.greenDk, fontSize: 11, fontWeight: 900, letterSpacing: 1, textTransform: "uppercase" }}><BookOpen size={15} /> Practical support, close to home</div>
-        <h1 style={{ position: "relative", fontSize: 26, lineHeight: 1.12, margin: "9px 0 7px", color: T.greenDk }}>Resources</h1>
+        <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 8, color: T.greenDk, fontSize: 11, fontWeight: 900, letterSpacing: 1, textTransform: "uppercase" }}><BookOpen size={15} /> Practical support, services &amp; connection</div>
+        <h1 style={{ position: "relative", fontSize: 26, lineHeight: 1.12, margin: "9px 0 7px", color: T.greenDk }}>Support &amp; Community</h1>
         <div style={{ position: "relative", display: "flex", alignItems: "flex-start", gap: 7, padding: "9px 10px", margin: "0 0 10px", borderRadius: 12, background: "rgba(255,255,255,0.64)", border: "1px solid rgba(77,159,104,0.14)", color: T.sub, fontSize: 11.5, lineHeight: 1.42 }}><Shield size={15} color={T.greenDk} style={{ flexShrink: 0, marginTop: 1 }} /><span>All listed services are recommendations only. We do not run or manage them. Always check directly with each provider for current details.</span></div>
-        <p style={{ position: "relative", fontSize: 13.5, color: T.sub, lineHeight: 1.55, margin: 0 }}>A clear starting place for food, housing, recovery, safety, legal help, and everyday support. Information and availability can change, so check before travelling.</p>
+        <p style={{ position: "relative", fontSize: 13.5, color: T.sub, lineHeight: 1.55, margin: 0 }}>A clear starting place for practical services, community connections, recovery support, safety, and everyday help. Information and availability can change, so check before travelling.</p>
         <div id="resources-toc" style={{ position: "relative", scrollMarginTop: 18, marginTop: 16, padding: 13, borderRadius: 17, background: "rgba(255,255,255,0.68)", border: "1px solid rgba(77,159,104,0.14)" }}>
           <div style={{ fontWeight: 800, color: T.greenDk, fontSize: 13.5, marginBottom: 8 }}>On this page</div>
           <div style={{ display: "grid", gap: 5 }}>{toc.map(([id, label]) => <button key={id} onClick={() => jump(id)} style={{ border: "none", background: "none", padding: "4px 0", textAlign: "left", color: T.ink, fontSize: 12.5, cursor: "pointer", display: "flex", alignItems: "center", gap: 7 }}><ChevronRight size={14} color={T.green} />{label}</button>)}</div>
@@ -6922,7 +6879,7 @@ function ResourcesPage({ onOpenSafety, onOpenMensShed, onBack }) {
 
       {sectionLabel("resources-immediate", LifeBuoy, "Immediate support", "If things feel urgent or unsafe, these are the first places to reach out.", "#c94f4f")}
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {resourceCard({ Icon: Phone, tint: "#fff0f0", color: "#c94f4f", eyebrow: "24/7 crisis support", title: "Lifeline", href: "tel:131114", phone: "13 11 14", children: "Crisis support and suicide prevention counselling, available 24 hours a day." })}
+        {resourceCard({ Icon: Phone, image: "/community/lifeline-logo.png", imageAlt: "Lifeline Australia logo", tint: "#fff0f0", color: "#1769aa", eyebrow: "24/7 crisis support", title: "Lifeline", href: "https://www.lifeline.org.au/", phone: "13 11 14", children: "Australia-wide crisis support and suicide prevention services, available 24 hours a day by phone, text, and online chat." })}
         {resourceCard({ Icon: Phone, tint: "#e7eefb", color: T.blueDk, eyebrow: "Emergency", title: "Police, ambulance or fire", href: "tel:000", phone: "000", children: "Call 000 if someone is in immediate danger or needs urgent medical help." })}
         {resourceCard({ Icon: Heart, tint: "#f4e3d9", color: "#b56739", eyebrow: "Mental health support", title: "Beyond Blue and MensLine Australia", href: "https://www.beyondblue.org.au/get-support", children: "Beyond Blue: 1300 22 4636. MensLine Australia: 1300 78 99 78 for men needing phone or online support." })}
       </div>
@@ -6937,7 +6894,7 @@ function ResourcesPage({ onOpenSafety, onOpenMensShed, onBack }) {
       {sectionLabel("resources-housing", MapPin, "Housing and essentials", "Emergency accommodation, clothing, bedding, toiletries, and practical support.", "#4e7c9e")}
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {resourceCard({ Icon: MapPin, tint: "#e7eefb", color: "#4e7c9e", eyebrow: "24/7 housing advice", title: "Link2home", phone: "1800 152 152", href: "https://www.nsw.gov.au/housing-and-construction/housing-support/homelessness", children: "NSW’s statewide homelessness information and referral line for people needing emergency accommodation or housing support." })}
-        {resourceCard({ Icon: MapPin, tint: "#f4e3d9", color: "#b56739", eyebrow: "Practical assistance", title: "The Salvation Army", href: "https://www.salvationarmy.org.au/need-help/", children: "Support may include emergency relief, food, clothing, material aid, and referrals. Contact the service first to check what is available locally." })}
+        {resourceCard({ Icon: MapPin, image: "/community/salvation-army-shield.jpg", imageAlt: "The Salvation Army shield", tint: "#fff0f0", color: "#c6283b", eyebrow: "Find local support", title: "The Salvation Army", href: "https://www.salvationarmy.org.au/find-us/", phone: "13 72 58", children: "Find local Salvation Army services and practical support. Their Australian services include assistance delivered with dignity and without discrimination." })}
         {resourceCard({ Icon: ShoppingBag, tint: "#f3ecd6", color: "#a47c1f", eyebrow: "Everyday essentials", title: "Ask Izzy — essentials search", href: "https://askizzy.org.au/", children: "Search for nearby services offering clothing, bedding, toiletries, showers, and other essentials." })}
       </div>
 
@@ -6952,6 +6909,17 @@ function ResourcesPage({ onOpenSafety, onOpenMensShed, onBack }) {
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {resourceCard({ Icon: Shield, tint: "#e7eefb", color: T.blueDk, eyebrow: "Western Sydney public services", title: "Drug and Alcohol Health Services", href: "https://www.nsw.gov.au/departments-and-agencies/wslhd/services/drug-alcohol", phone: "02 8860 2565", children: "Western Sydney services include detoxification treatment, opioid treatment, counselling, outpatient and inpatient pathways, and specialist support. Self-referral is accepted and interpreter support is available." })}
         {resourceCard({ Icon: Heart, tint: "#f4e3d9", color: "#b56739", eyebrow: "Recovery support", title: "Odyssey House NSW", href: "https://odysseyhouse.com.au/", phone: "1800 397 739", children: "Alcohol and other drug support, including referral guidance for people looking for a recovery pathway." })}
+      </div>
+
+      {sectionLabel("resources-community", Users, "Community and connection", "Places to find belonging, practical support, and people who understand.", T.greenDk)}
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        {resourceCard({ Icon: MessageCircle, tint: "#e8f0fb", color: T.blueDk, eyebrow: "Community group", title: "Resilience Hub group", href: "https://www.facebook.com/share/g/1Edkyyez1t/", children: "Join the Resilience Hub Facebook group for conversation, encouragement, and connection with the wider community." })}
+        {resourceCard({ Icon: BookOpen, tint: "#e9f5ee", color: T.greenDk, eyebrow: "The Resilience Hub", title: "The Resilience Hub website", href: "https://resiliencehub.s.gy/website", children: "Meet the team, learn more about the Hub, and find ways to stay connected beyond the app." })}
+        {resourceCard({ Icon: Shield, tint: "#fff2e4", color: "#b56e35", eyebrow: "Addiction recovery support", title: "Link Foundation", href: "https://linkfoundationaod.org.au/", children: "Free counselling and recovery support for people and families affected by alcohol and other drug use." })}
+        {resourceCard({ Icon: Users, tint: "#e8f5ec", color: T.greenDk, eyebrow: "Community connection · Bonnyrigg", title: "South West Sydney Men’s Shed", onClick: onOpenMensShed, children: "Mateship, practical skills, and a welcoming place to connect. Open the listing for location and current fees.", actionLabel: "Open Men’s Shed information" })}
+        {resourceCard({ Icon: MessageCircle, tint: "#fffaf0", color: "#336f52", eyebrow: "Safe conversation", title: "The Men’s Table", href: "https://www.themenstable.org", children: "A place for men to share honestly, listen, and build meaningful connection." })}
+        {resourceCard({ Icon: Heart, image: "/community/fairfield-city-leisure-centres-logo.png", imageAlt: "Fairfield City Leisure Centres logo", tint: "#e8f0fb", color: "#197aa8", eyebrow: "Local health and wellbeing", title: "Fairfield Leisure Centre", href: "https://www.fairfieldcityleisurecentres.com.au/", children: "Affordable local options including gym, group fitness, pools, Learn to Swim, and Aquatopia across Fairfield City." })}
+        {resourceCard({ Icon: User, image: "/community/david-saliba-portrait.jpg", imageAlt: "Dr David Saliba MP", tint: "#f3ecd6", color: "#80621b", eyebrow: "Your local representative", title: "Dr David Saliba, MP for Fairfield", href: "https://www.davidsaliba.com.au/", children: "David Saliba was born and raised in Fairfield City and shares local news, initiatives, services, and ways to contact his office." })}
       </div>
 
       {sectionLabel("resources-family", Users, "Family, children and youth", "Support for family safety, young people, carers, and children.", "#b56739")}
