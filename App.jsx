@@ -6489,6 +6489,7 @@ const INTAKE_PACK = [
 ];
 
 function FounderVideoSection() {
+  const [activeVideo, setActiveVideo] = useState(null);
   const videos = [
     { title: "The Story Behind The Resilience Hub", url: "/founder-videos/story-behind-resilience-hub.mp4" },
     { title: "Men’s Mental Health: Breaking the Silence", url: "/founder-videos/mens-mental-health.mp4" },
@@ -6518,8 +6519,8 @@ function FounderVideoSection() {
         <div style={{ fontSize: 11.5, color: T.sub, fontWeight: 700, letterSpacing: 0.3, textTransform: "uppercase", marginBottom: 8 }}>Studio Venture interview series</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
           {videos.map((video, index) => (
-            <a key={video.url} href={video.url} target="_blank" rel="noopener noreferrer" aria-label={`Watch ${video.title}`}
-              style={{ display: "flex", alignItems: "center", gap: 11, background: index % 2 === 0 ? "linear-gradient(110deg, rgba(255,255,255,0.9), rgba(238,249,241,0.94))" : "linear-gradient(110deg, rgba(255,255,255,0.86), rgba(255,245,235,0.94))", borderRadius: 15, padding: 11, border: "1px solid rgba(55,128,82,0.14)", textDecoration: "none", color: T.ink, boxShadow: "0 4px 12px rgba(47,97,72,0.05)" }}>
+            <button key={video.url} type="button" onClick={() => setActiveVideo(video)} aria-label={`Watch ${video.title}`}
+              style={{ width: "100%", display: "flex", alignItems: "center", gap: 11, background: index % 2 === 0 ? "linear-gradient(110deg, rgba(255,255,255,0.9), rgba(238,249,241,0.94))" : "linear-gradient(110deg, rgba(255,255,255,0.86), rgba(255,245,235,0.94))", borderRadius: 15, padding: 11, border: "1px solid rgba(55,128,82,0.14)", textAlign: "left", color: T.ink, boxShadow: "0 4px 12px rgba(47,97,72,0.05)", cursor: "pointer" }}>
               <div style={{ width: 37, height: 37, borderRadius: 11, background: index % 2 === 0 ? "linear-gradient(145deg, #3f9d68, #8acb8c)" : "linear-gradient(145deg, #c48755, #e5b17d)", display: "grid", placeItems: "center", flexShrink: 0, position: "relative" }}>
                 <Play size={15} color="#fff" fill="#fff" />
                 <span style={{ position: "absolute", right: -5, top: -6, minWidth: 17, height: 17, borderRadius: 9, background: T.card, color: index % 2 === 0 ? T.greenDk : "#bd7540", fontSize: 10, fontWeight: 800, display: "grid", placeItems: "center", boxShadow: "0 2px 5px rgba(40,38,47,0.14)" }}>{index + 1}</span>
@@ -6529,10 +6530,19 @@ function FounderVideoSection() {
                 <div style={{ fontSize: 11, color: T.sub, marginTop: 3 }}>Juan Carroso • Studio Venture • Watch video</div>
               </div>
               <ExternalLink size={16} color={index % 2 === 0 ? T.greenDk : "#bd7540"} />
-            </a>
+            </button>
           ))}
         </div>
       </div>
+      {activeVideo && (
+        <div role="dialog" aria-modal="true" aria-label={activeVideo.title} onClick={() => setActiveVideo(null)}
+          style={{ position: "fixed", inset: 0, zIndex: 140, background: "rgba(22,38,30,0.82)", display: "flex", alignItems: "center", justifyContent: "center", padding: 14 }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: 520, background: "#101714", borderRadius: 20, padding: 10, boxShadow: "0 18px 50px rgba(0,0,0,0.35)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, color: "#fff", padding: "2px 2px 9px" }}><div style={{ flex: 1, fontWeight: 800, fontSize: 14 }}>{activeVideo.title}</div><button type="button" onClick={() => setActiveVideo(null)} aria-label="Close video" style={{ width: 34, height: 34, borderRadius: "50%", border: "1px solid rgba(255,255,255,0.22)", background: "rgba(255,255,255,0.12)", color: "#fff", display: "grid", placeItems: "center", cursor: "pointer" }}><X size={18} /></button></div>
+            <video src={activeVideo.url} controls autoPlay playsInline style={{ width: "100%", maxHeight: "72vh", display: "block", borderRadius: 13, background: "#000" }} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
