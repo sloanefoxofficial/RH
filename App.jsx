@@ -359,7 +359,8 @@ export default function App() {
   const gameScoresRef = useRef({});
   const gameProgressRef = useRef({});                  // { gameKey: savedState } — resume in-progress games
   const [voiceOn, setVoiceOn] = useState(true);
-  const [autoVoiceOn, setAutoVoiceOn] = useState(true);
+  const [autoIntroVoiceOn, setAutoIntroVoiceOn] = useState(true);
+  const [autoReplyVoiceOn, setAutoReplyVoiceOn] = useState(true);
   const [consented, setConsented] = useState(false);
   const [toolkitInitial, setToolkitInitial] = useState(null);
   const [session, setSession] = useState(null);
@@ -413,8 +414,13 @@ export default function App() {
       if (typeof rm === "boolean") setReduceMotion(rm);
       const rs = await sget("rh_response_speed");
       if (rs === "chilled" || rs === "normal" || rs === "fast") setResponseSpeed(rs);
-      const av = await sget("rh_auto_voice");
-      if (typeof av === "boolean") { setAutoVoiceOn(av); __autoVoiceOn = av; }
+      const oldAuto = await sget("rh_auto_voice");
+      const ai = await sget("rh_auto_intro_voice");
+      const ar = await sget("rh_auto_reply_voice");
+      const introOn = typeof ai === "boolean" ? ai : (typeof oldAuto === "boolean" ? oldAuto : true);
+      const replyOn = typeof ar === "boolean" ? ar : (typeof oldAuto === "boolean" ? oldAuto : true);
+      setAutoIntroVoiceOn(introOn); setAutoReplyVoiceOn(replyOn);
+      __autoIntroVoiceOn = introOn; __autoReplyVoiceOn = replyOn;
       const sl = await sget("rh_speech_lang");
       if (sl && SPEECH_LANGS.some((l) => l.code === sl)) { setSpeechLang(sl); __speechLang = sl; }
       const savedJournalPin = await sget(JOURNAL_PIN_STORAGE_KEY);
@@ -580,12 +586,13 @@ export default function App() {
     }
   }, []);
 
-  const saveSettings = useCallback(({ textScale: ts, reduceMotion: rm, responseSpeed: rs, speechLang: sl, autoVoice: av }) => {
+  const saveSettings = useCallback(({ textScale: ts, reduceMotion: rm, responseSpeed: rs, speechLang: sl, autoIntroVoice: ai, autoReplyVoice: ar }) => {
     if (typeof ts === "number") { setTextScale(ts); sset("rh_text_scale", ts); }
     if (typeof rm === "boolean") { setReduceMotion(rm); sset("rh_reduce_motion", rm); }
     if (rs === "chilled" || rs === "normal" || rs === "fast") { setResponseSpeed(rs); sset("rh_response_speed", rs); }
     if (sl && SPEECH_LANGS.some((l) => l.code === sl)) { setSpeechLang(sl); __speechLang = sl; sset("rh_speech_lang", sl); }
-    if (typeof av === "boolean") { setAutoVoiceOn(av); __autoVoiceOn = av; sset("rh_auto_voice", av); }
+    if (typeof ai === "boolean") { setAutoIntroVoiceOn(ai); __autoIntroVoiceOn = ai; sset("rh_auto_intro_voice", ai); }
+    if (typeof ar === "boolean") { setAutoReplyVoiceOn(ar); __autoReplyVoiceOn = ar; sset("rh_auto_reply_voice", ar); }
   }, []);
 
   const setJournalPin = useCallback(async (pin) => {
@@ -604,8 +611,8 @@ export default function App() {
   }, [syncMemberData]);
 
   const restoreDefaultSettings = useCallback(() => {
-    setTextScale(1); setReduceMotion(false); setResponseSpeed("normal"); setSpeechLang("en-AU"); setAutoVoiceOn(true); __autoVoiceOn = true; __speechLang = "en-AU";
-    sset("rh_text_scale", 1); sset("rh_reduce_motion", false); sset("rh_response_speed", "normal"); sset("rh_speech_lang", "en-AU"); sset("rh_auto_voice", true);
+    setTextScale(1); setReduceMotion(false); setResponseSpeed("normal"); setSpeechLang("en-AU"); setAutoIntroVoiceOn(true); setAutoReplyVoiceOn(true); __autoIntroVoiceOn = true; __autoReplyVoiceOn = true; __speechLang = "en-AU";
+    sset("rh_text_scale", 1); sset("rh_reduce_motion", false); sset("rh_response_speed", "normal"); sset("rh_speech_lang", "en-AU"); sset("rh_auto_intro_voice", true); sset("rh_auto_reply_voice", true);
   }, []);
 
   useEffect(() => {
@@ -989,7 +996,7 @@ export default function App() {
           <MemoryManager memories={memories} memoryOn={memoryOn}
             onSave={(list, on) => saveMemories(list, on)} onBack={back} />
         ) : screen === "settings" ? (
-              <Settings textScale={textScale} reduceMotion={reduceMotion} responseSpeed={responseSpeed} speechLang={speechLang} autoVoice={autoVoiceOn}
+              <Settings textScale={textScale} reduceMotion={reduceMotion} responseSpeed={responseSpeed} speechLang={speechLang} autoIntroVoice={autoIntroVoiceOn} autoReplyVoice={autoReplyVoiceOn}
             journalPinSet={journalPinSet} onSetJournalPin={setJournalPin} onClearJournalPin={clearJournalPin}
             installPromptAvailable={Boolean(installPromptEvent)} isStandalone={isStandalone} onPromptInstall={promptAppInstall}
             session={session} authEnabled={showAuth} onSave={saveSettings} onRestoreDefaults={restoreDefaultSettings} onBack={back}
@@ -1212,7 +1219,8 @@ let __synthEpoch = 0;
 // it can replay freely — so every reply speaks automatically thereafter.
 let __ttsAudio = null;
 let __audioUnlocked = false;
-let __autoVoiceOn = true;
+let __autoIntroVoiceOn = true;
+let __autoReplyVoiceOn = true;
 let __primePromise = null;
 let __lastVoiceAt = 0; // Date.now() of the last time a guide's voice actually started playing — used to only apply the iOS mic-recovery delay when it's actually needed
 // Speech-to-text language — was hardcoded to "en-AU" everywhere, which is why
@@ -1859,7 +1867,7 @@ function Toolkit({ voiceOn, initial, onUseTool, onOpenJournal, onBack }) {
   const toolkitWelcome = "Welcome to the Toolkit — a collection of things that can help, whenever you need them. Take your time, look around, pick whatever feels right for you today. No rush at all — whenever you're ready.";
   const { speak: speakToolkitWelcome, stop: stopToolkitWelcome } = useVoice(voiceOn);
   useEffect(() => {
-    if (!voiceOn || !__autoVoiceOn) return undefined;
+    if (!voiceOn || !__autoIntroVoiceOn) return undefined;
     const timer = setTimeout(() => speakToolkitWelcome(toolkitWelcome, CHARS.rex), 220);
     return () => { clearTimeout(timer); stopToolkitWelcome(); };
     // Deliberately speak once when the section opens or voice is enabled.
@@ -3903,7 +3911,7 @@ function MemoryManager({ memories, memoryOn, onSave, onBack }) {
 }
 
 /* ---------- accessibility settings ---------- */
-function Settings({ textScale, reduceMotion, responseSpeed, speechLang, autoVoice, journalPinSet, onSetJournalPin, onClearJournalPin, installPromptAvailable, isStandalone, onPromptInstall, session, authEnabled, onSave, onRestoreDefaults, onBack, onOpenBugReport, onOpenFeedback }) {
+function Settings({ textScale, reduceMotion, responseSpeed, speechLang, autoIntroVoice, autoReplyVoice, journalPinSet, onSetJournalPin, onClearJournalPin, installPromptAvailable, isStandalone, onPromptInstall, session, authEnabled, onSave, onRestoreDefaults, onBack, onOpenBugReport, onOpenFeedback }) {
   const [pushState, setPushState] = useState("checking"); // "checking" | "on" | "off" | "denied" | "unsupported" | "error"
   const [pushDetail, setPushDetail] = useState("");
   const [pushBusy, setPushBusy] = useState(false);
@@ -3985,11 +3993,12 @@ function Settings({ textScale, reduceMotion, responseSpeed, speechLang, autoVoic
   return (
     <>
       <Brand right={<BackBtn onBack={onBack} />} />
-      <SectionTitle>Accessibility</SectionTitle>
+      <SectionTitle>Settings</SectionTitle>
       <p style={{ fontSize: 13.5, color: T.sub, margin: "0 2px 16px", lineHeight: 1.5 }}>
-        These settings are just for this device — set things up however feels most comfortable for you.
+        Set up the Hub in a way that feels comfortable. Your choices are saved on this device.
       </p>
 
+      <div style={{ fontSize: 11.5, color: T.greenDk, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase", margin: "4px 2px 9px" }}>Make it comfortable</div>
       <div style={{ background: T.card, borderRadius: 18, padding: 16, boxShadow: T.soft, marginBottom: 14 }}>
         <div style={{ fontWeight: 700, marginBottom: 4 }}>Text size</div>
         <p style={{ fontSize: 12.5, color: T.sub, margin: "0 0 12px" }}>Make everything a little smaller or larger.</p>
@@ -4012,6 +4021,7 @@ function Settings({ textScale, reduceMotion, responseSpeed, speechLang, autoVoic
         </p>
       </div>
 
+      <div style={{ fontSize: 11.5, color: T.greenDk, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase", margin: "20px 2px 9px" }}>Voice &amp; speech</div>
       <div style={{ background: T.card, borderRadius: 18, padding: 16, boxShadow: T.soft, marginBottom: 14 }}>
         <div style={{ fontWeight: 700, marginBottom: 4 }}>Response speed</div>
         <p style={{ fontSize: 12.5, color: T.sub, margin: "0 0 12px", lineHeight: 1.45 }}>
@@ -4038,9 +4048,10 @@ function Settings({ textScale, reduceMotion, responseSpeed, speechLang, autoVoic
       </div>
 
       <div style={{ background: T.card, borderRadius: 18, padding: 16, boxShadow: T.soft, marginBottom: 14 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-          <div><div style={{ fontWeight: 700, marginBottom: 4 }}>Automatic voice playback</div><p style={{ fontSize: 12.5, color: T.sub, margin: 0, lineHeight: 1.45 }}>Choose whether guides automatically read welcomes and replies aloud. You can still use manual voice and Repeat buttons when this is off.</p></div>
-          <button onClick={() => onSave({ autoVoice: !autoVoice })} aria-pressed={Boolean(autoVoice)} aria-label="Toggle automatic voice playback" style={{ width: 50, height: 29, borderRadius: 999, border: "none", padding: 3, background: autoVoice ? T.green : "#cbd7d0", cursor: "pointer", flexShrink: 0 }}><span style={{ display: "block", width: 23, height: 23, borderRadius: "50%", background: "#fff", transform: `translateX(${autoVoice ? 21 : 0}px)`, transition: "transform .18s" }} /></button>
+        <div style={{ fontWeight: 700, marginBottom: 4 }}>Automatic voice playback</div>
+        <p style={{ fontSize: 12.5, color: T.sub, margin: "0 0 12px", lineHeight: 1.45 }}>Choose separately whether welcomes and introductions, and chat replies, play automatically. Manual voice and Repeat buttons remain available either way.</p>
+        <div style={{ display: "grid", gap: 9 }}>
+          {[{ key: "intro", label: "Automatic welcomes and introductions", value: autoIntroVoice, save: { autoIntroVoice: !autoIntroVoice } }, { key: "reply", label: "Automatic chat replies", value: autoReplyVoice, save: { autoReplyVoice: !autoReplyVoice } }].map((item) => <div key={item.key} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "9px 0" }}><span style={{ fontSize: 13.5, color: T.ink }}>{item.label}</span><button onClick={() => onSave(item.save)} aria-pressed={Boolean(item.value)} aria-label={`Toggle ${item.label.toLowerCase()}`} style={{ width: 50, height: 29, borderRadius: 999, border: "none", padding: 3, background: item.value ? T.green : "#cbd7d0", cursor: "pointer", flexShrink: 0 }}><span style={{ display: "block", width: 23, height: 23, borderRadius: "50%", background: "#fff", transform: `translateX(${item.value ? 21 : 0}px)`, transition: "transform .18s" }} /></button></div>)}
         </div>
         <div style={{ height: 1, background: T.line, margin: "14px 0" }} />
         <div style={{ fontWeight: 700, marginBottom: 4 }}>Speech language</div>
@@ -4056,7 +4067,8 @@ function Settings({ textScale, reduceMotion, responseSpeed, speechLang, autoVoic
         </select>
       </div>
 
-      <div style={{ background: T.card, borderRadius: 18, padding: 16, boxShadow: T.soft, marginTop: 14, marginBottom: 14 }}>
+      <div style={{ fontSize: 11.5, color: T.greenDk, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase", margin: "20px 2px 9px" }}>Your device</div>
+      <div style={{ background: T.card, borderRadius: 18, padding: 16, boxShadow: T.soft, marginTop: 0, marginBottom: 14 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{ width: 40, height: 40, borderRadius: 12, background: "#e6f3ec", display: "grid", placeItems: "center", flexShrink: 0 }}>
             {isIOS ? <Share2 size={18} color={T.greenDk} /> : <Download size={18} color={T.greenDk} />}
@@ -4103,7 +4115,7 @@ function Settings({ textScale, reduceMotion, responseSpeed, speechLang, autoVoic
       </div>
 
       {authEnabled && (
-        <div style={{ background: T.card, borderRadius: 18, padding: 16, boxShadow: T.soft, marginTop: 14,
+        <div style={{ background: T.card, borderRadius: 18, padding: 16, boxShadow: T.soft, marginTop: 0,
           display: "flex", alignItems: "center", gap: 12 }}>
           <div style={{ flex: 1 }}>
             <div style={{ fontWeight: 700 }}>Push notifications</div>
@@ -4128,7 +4140,8 @@ function Settings({ textScale, reduceMotion, responseSpeed, speechLang, autoVoic
         </div>
       )}
 
-      <div style={{ background: T.card, borderRadius: 18, padding: 16, boxShadow: T.soft, marginTop: 14 }}>
+      <div style={{ fontSize: 11.5, color: "#7055a8", fontWeight: 800, letterSpacing: 1, textTransform: "uppercase", margin: "20px 2px 9px" }}>Privacy</div>
+      <div style={{ background: T.card, borderRadius: 18, padding: 16, boxShadow: T.soft, marginTop: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
           <div style={{ width: 40, height: 40, borderRadius: 12, background: "#eee9f8", display: "grid", placeItems: "center", flexShrink: 0 }}>
             <Shield size={18} color="#7055a8" />
@@ -4169,6 +4182,7 @@ function Settings({ textScale, reduceMotion, responseSpeed, speechLang, autoVoic
         )}
       </div>
 
+      <div style={{ fontSize: 11.5, color: T.greenDk, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase", margin: "20px 2px 9px" }}>Help &amp; feedback</div>
       <button onClick={onOpenBugReport} style={{ width: "100%", background: T.card, borderRadius: 18, padding: 16,
         boxShadow: T.soft, border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 12,
         textAlign: "left", marginTop: 14 }}>
@@ -4195,7 +4209,8 @@ function Settings({ textScale, reduceMotion, responseSpeed, speechLang, autoVoic
         <ChevronRight size={20} color={T.sub} />
       </button>
 
-      <div style={{ background: "#fffaf0", border: "1px solid #f0dfb1", borderRadius: 18, padding: 16, boxShadow: T.soft, marginTop: 14 }}>
+      <div style={{ fontSize: 11.5, color: "#9b761f", fontWeight: 800, letterSpacing: 1, textTransform: "uppercase", margin: "20px 2px 9px" }}>Reset</div>
+      <div style={{ background: "#fffaf0", border: "1px solid #f0dfb1", borderRadius: 18, padding: 16, boxShadow: T.soft, marginTop: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{ width: 40, height: 40, borderRadius: 12, background: "#fff0c7", display: "grid", placeItems: "center", flexShrink: 0 }}>
             <RotateCcw size={18} color="#9b761f" />
@@ -4457,7 +4472,7 @@ function RexIntro({ voiceOn, onReady, onExit }) {
     // Fetch the next couple of lines while this one plays, so they start instantly.
     if (REX_INTRO_LINES[idx + 1]) prefetch(REX_INTRO_LINES[idx + 1], CHARS.rex);
     if (REX_INTRO_LINES[idx + 2]) prefetch(REX_INTRO_LINES[idx + 2], CHARS.rex);
-    if (voiceOn && __autoVoiceOn) {
+    if (voiceOn && __autoIntroVoiceOn) {
       // Advance when Rex actually finishes speaking, so his last words aren't cut off.
       try { speak(line, CHARS.rex, goNext); } catch { goNext(); }
       timer.current = setTimeout(goNext, Math.max(7000, line.length * 100)); // safety net if audio never signals
@@ -5201,7 +5216,7 @@ function ProgramPage({ profile, plan, progress, saveProgress, answers, journalCo
   const programWelcome = "This is your tailor-made 8-week plan, shaped around what you told us about your life, your energy, and what you want to work towards. It grows week by week, starting gently and building practical steps at a pace that fits you. I’m here to help you understand each week, answer your questions, make tasks feel manageable, and help you notice your progress — without pressure and without judgement.";
   const { speak: speakProgramWelcome, stop: stopProgramWelcome, prefetch: prefetchProgramWelcome } = useVoice(voiceOn);
   useEffect(() => {
-    if (!voiceOn || !__autoVoiceOn) return undefined;
+    if (!voiceOn || !__autoIntroVoiceOn) return undefined;
     // Begin the voice request as soon as the page mounts. The in-flight cache
     // lets the later playback call reuse this request instead of starting a
     // second network round-trip.
@@ -5430,7 +5445,7 @@ function GuidesPage({ voiceOn, onOpenChat, onBack }) {
   const guidesWelcome = "Welcome to your guides — AI guided support from a team you can turn to whenever you need it. Choose the voice that feels right for you today.";
   const { speak: speakGuidesWelcome, stop: stopGuidesWelcome, prefetch: prefetchGuidesWelcome } = useVoice(voiceOn);
   useEffect(() => {
-    if (!voiceOn || !__autoVoiceOn) return undefined;
+    if (!voiceOn || !__autoIntroVoiceOn) return undefined;
     prefetchGuidesWelcome(guidesWelcome, CHARS.rex);
     const timer = setTimeout(() => speakGuidesWelcome(guidesWelcome, CHARS.rex), 70);
     return () => { clearTimeout(timer); stopGuidesWelcome(); };
@@ -5898,7 +5913,7 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
     // Response speed: the person's saved Settings preference, unless this one
     // reply was sent via the ⚡ Fast Reply button, which overrides it just once.
     const effSpeed = (opts && opts.forceFast) ? "fast" : (responseSpeed || "normal");
-    if (voiceOn && __autoVoiceOn) { try { primeAudio(); } catch {} } // unlock audio inside the send tap so the reply can auto-speak
+    if (voiceOn && __autoReplyVoiceOn) { try { primeAudio(); } catch {} } // unlock audio inside the send tap so the reply can auto-speak
     stop(); // interrupt: a new message from the person always cuts the guide off
     setErr(null); setInput(""); setPendingImage(null);
     const userMsg = { role: "user", content: text || "(sent a photo)", ts: Date.now() };
@@ -5967,7 +5982,7 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
       const clean = reply.replace(/<tool>\s*(breathing|grounding|meditation|affirmations|calm)\s*<\/tool>/gi, "").trim();
       const withReply = [...newHist, { role: "assistant", content: clean, tool, ts: Date.now() }];
       setHistory(withReply);
-      if (voiceOn && __autoVoiceOn) { spoken.current.add(withReply.length - 1); speak(clean, char); }
+      if (voiceOn && __autoReplyVoiceOn) { spoken.current.add(withReply.length - 1); speak(clean, char); }
       if (onConversation) onConversation(withReply); // quietly refresh long-term memory in the background
     } catch (e) {
       setErr(e.message || "Something went wrong.");
@@ -6526,7 +6541,7 @@ function ProgramInfo({ voiceOn, onBack, onMessageJuan, onBookAppointment }) {
   const juanProgramIntro = "Hi, I'm Juan, the founder of The Resilience Hub. This program is free and built around you: we listen to where you're at, shape practical support at your pace, and help connect you with the right people. If you need help at any point, use Message Juan to reach the real me, talk with one of the AI guides, or use Help Now for urgent human support.";
   const { speak: speakJuanProgramIntro, stop: stopJuanProgramIntro, prefetch: prefetchJuanProgramIntro } = useVoice(voiceOn);
   useEffect(() => {
-    if (!voiceOn || !__autoVoiceOn) return undefined;
+    if (!voiceOn || !__autoIntroVoiceOn) return undefined;
     prefetchJuanProgramIntro(juanProgramIntro, CHARS.juan);
     const timer = setTimeout(() => speakJuanProgramIntro(juanProgramIntro, CHARS.juan), 70);
     return () => { clearTimeout(timer); stopJuanProgramIntro(); };
@@ -6940,7 +6955,7 @@ function Journal({ profile, journal, saveJournal, voiceOn, onBack }) {
         system: `${CHARS.lila.system}\nThe person is journaling. Read what they wrote and offer ONE short, warm reflection and ONE gentle question to help them go a little deeper. 2-3 sentences, no advice-dumping.`,
         messages: [{ role: "user", content: t }],
       });
-      setPrompt(out); if (voiceOn && __autoVoiceOn) speak(out, CHARS.lila);
+      setPrompt(out); if (voiceOn && __autoReplyVoiceOn) speak(out, CHARS.lila);
     } catch { setPrompt("However you said it, thanks for putting it into words. What feels most true about it right now?"); }
     finally { setReflecting(false); }
   };
