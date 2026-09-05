@@ -1315,27 +1315,35 @@ if (typeof window !== "undefined") {
 // round-trip before each one starts. Cache the audio and let callers pre-fetch
 // the NEXT line while the current one plays, so playback starts instantly.
 const __ttsCache = new Map(); // "voiceId|text" -> object URL
+const __ttsPending = new Map(); // same key -> in-flight request, preventing duplicate fetches during prefetch/playback
 const __TTS_CACHE_MAX = 24;
 async function fetchTtsUrl(text, voiceId) {
   const key = voiceId + "|" + text;
   const hit = __ttsCache.get(key);
   if (hit) return hit;
-  const res = await fetch("/api/tts", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ text, voiceId }),
-  });
-  if (!res.ok) throw new Error("tts_failed");
-  const blob = await res.blob();
-  const url = URL.createObjectURL(blob);
-  __ttsCache.set(key, url);
-  if (__ttsCache.size > __TTS_CACHE_MAX) {
-    const oldestKey = __ttsCache.keys().next().value;
-    const oldUrl = __ttsCache.get(oldestKey);
-    __ttsCache.delete(oldestKey);
-    try { URL.revokeObjectURL(oldUrl); } catch {}
-  }
-  return url;
+  const pending = __ttsPending.get(key);
+  if (pending) return pending;
+  const request = (async () => {
+    const res = await fetch("/api/tts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text, voiceId }),
+    });
+    if (!res.ok) throw new Error("tts_failed");
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    __ttsCache.set(key, url);
+    if (__ttsCache.size > __TTS_CACHE_MAX) {
+      const oldestKey = __ttsCache.keys().next().value;
+      const oldUrl = __ttsCache.get(oldestKey);
+      __ttsCache.delete(oldestKey);
+      try { URL.revokeObjectURL(oldUrl); } catch {}
+    }
+    return url;
+  })();
+  __ttsPending.set(key, request);
+  try { return await request; }
+  finally { __ttsPending.delete(key); }
 }
 
 // Split a reply into short speakable chunks so playback can start after the
@@ -5181,10 +5189,14 @@ function MerchPage({ onBack }) {
 function ProgramPage({ profile, plan, progress, saveProgress, answers, journalCount, chats, onSaveChat, memories, onConversation, voiceOn, setVoiceOn, responseSpeed, onOpenTool, persona, onOpenChat, onOpenJournal, onStartPlan, isSignupLanding, onBack }) {
   const [coachOpen, setCoachOpen] = useState(false);
   const programWelcome = "This is where it all began — our story, our program, and exactly how it works. Welcome. I built this so no one has to walk this road alone. Take your time, read through, and reach out anytime.";
-  const { speak: speakProgramWelcome, stop: stopProgramWelcome } = useVoice(voiceOn);
+  const { speak: speakProgramWelcome, stop: stopProgramWelcome, prefetch: prefetchProgramWelcome } = useVoice(voiceOn);
   useEffect(() => {
     if (!voiceOn) return undefined;
-    const timer = setTimeout(() => speakProgramWelcome(programWelcome, CHARS.juan), 220);
+    // Begin the voice request as soon as the page mounts. The in-flight cache
+    // lets the later playback call reuse this request instead of starting a
+    // second network round-trip.
+    prefetchProgramWelcome(programWelcome, CHARS.carlos);
+    const timer = setTimeout(() => speakProgramWelcome(programWelcome, CHARS.carlos), 60);
     return () => { clearTimeout(timer); stopProgramWelcome(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [voiceOn]);
@@ -5406,8 +5418,8 @@ function ProgramPage({ profile, plan, progress, saveProgress, answers, journalCo
 function GuidesPage({ onOpenChat, onBack }) {
   const [filter, setFilter] = useState("all");
   const specialists = [
-    { char: CHARS.juan, tag: "Your main mate", filter: "support", forWhat: "General support, encouragement, and anything that's on your mind.", tip: "I've had a rough day, can I vent to you about it?", accent: "#e5f3eb" },
-    { char: CHARS.carlos, tag: "Supportive tools", filter: "clinical", forWhat: "Stress, low mood, coping, and calming tools.", tip: "I've been feeling on edge — can you help me find one calming tool to try?", note: "Carlos is an AI guide inspired by our registered psychologist, Carlos Camacho — he offers supportive tools, not therapy or diagnosis.", accent: "#e8f0fb" },
+    { char: CHARS.juan, tag: "Your main mate", filter: "support", forWhat: "Ask me anything — I'm here for it all:", prompts: ["Juan, what should my routine be today?", "Someone spoke to me like this — how should I respond?", "Can we just talk through what happened today?", "I'm stuck — what do I do next?"], closing: "No question is too small. No topic is off-limits. I'm your mate — run it all by me.", accent: "#e5f3eb" },
+    { char: CHARS.carlos, tag: "Supportive tools", filter: "clinical", roleLine: "Inspired by our Registered Psychologist, Carlos Camacho", credentials: "Philosopher • Author • Musician • Golden Key Recipient", forWhat: "Clarity, perspective, & professional guidance when things feel heavy", tip: "I'm feeling flat and can't find the energy to do anything — what should I do?", note: "Carlos is an AI guide inspired by our registered psychologist, Carlos Camacho — he offers supportive tools, not therapy or diagnosis.", accent: "#e8f0fb" },
     { char: CHARS.mick, tag: "Practical life", filter: "practical", forWhat: "Housing, bills, Centrelink, tenancy, and day-to-day logistics.", tip: "I've got a letter or bill I don't understand — can you help me work out the next step?", accent: "#e8eef8" },
     { char: CHARS.lila, tag: "People & relationships", filter: "relationships", forWhat: "Family, partners, friendships, and healthy boundaries.", tip: "I'm having a difficult conversation with someone — can you help me find the right words?", accent: "#fae9df" },
   ];
@@ -5428,7 +5440,7 @@ function GuidesPage({ onOpenChat, onBack }) {
           <Sparkles size={15} /> Your support circle
         </div>
         <h1 style={{ fontSize: 25, lineHeight: 1.15, margin: "8px 0 7px", position: "relative" }}>Meet your guides</h1>
-        <div className="rh-in" style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", marginTop: 10, borderRadius: 15, background: "rgba(255,255,255,0.68)", border: "1px solid rgba(77,159,104,0.15)", color: T.ink, fontSize: 13.5, lineHeight: 1.45 }}><Users size={17} color={T.greenDk} style={{ flexShrink: 0 }} /><span>Meet your team — real people, real support. We're all here whenever you need us.</span></div>
+        <div className="rh-in" style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", marginTop: 10, borderRadius: 15, background: "rgba(255,255,255,0.68)", border: "1px solid rgba(77,159,104,0.15)", color: T.ink, fontSize: 13.5, lineHeight: 1.45 }}><Users size={17} color={T.greenDk} style={{ flexShrink: 0 }} /><span>AI guided support</span></div>
         <p style={{ fontSize: 13.5, color: T.sub, lineHeight: 1.52, margin: 0, maxWidth: 360, position: "relative" }}>Different days need different kinds of support. Choose the voice that feels right for this moment — you can switch any time.</p>
       </div>
       <div style={{ display: "flex", gap: 8, overflowX: "auto", padding: "16px 1px 3px", scrollbarWidth: "none" }}>
@@ -5441,15 +5453,15 @@ function GuidesPage({ onOpenChat, onBack }) {
         <div style={{ fontSize: 12, color: T.sub, fontWeight: 700 }}>{visible.length} {visible.length === 1 ? "guide" : "guides"} ready to chat</div>
         <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11.5, color: T.sub }}><Circle size={8} fill={T.green} color={T.green} /> Available any time</div>
       </div>
-      {visible.map(({ char, tag, forWhat, tip, note, accent }, index) => (
+      {visible.map(({ char, tag, roleLine, credentials, forWhat, tip, prompts, closing, note, accent }, index) => (
         <div key={char.slug} style={{ marginBottom: 15 }}>
           <div style={{ background: T.card, borderRadius: 21, padding: 13, boxShadow: T.soft, border: `1px solid ${T.line}`, borderTop: `4px solid ${char.tint}` }}>
             <div style={{ display: "flex", alignItems: "center", gap: 13 }}>
               <div style={{ width: 72, height: 72, borderRadius: 21, overflow: "hidden", background: `radial-gradient(120% 100% at 50% 20%, #fff, ${accent})`, flexShrink: 0, boxShadow: "0 5px 14px rgba(47,97,72,0.10)" }}><img src={char.img} alt={char.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} /></div>
-              <div style={{ flex: 1, minWidth: 0 }}><div style={{ display: "inline-flex", alignItems: "center", gap: 5, color: T.greenDk, fontSize: 10.5, fontWeight: 800, letterSpacing: 0.6, textTransform: "uppercase", marginBottom: 4 }}><span style={{ width: 6, height: 6, borderRadius: "50%", background: T.green }} /> {tag}</div><div style={{ fontWeight: 800, fontSize: 18 }}>{char.name}</div><div style={{ fontSize: 12.5, color: T.sub, marginTop: 2 }}>{char.role}</div></div>
+              <div style={{ flex: 1, minWidth: 0 }}><div style={{ display: "inline-flex", alignItems: "center", gap: 5, color: T.greenDk, fontSize: 10.5, fontWeight: 800, letterSpacing: 0.6, textTransform: "uppercase", marginBottom: 4 }}><span style={{ width: 6, height: 6, borderRadius: "50%", background: T.green }} /> {tag}</div><div style={{ fontWeight: 800, fontSize: 18 }}>{char.name}</div><div style={{ fontSize: 12.5, color: T.sub, marginTop: 2 }}>{roleLine || char.role}</div>{credentials && <div style={{ fontSize: 11.5, color: T.greenDk, fontWeight: 700, marginTop: 4 }}>{credentials}</div>}</div>
               <div style={{ width: 35, height: 35, borderRadius: "50%", background: char.tint, color: T.greenDk, display: "grid", placeItems: "center", flexShrink: 0 }}><ChevronRight size={19} /></div>
             </div>
-            <div style={{ background: accent, borderRadius: 14, padding: "11px 12px", marginTop: 12 }}><div style={{ fontSize: 13, color: T.ink, lineHeight: 1.48 }}><strong>Best for</strong> · {forWhat}</div><div style={{ fontSize: 12.5, color: T.sub, lineHeight: 1.45, marginTop: 6 }}><strong>Try saying:</strong> “{tip}”</div></div>
+            <div style={{ background: accent, borderRadius: 14, padding: "11px 12px", marginTop: 12 }}>{prompts ? <><div style={{ fontSize: 13, color: T.ink, lineHeight: 1.48, fontWeight: 700 }}>{forWhat}</div><div style={{ display: "grid", gap: 5, marginTop: 8 }}>{prompts.map((prompt) => <div key={prompt} style={{ fontSize: 12.5, color: T.sub, lineHeight: 1.4 }}>“{prompt}”</div>)}</div><div style={{ fontSize: 12.5, color: T.ink, lineHeight: 1.45, marginTop: 8 }}>{closing}</div></> : <><div style={{ fontSize: 13, color: T.ink, lineHeight: 1.48 }}><strong>Best for</strong> · {forWhat}</div><div style={{ fontSize: 12.5, color: T.sub, lineHeight: 1.45, marginTop: 6 }}><strong>Try saying:</strong> “{tip}”</div></>}</div>
             <button onClick={() => onOpenChat(char.slug)} aria-label={`Chat with ${char.name}`} style={{ width: "100%", marginTop: 10, border: "none", borderRadius: 13, padding: "10px 12px", background: `linear-gradient(100deg, ${T.greenDk}, ${T.green})`, color: "#fff", fontWeight: 800, fontSize: 13, cursor: "pointer" }}>Start a chat with {char.name} <span style={{ opacity: 0.8 }}>→</span></button>
           </div>
           {note && <div style={{ background: "#eef4fb", border: `1px solid #d3e3f5`, borderRadius: 14, padding: 12, marginTop: 8 }}><p style={{ fontSize: 12, color: T.sub, lineHeight: 1.5, margin: 0 }}>{note}</p></div>}
