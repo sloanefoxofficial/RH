@@ -359,6 +359,7 @@ export default function App() {
   const gameScoresRef = useRef({});
   const gameProgressRef = useRef({});                  // { gameKey: savedState } — resume in-progress games
   const [voiceOn, setVoiceOn] = useState(true);
+  const [autoVoiceOn, setAutoVoiceOn] = useState(true);
   const [consented, setConsented] = useState(false);
   const [toolkitInitial, setToolkitInitial] = useState(null);
   const [session, setSession] = useState(null);
@@ -412,6 +413,8 @@ export default function App() {
       if (typeof rm === "boolean") setReduceMotion(rm);
       const rs = await sget("rh_response_speed");
       if (rs === "chilled" || rs === "normal" || rs === "fast") setResponseSpeed(rs);
+      const av = await sget("rh_auto_voice");
+      if (typeof av === "boolean") { setAutoVoiceOn(av); __autoVoiceOn = av; }
       const sl = await sget("rh_speech_lang");
       if (sl && SPEECH_LANGS.some((l) => l.code === sl)) { setSpeechLang(sl); __speechLang = sl; }
       const savedJournalPin = await sget(JOURNAL_PIN_STORAGE_KEY);
@@ -577,11 +580,12 @@ export default function App() {
     }
   }, []);
 
-  const saveSettings = useCallback(({ textScale: ts, reduceMotion: rm, responseSpeed: rs, speechLang: sl }) => {
+  const saveSettings = useCallback(({ textScale: ts, reduceMotion: rm, responseSpeed: rs, speechLang: sl, autoVoice: av }) => {
     if (typeof ts === "number") { setTextScale(ts); sset("rh_text_scale", ts); }
     if (typeof rm === "boolean") { setReduceMotion(rm); sset("rh_reduce_motion", rm); }
     if (rs === "chilled" || rs === "normal" || rs === "fast") { setResponseSpeed(rs); sset("rh_response_speed", rs); }
     if (sl && SPEECH_LANGS.some((l) => l.code === sl)) { setSpeechLang(sl); __speechLang = sl; sset("rh_speech_lang", sl); }
+    if (typeof av === "boolean") { setAutoVoiceOn(av); __autoVoiceOn = av; sset("rh_auto_voice", av); }
   }, []);
 
   const setJournalPin = useCallback(async (pin) => {
@@ -600,8 +604,8 @@ export default function App() {
   }, [syncMemberData]);
 
   const restoreDefaultSettings = useCallback(() => {
-    setTextScale(1); setReduceMotion(false); setResponseSpeed("normal"); setSpeechLang("en-AU"); __speechLang = "en-AU";
-    sset("rh_text_scale", 1); sset("rh_reduce_motion", false); sset("rh_response_speed", "normal"); sset("rh_speech_lang", "en-AU");
+    setTextScale(1); setReduceMotion(false); setResponseSpeed("normal"); setSpeechLang("en-AU"); setAutoVoiceOn(true); __autoVoiceOn = true; __speechLang = "en-AU";
+    sset("rh_text_scale", 1); sset("rh_reduce_motion", false); sset("rh_response_speed", "normal"); sset("rh_speech_lang", "en-AU"); sset("rh_auto_voice", true);
   }, []);
 
   useEffect(() => {
@@ -923,7 +927,7 @@ export default function App() {
             onBack={planSignupLanding ? openHubFromPlan : openToolkitFromPlan}
           />
         ) : screen === "guides" ? (
-          <GuidesPage onOpenChat={(slug) => go("chat", slug)} onBack={back} />
+          <GuidesPage voiceOn={voiceOn} onOpenChat={(slug) => go("chat", slug)} onBack={back} />
         ) : screen === "merch" ? (
           <MerchPage onBack={back} />
         ) : screen === "carlosLibrary" ? (
@@ -978,14 +982,14 @@ export default function App() {
         ) : screen === "mensGroup" ? (
           <MensGroup onBack={back} />
         ) : screen === "programInfo" ? (
-          <ProgramInfo onBack={back} onMessageJuan={() => go("coordinator")} onBookAppointment={() => go("bookAppointment")} />
+          <ProgramInfo voiceOn={voiceOn} onBack={back} onMessageJuan={() => go("coordinator")} onBookAppointment={() => go("bookAppointment")} />
         ) : screen === "bookAppointment" ? (
           <BookAppointment onBack={back} />
         ) : screen === "memory" ? (
           <MemoryManager memories={memories} memoryOn={memoryOn}
             onSave={(list, on) => saveMemories(list, on)} onBack={back} />
         ) : screen === "settings" ? (
-              <Settings textScale={textScale} reduceMotion={reduceMotion} responseSpeed={responseSpeed} speechLang={speechLang}
+              <Settings textScale={textScale} reduceMotion={reduceMotion} responseSpeed={responseSpeed} speechLang={speechLang} autoVoice={autoVoiceOn}
             journalPinSet={journalPinSet} onSetJournalPin={setJournalPin} onClearJournalPin={clearJournalPin}
             installPromptAvailable={Boolean(installPromptEvent)} isStandalone={isStandalone} onPromptInstall={promptAppInstall}
             session={session} authEnabled={showAuth} onSave={saveSettings} onRestoreDefaults={restoreDefaultSettings} onBack={back}
@@ -1208,6 +1212,7 @@ let __synthEpoch = 0;
 // it can replay freely — so every reply speaks automatically thereafter.
 let __ttsAudio = null;
 let __audioUnlocked = false;
+let __autoVoiceOn = true;
 let __primePromise = null;
 let __lastVoiceAt = 0; // Date.now() of the last time a guide's voice actually started playing — used to only apply the iOS mic-recovery delay when it's actually needed
 // Speech-to-text language — was hardcoded to "en-AU" everywhere, which is why
@@ -1854,7 +1859,7 @@ function Toolkit({ voiceOn, initial, onUseTool, onOpenJournal, onBack }) {
   const toolkitWelcome = "Welcome to the Toolkit — a collection of things that can help, whenever you need them. Take your time, look around, pick whatever feels right for you today. No rush at all — whenever you're ready.";
   const { speak: speakToolkitWelcome, stop: stopToolkitWelcome } = useVoice(voiceOn);
   useEffect(() => {
-    if (!voiceOn) return undefined;
+    if (!voiceOn || !__autoVoiceOn) return undefined;
     const timer = setTimeout(() => speakToolkitWelcome(toolkitWelcome, CHARS.rex), 220);
     return () => { clearTimeout(timer); stopToolkitWelcome(); };
     // Deliberately speak once when the section opens or voice is enabled.
@@ -3898,7 +3903,7 @@ function MemoryManager({ memories, memoryOn, onSave, onBack }) {
 }
 
 /* ---------- accessibility settings ---------- */
-function Settings({ textScale, reduceMotion, responseSpeed, speechLang, journalPinSet, onSetJournalPin, onClearJournalPin, installPromptAvailable, isStandalone, onPromptInstall, session, authEnabled, onSave, onRestoreDefaults, onBack, onOpenBugReport, onOpenFeedback }) {
+function Settings({ textScale, reduceMotion, responseSpeed, speechLang, autoVoice, journalPinSet, onSetJournalPin, onClearJournalPin, installPromptAvailable, isStandalone, onPromptInstall, session, authEnabled, onSave, onRestoreDefaults, onBack, onOpenBugReport, onOpenFeedback }) {
   const [pushState, setPushState] = useState("checking"); // "checking" | "on" | "off" | "denied" | "unsupported" | "error"
   const [pushDetail, setPushDetail] = useState("");
   const [pushBusy, setPushBusy] = useState(false);
@@ -4033,6 +4038,11 @@ function Settings({ textScale, reduceMotion, responseSpeed, speechLang, journalP
       </div>
 
       <div style={{ background: T.card, borderRadius: 18, padding: 16, boxShadow: T.soft, marginBottom: 14 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+          <div><div style={{ fontWeight: 700, marginBottom: 4 }}>Automatic voice playback</div><p style={{ fontSize: 12.5, color: T.sub, margin: 0, lineHeight: 1.45 }}>Choose whether guides automatically read welcomes and replies aloud. You can still use manual voice and Repeat buttons when this is off.</p></div>
+          <button onClick={() => onSave({ autoVoice: !autoVoice })} aria-pressed={Boolean(autoVoice)} aria-label="Toggle automatic voice playback" style={{ width: 50, height: 29, borderRadius: 999, border: "none", padding: 3, background: autoVoice ? T.green : "#cbd7d0", cursor: "pointer", flexShrink: 0 }}><span style={{ display: "block", width: 23, height: 23, borderRadius: "50%", background: "#fff", transform: `translateX(${autoVoice ? 21 : 0}px)`, transition: "transform .18s" }} /></button>
+        </div>
+        <div style={{ height: 1, background: T.line, margin: "14px 0" }} />
         <div style={{ fontWeight: 700, marginBottom: 4 }}>Speech language</div>
         <p style={{ fontSize: 12.5, color: T.sub, margin: "0 0 12px", lineHeight: 1.45 }}>
           The language the mic listens for when you tap to talk. This is separate from typing — guides already reply
@@ -4447,7 +4457,7 @@ function RexIntro({ voiceOn, onReady, onExit }) {
     // Fetch the next couple of lines while this one plays, so they start instantly.
     if (REX_INTRO_LINES[idx + 1]) prefetch(REX_INTRO_LINES[idx + 1], CHARS.rex);
     if (REX_INTRO_LINES[idx + 2]) prefetch(REX_INTRO_LINES[idx + 2], CHARS.rex);
-    if (voiceOn) {
+    if (voiceOn && __autoVoiceOn) {
       // Advance when Rex actually finishes speaking, so his last words aren't cut off.
       try { speak(line, CHARS.rex, goNext); } catch { goNext(); }
       timer.current = setTimeout(goNext, Math.max(7000, line.length * 100)); // safety net if audio never signals
@@ -5191,7 +5201,7 @@ function ProgramPage({ profile, plan, progress, saveProgress, answers, journalCo
   const programWelcome = "This is where it all began — our story, our program, and exactly how it works. Welcome. I built this so no one has to walk this road alone. Take your time, read through, and reach out anytime.";
   const { speak: speakProgramWelcome, stop: stopProgramWelcome, prefetch: prefetchProgramWelcome } = useVoice(voiceOn);
   useEffect(() => {
-    if (!voiceOn) return undefined;
+    if (!voiceOn || !__autoVoiceOn) return undefined;
     // Begin the voice request as soon as the page mounts. The in-flight cache
     // lets the later playback call reuse this request instead of starting a
     // second network round-trip.
@@ -5415,9 +5425,19 @@ function ProgramPage({ profile, plan, progress, saveProgress, answers, journalCo
 }
 
 /* ---------- Your guides page ---------- */
-function GuidesPage({ onOpenChat, onBack }) {
+function GuidesPage({ voiceOn, onOpenChat, onBack }) {
   const [filter, setFilter] = useState("all");
+  const guidesWelcome = "Welcome to your guides — AI guided support from a team you can turn to whenever you need it. Choose the voice that feels right for you today.";
+  const { speak: speakGuidesWelcome, stop: stopGuidesWelcome, prefetch: prefetchGuidesWelcome } = useVoice(voiceOn);
+  useEffect(() => {
+    if (!voiceOn || !__autoVoiceOn) return undefined;
+    prefetchGuidesWelcome(guidesWelcome, CHARS.rex);
+    const timer = setTimeout(() => speakGuidesWelcome(guidesWelcome, CHARS.rex), 70);
+    return () => { clearTimeout(timer); stopGuidesWelcome(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [voiceOn]);
   const specialists = [
+    { char: CHARS.rex, tag: "Your welcomer", filter: "support", roleLine: "Here to help you get started", forWhat: "Finding your way around the Hub and choosing the right guide", tip: "What is this place, and where should I start?", accent: "#e5f3eb" },
     { char: CHARS.juan, tag: "Your main mate", filter: "support", forWhat: "Ask me anything — I'm here for it all:", prompts: ["Juan, what should my routine be today?", "Someone spoke to me like this — how should I respond?", "Can we just talk through what happened today?", "I'm stuck — what do I do next?"], closing: "No question is too small. No topic is off-limits. I'm your mate — run it all by me.", accent: "#e5f3eb" },
     { char: CHARS.carlos, tag: "Supportive tools", filter: "clinical", roleLine: "Inspired by our Registered Psychologist, Carlos Camacho", credentials: "Philosopher • Author • Musician • Golden Key Recipient", forWhat: "Clarity, perspective, & professional guidance when things feel heavy", tip: "I'm feeling flat and can't find the energy to do anything — what should I do?", note: "Carlos is an AI guide inspired by our registered psychologist, Carlos Camacho — he offers supportive tools, not therapy or diagnosis.", accent: "#e8f0fb" },
     { char: CHARS.mick, tag: "Practical life", filter: "practical", forWhat: "Housing, bills, Centrelink, tenancy, and day-to-day logistics.", tip: "I've got a letter or bill I don't understand — can you help me work out the next step?", accent: "#e8eef8" },
@@ -5878,7 +5898,7 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
     // Response speed: the person's saved Settings preference, unless this one
     // reply was sent via the ⚡ Fast Reply button, which overrides it just once.
     const effSpeed = (opts && opts.forceFast) ? "fast" : (responseSpeed || "normal");
-    if (voiceOn) { try { primeAudio(); } catch {} } // unlock audio inside the send tap so the reply can auto-speak
+    if (voiceOn && __autoVoiceOn) { try { primeAudio(); } catch {} } // unlock audio inside the send tap so the reply can auto-speak
     stop(); // interrupt: a new message from the person always cuts the guide off
     setErr(null); setInput(""); setPendingImage(null);
     const userMsg = { role: "user", content: text || "(sent a photo)", ts: Date.now() };
@@ -5947,7 +5967,7 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
       const clean = reply.replace(/<tool>\s*(breathing|grounding|meditation|affirmations|calm)\s*<\/tool>/gi, "").trim();
       const withReply = [...newHist, { role: "assistant", content: clean, tool, ts: Date.now() }];
       setHistory(withReply);
-      if (voiceOn) { spoken.current.add(withReply.length - 1); speak(clean, char); }
+      if (voiceOn && __autoVoiceOn) { spoken.current.add(withReply.length - 1); speak(clean, char); }
       if (onConversation) onConversation(withReply); // quietly refresh long-term memory in the background
     } catch (e) {
       setErr(e.message || "Something went wrong.");
@@ -6502,7 +6522,16 @@ function FounderVideoSection() {
   );
 }
 
-function ProgramInfo({ onBack, onMessageJuan, onBookAppointment }) {
+function ProgramInfo({ voiceOn, onBack, onMessageJuan, onBookAppointment }) {
+  const juanProgramIntro = "Hi, I'm Juan, the founder of The Resilience Hub. This program is free and built around you: we listen to where you're at, shape practical support at your pace, and help connect you with the right people. If you need help at any point, use Message Juan to reach the real me, talk with one of the AI guides, or use Help Now for urgent human support.";
+  const { speak: speakJuanProgramIntro, stop: stopJuanProgramIntro, prefetch: prefetchJuanProgramIntro } = useVoice(voiceOn);
+  useEffect(() => {
+    if (!voiceOn || !__autoVoiceOn) return undefined;
+    prefetchJuanProgramIntro(juanProgramIntro, CHARS.juan);
+    const timer = setTimeout(() => speakJuanProgramIntro(juanProgramIntro, CHARS.juan), 70);
+    return () => { clearTimeout(timer); stopJuanProgramIntro(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [voiceOn]);
   return (
     <>
       <Brand right={<BackBtn onBack={onBack} label="Home" />} />
@@ -6528,6 +6557,9 @@ function ProgramInfo({ onBack, onMessageJuan, onBookAppointment }) {
       <FounderVideoSection />
 
       <ProgramInfoSection title="Welcome">
+        <ProgramInfoCard title="A welcome from Juan">
+          <div style={{ display: "flex", gap: 11, alignItems: "flex-start" }}><div style={{ width: 48, height: 48, borderRadius: 15, overflow: "hidden", background: "#e5f3e9", flexShrink: 0 }}><img src={CHARS.juan.img} alt="Juan Carroso" style={{ width: "100%", height: "100%", objectFit: "cover" }} /></div><div>{juanProgramIntro}</div></div>
+        </ProgramInfoCard>
         <ProgramInfoCard>
           <div style={{ fontSize: 14, color: T.ink, lineHeight: 1.55, marginBottom: 14 }}>A completely free, individually tailored recovery &amp; resilience program — built around <b>you</b>, not a generic checklist.</div>
           <div style={{ background: "linear-gradient(135deg, #f5fbf6 0%, #fffaf4 100%)", borderRadius: 15, padding: 13, border: "1px solid rgba(77,159,104,0.14)" }}>
@@ -6908,7 +6940,7 @@ function Journal({ profile, journal, saveJournal, voiceOn, onBack }) {
         system: `${CHARS.lila.system}\nThe person is journaling. Read what they wrote and offer ONE short, warm reflection and ONE gentle question to help them go a little deeper. 2-3 sentences, no advice-dumping.`,
         messages: [{ role: "user", content: t }],
       });
-      setPrompt(out); if (voiceOn) speak(out, CHARS.lila);
+      setPrompt(out); if (voiceOn && __autoVoiceOn) speak(out, CHARS.lila);
     } catch { setPrompt("However you said it, thanks for putting it into words. What feels most true about it right now?"); }
     finally { setReflecting(false); }
   };
