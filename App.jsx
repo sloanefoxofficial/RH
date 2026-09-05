@@ -1835,6 +1835,15 @@ function CarlosSpotlight() {
 
 function Toolkit({ voiceOn, initial, onUseTool, onOpenJournal, onBack }) {
   const [tool, setTool] = useState(initial || null);
+  const toolkitWelcome = "Welcome to the Toolkit — a collection of things that can help, whenever you need them. Take your time, look around, pick whatever feels right for you today. No rush at all — whenever you're ready.";
+  const { speak: speakToolkitWelcome, stop: stopToolkitWelcome } = useVoice(voiceOn);
+  useEffect(() => {
+    if (!voiceOn) return undefined;
+    const timer = setTimeout(() => speakToolkitWelcome(toolkitWelcome, CHARS.rex), 220);
+    return () => { clearTimeout(timer); stopToolkitWelcome(); };
+    // Deliberately speak once when the section opens or voice is enabled.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [voiceOn]);
   if (tool === "breathing") return <BreathingTool onBack={() => setTool(null)} />;
   if (tool === "grounding") return <GroundingTool onBack={() => setTool(null)} />;
   if (tool === "meditation") return <MeditationTool onBack={() => setTool(null)} />;
@@ -1851,6 +1860,10 @@ function Toolkit({ voiceOn, initial, onUseTool, onOpenJournal, onBack }) {
     <>
       <Brand right={<BackBtn onBack={onBack} />} />
       <SectionTitle>Toolkit</SectionTitle>
+      <div className="rh-in" style={{ display: "flex", gap: 11, alignItems: "center", margin: "0 0 13px" }}>
+        <Portrait src={CHARS.rex.img} name="Rex" size={58} speaking={false} tint={CHARS.rex.tint} />
+        <div style={{ background: "linear-gradient(120deg, #eef8f1, #fff)", border: `1px solid ${T.line}`, borderRadius: 17, padding: "11px 13px", boxShadow: T.soft, fontSize: 13.5, color: T.ink, lineHeight: 1.48 }}>Welcome to the Toolkit — a collection of things that can help, whenever you need them. Take your time, look around, pick whatever feels right for you today. No rush at all — whenever you're ready.</div>
+      </div>
       <p style={{ fontSize: 13.5, color: T.sub, margin: "0 2px 16px", lineHeight: 1.5 }}>
         A few things that can help, grouped by what you need right now. There's no right way — try whatever feels doable.
       </p>
@@ -5129,6 +5142,14 @@ function MerchPage({ onBack }) {
 /* ---------- Your 8-week program page ---------- */
 function ProgramPage({ profile, plan, progress, saveProgress, answers, journalCount, chats, onSaveChat, memories, onConversation, voiceOn, setVoiceOn, responseSpeed, onOpenTool, persona, onOpenChat, onOpenJournal, onStartPlan, isSignupLanding, onBack }) {
   const [coachOpen, setCoachOpen] = useState(false);
+  const programWelcome = "This is where it all began — our story, our program, and exactly how it works. Welcome. I built this so no one has to walk this road alone. Take your time, read through, and reach out anytime.";
+  const { speak: speakProgramWelcome, stop: stopProgramWelcome } = useVoice(voiceOn);
+  useEffect(() => {
+    if (!voiceOn) return undefined;
+    const timer = setTimeout(() => speakProgramWelcome(programWelcome, CHARS.juan), 220);
+    return () => { clearTimeout(timer); stopProgramWelcome(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [voiceOn]);
   const weeks = plan?.weeks || [];
   // Support day-based plans ({days:[{d,tasks:[]}]}) and legacy step-based plans ({steps:[]}).
   const weekTaskKeys = (w) => {
@@ -5219,6 +5240,10 @@ function ProgramPage({ profile, plan, progress, saveProgress, answers, journalCo
     <>
       <Brand right={<BackBtn onBack={onBack} label={isSignupLanding ? "Explore The App" : "Toolkit"} />} />
       <SectionTitle>Your 8-Week Plan</SectionTitle>
+      <div className="rh-in" style={{ display: "flex", gap: 11, alignItems: "center", margin: "0 0 14px" }}>
+        <Portrait src={CHARS.carlos.img} name="Carlos" size={58} speaking={false} tint={CHARS.carlos.tint} />
+        <div style={{ background: "linear-gradient(120deg, #eaf3fb, #fff)", border: `1px solid ${T.line}`, borderRadius: 17, padding: "11px 13px", boxShadow: T.soft, fontSize: 13.5, color: T.ink, lineHeight: 1.48 }}>Here's your personal 8-week pathway. It grows with you, at your own pace. Whenever you're ready — we'll get started together. Where would you like to begin first?</div>
+      </div>
 
       {!plan && (
         <div style={{ background: "linear-gradient(160deg, #eafaf0, #ffffff)", border: `1px solid ${T.line}`,
@@ -5348,6 +5373,7 @@ function GuidesPage({ onOpenChat, onBack }) {
           <Sparkles size={15} /> Your support circle
         </div>
         <h1 style={{ fontSize: 25, lineHeight: 1.15, margin: "8px 0 7px", position: "relative" }}>Meet your guides</h1>
+        <div className="rh-in" style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", marginTop: 10, borderRadius: 15, background: "rgba(255,255,255,0.68)", border: "1px solid rgba(77,159,104,0.15)", color: T.ink, fontSize: 13.5, lineHeight: 1.45 }}><Users size={17} color={T.greenDk} style={{ flexShrink: 0 }} /><span>Meet your team — real people, real support. We're all here whenever you need us.</span></div>
         <p style={{ fontSize: 13.5, color: T.sub, lineHeight: 1.52, margin: 0, maxWidth: 360, position: "relative" }}>Different days need different kinds of support. Choose the voice that feels right for this moment — you can switch any time.</p>
       </div>
       <div style={{ display: "flex", gap: 8, overflowX: "auto", padding: "16px 1px 3px", scrollbarWidth: "none" }}>
@@ -6765,7 +6791,7 @@ function Journal({ profile, journal, saveJournal, voiceOn, onBack }) {
   const [tab, setTab] = useState("journal");
   const [text, setText] = useState("");
   const [reflecting, setReflecting] = useState(false);
-  const [prompt, setPrompt] = useState("What's on your mind today? There's no right way to do this — just start.");
+  const [prompt, setPrompt] = useState("What's going on today? There's no right or wrong way to do this — just jot down whatever is on your mind.");
   const journalEntries = journal.filter((e) => e.kind !== "fleeting");
   const fleetingEntries = journal.filter((e) => e.kind === "fleeting");
 
