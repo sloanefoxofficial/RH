@@ -1136,6 +1136,14 @@ function GlobalJumpToTop({ screen }) {
   );
 }
 
+function CrisisInterception({ onDismiss }) {
+  return <div style={{ background: "#fff5f4", border: "1px solid #efc9c6", borderRadius: 18, padding: 14, marginTop: 10, boxShadow: T.soft }}>
+    <div style={{ display: "flex", alignItems: "flex-start", gap: 9 }}><Heart size={18} color="#c54848" style={{ flexShrink: 0, marginTop: 2 }} /><div><div style={{ fontWeight: 800, color: "#8e3131", fontSize: 14.5 }}>Let’s get a real person beside you</div><div style={{ color: T.ink, fontSize: 13, lineHeight: 1.45, marginTop: 4 }}>I’m really glad you told us. If you might act on these thoughts or are in immediate danger, call 000 now. If you can, move near another person and ask them to stay with you. You do not have to handle this alone.</div></div></div>
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 11 }}>{CONTACTS.slice(0, 4).map((c) => <a key={c.label} href={`tel:${c.tel}`} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, borderRadius: 12, padding: "10px 8px", textDecoration: "none", background: c.accent ? "#c54848" : "#fff", color: c.accent ? "#fff" : T.ink, border: c.accent ? "none" : "1px solid #efc9c6", fontSize: 12.5, fontWeight: 800 }}><Phone size={14} /> {c.label}</a>)}</div>
+    <button onClick={onDismiss} style={{ marginTop: 9, border: "none", background: "transparent", color: T.sub, fontSize: 12, cursor: "pointer" }}>I’m safe for now — return to the conversation</button>
+  </div>;
+}
+
 /* ---------- crisis bar (every screen) ---------- */
 function CrisisBar() {
   const [open, setOpen] = useState(false);
@@ -2997,6 +3005,7 @@ function AdminAssistant() {
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
+  const [crisisActive, setCrisisActive] = useState(false);
   const scrollRef = useRef(null);
   useEffect(() => { scrollRef.current?.scrollTo({ top: 1e6, behavior: "smooth" }); }, [history, busy]);
 
@@ -4543,7 +4552,7 @@ function VoiceToggle({ on, set }) {
 const QUESTIONS = [
   { key: "name", type: "name", q: "First up — what should we call you?" },
   { key: "age", type: "single", q: "Which stage of life are you in? It helps us pitch things right.",
-    opts: ["Under 18", "18–24", "25–39", "40–59", "60+", "Rather not say"] },
+    opts: ["16–25", "26–55", "56–80+", "Rather not say"] },
   { key: "mood", type: "single", q: "How have the last couple of weeks felt, overall?",
     opts: ["Pretty good", "Up and down", "Heavy going", "Really rough"] },
   { key: "mood_why", type: "text", q: "What's been behind that, do you reckon? Paint me a bit of a picture.",
@@ -4552,6 +4561,12 @@ const QUESTIONS = [
     opts: ["Fine", "A bit patchy", "Not great", "Barely sleeping"] },
   { key: "energy", type: "single", q: "And your energy and motivation day to day?",
     opts: ["Good", "Comes and goes", "Running low", "Empty"] },
+  { key: "nervous_system", type: "single", q: "When things spike, which feels closest today? There is no wrong answer.",
+    opts: ["Flat or shut down", "Racing or on edge", "A bit of both", "Fairly steady", "Not sure yet"] },
+  { key: "pain_point", type: "single", q: "What feels most at the centre of things right now?",
+    opts: ["Grief or loss", "Burnout or exhaustion", "Feeling isolated", "A big identity or life change", "Hard to name"] },
+  { key: "cognitive_load", type: "single", q: "How much can you comfortably take in right now?",
+    opts: ["I can read and focus", "Short steps work best", "Keep it ultra-short and audio-first", "Not sure yet"] },
   { key: "weighing", type: "text", q: "What's weighing on you most right now? As much or as little as you like.",
     placeholder: "You can tap the mic to talk, or type…" },
   { key: "areas", type: "multi", q: "Which of these are tough at the moment? Pick any that fit.",
@@ -4576,6 +4591,27 @@ const QUESTIONS = [
 // know who they're talking to — and so the safety check is never skipped.
 const SHORT_KEYS = ["name", "mood", "areas", "safety"];
 
+function selectedAnswer(answers = {}, key, options = []) {
+  const value = answers[key];
+  if (typeof value === "number") return options[value] || "";
+  return Array.isArray(value) ? value.join(", ") : String(value || "");
+}
+
+function classifyPlanAnswers(answers = {}) {
+  const opt = (key) => QUESTIONS.find((q) => q.key === key)?.opts || [];
+  const age = selectedAnswer(answers, "age", opt("age"));
+  const energy = selectedAnswer(answers, "energy", opt("energy"));
+  const nervous = selectedAnswer(answers, "nervous_system", opt("nervous_system"));
+  const load = selectedAnswer(answers, "cognitive_load", opt("cognitive_load"));
+  const pain = selectedAnswer(answers, "pain_point", opt("pain_point"));
+  const ageTier = age === "16–25" ? "Youth tier (16–25)" : age === "56–80+" ? "Mature tier (56–80+)" : age === "Rather not say" ? "Age not specified" : "Core adult tier (26–55)";
+  const state = nervous.includes("Racing") ? "hyper-aroused / anxious" : nervous.includes("Flat") || energy === "Empty" || energy === "Running low" ? "low-energy / shut down" : nervous.includes("both") ? "mixed" : "fairly steady";
+  const cognitiveLoad = load.includes("ultra") || load.includes("audio") ? "ultra-short, audio-first, micro-steps" : load.includes("Short") ? "short, simple steps" : "able to read and focus";
+  return { age, ageTier, state, painPoint: pain || "not yet named", cognitiveLoad, needsGentleStart: /low-energy|hyper-aroused|mixed/.test(state) || /short|ultra/i.test(cognitiveLoad) };
+}
+
+const CRISIS_TEXT_RE = /\b(suicid(e|al)|kill myself|end my life|want to die|don['’]t want to live|hurt myself|self[- ]?harm|overdos(e|ing)|can['’]t keep myself safe|not safe right now|unsafe right now|in immediate danger)\b/i;
+function isCrisisText(text) { return CRISIS_TEXT_RE.test(String(text || "")); }
 
 /* ---------- Carlos building the plan (rotating progress lines) ---------- */
 const PLAN_STEPS = [
@@ -4705,6 +4741,7 @@ function Onboarding({ profile, saveProfile, answers, saveAnswers, savePlan, voic
     let plan = null;
     try {
       const sys = `${CHARS.carlos.system}
+PLAN SAFETY AND ADAPTATION: classify the person internally by energy/arousal, primary pain point, cognitive-load tolerance, and age tier. Youth (16–25) may need relatable digital-native language and identity-pressure examples; Core adult (26–55) may need time-efficient support around work, parenting, burnout, and boundaries; Mature (56–80+) needs dignified pacing around grief, independence, and isolation. Weeks 1–2 must be Triage & Safety with grounding, regulation, rest, and no heavy homework. Weeks 3–5 are Pattern Recognition; Weeks 6–7 Rebuilding & Values; Week 8 Integration & Relapse Prevention. If low-energy, hyper-aroused, mixed, or low-load, use fewer words and micro-steps. Never use streaks, missed-day language, guilt, diagnosis, or crisis content in the plan. Every day must include a 20-minute walk with a five-minute pre-routine, a safe-person connection option, and varied app/community tasks; community contact is always optional.
 You are creating a genuinely personalised 8-week recovery and resilience plan from this person's setup answers. It must feel hand-made for THEM — use their age stage, mood, sleep, energy, situation, goals, life areas, coping style, past strengths, support network, and chosen pace. Speak in plain, warm language. No clinical jargon, shame, or motivational-poster filler.
 
 NON-NEGOTIABLE STRUCTURE: return exactly 8 weeks, each with a short focus and exactly 7 days. Each day has 2 or 3 short, concrete tasks. The plan must grow week by week, but the person's requested pace and current energy control how gently that growth is presented. If energy is low or they chose gentle steps, use two tasks where possible and make the second task easy to split into smaller pieces. If they are ready for more, use three tasks. Never make a task a test they can fail.
@@ -4731,9 +4768,10 @@ Use the right guide naturally: Juan for mate-style support and a check-in, Carlo
 
 Respond with ONLY valid JSON, no markdown fences, exactly this shape:
 {"summary":"2-3 warm sentences to them referencing their real situation and goal","weeks":[{"n":1,"focus":"short focus title","days":[{"d":1,"tasks":["task","task"]}, ... 7 days]}, ... all 8 weeks]}`;
+      const classification = classifyPlanAnswers(local);
       const out = await callModel({
         system: sys, maxTokens: 5200, timeoutMs: 30000,
-        messages: [{ role: "user", content: `Their name: ${name || "friend"}. Their setup answers (JSON): ${JSON.stringify(local)}. Build the full, personalised 8-week plan now, with at least two tasks every day.` }],
+        messages: [{ role: "user", content: `Their name: ${name || "friend"}. Their setup answers (JSON): ${JSON.stringify(local)}. Internal classification for pacing only: ${JSON.stringify(classification)}. Build the full, personalised 8-week plan now, with at least two tasks every day.` }],
       });
       let clean = out.split("```json").join("").split("```").join("").trim();
       const first = clean.indexOf("{"), last = clean.lastIndexOf("}");
@@ -4745,7 +4783,7 @@ Respond with ONLY valid JSON, no markdown fences, exactly this shape:
         const walkingDays = w.days.filter((d) => d.tasks.some((t) => /walk|walking/i.test(String(t)) && /20\s*[- ]?minute|20\s*min/i.test(String(t)))).length;
         return validDays && walkingDays === 7;
       });
-      if (usable) plan = parsed;
+      if (usable) plan = { ...parsed, classification };
       else throw new Error("plan did not meet the required structure");
     } catch {
       plan = fallbackPlan(name, local);
@@ -5203,6 +5241,7 @@ function ProgramPage({ profile, plan, progress, saveProgress, answers, journalCo
   const weekPct = currentWeekKeys.length ? Math.round((currentWeekDone / currentWeekKeys.length) * 100) : 0;
   const [wk, setWk] = useState(currentWeek);
   const [showAllDays, setShowAllDays] = useState(false);
+  const [dayCheckIns, setDayCheckIns] = useState({});
   const week = weeks.find((w) => w.n === wk);
   const walkTaskKeys = week ? weekTaskKeys(week).filter((k) => {
     const match = k.match(/^w(\d+)d(\d+)t(\d+)$/); if (!match) return false;
@@ -5222,6 +5261,16 @@ function ProgramPage({ profile, plan, progress, saveProgress, answers, journalCo
   const weekStart = (n) => started ? addDays(started, (n - 1) * 7) : null;
   const dayDate = (n, d) => started ? addDays(started, (n - 1) * 7 + (d - 1)) : null;
   const planEnd = started ? addDays(started, (weeks.length || 8) * 7 - 1) : null;
+
+  const checkInKey = (weekNumber, dayNumber) => `w${weekNumber}d${dayNumber}`;
+  const firstDayCheckIn = week?.days?.[0] ? dayCheckIns[checkInKey(wk, week.days[0].d)] : null;
+  const checkInOptions = [
+    { key: "overwhelmed", label: "Really overwhelmed", note: "We’ll keep today to one tiny grounding step." },
+    { key: "low", label: "Low or flat", note: "We’ll keep the pace gentle and simple." },
+    { key: "steady", label: "Steady enough", note: "We’ll take the day one step at a time." },
+    { key: "ready", label: "Ready for a little more", note: "We can try one small stretch if it feels right." },
+  ];
+  const setDayCheckIn = (dayNumber, value) => setDayCheckIns((old) => ({ ...old, [checkInKey(wk, dayNumber)]: value }));
 
   const TaskRow = ({ label, k }) => {
     const on = progress[k];
@@ -5314,11 +5363,17 @@ function ProgramPage({ profile, plan, progress, saveProgress, answers, journalCo
 
             {week && Array.isArray(week.days) ? (
               <>
+                <div style={{ background: "linear-gradient(135deg, #fffaf0, #f1f8f3)", border: `1px solid ${T.line}`, borderRadius: 16, padding: 13, marginTop: 12 }}>
+                  <div style={{ fontWeight: 800, fontSize: 14 }}>Before we choose today’s pace</div>
+                  <div style={{ fontSize: 12.5, color: T.sub, lineHeight: 1.4, margin: "4px 0 9px" }}>How are you feeling right now? There’s no right answer, and this does not change your progress.</div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>{checkInOptions.map((option) => <button key={option.key} onClick={() => setDayCheckIn(week.days[0].d, option.key)} style={{ borderRadius: 999, border: `1px solid ${firstDayCheckIn === option.key ? T.green : T.line}`, background: firstDayCheckIn === option.key ? "#e1f2e6" : "#fff", color: T.ink, padding: "8px 10px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>{option.label}</button>)}</div>
+                  {firstDayCheckIn && <div style={{ color: T.greenDk, fontSize: 12, marginTop: 8 }}>{checkInOptions.find((x) => x.key === firstDayCheckIn)?.note}</div>}
+                </div>
                 {(showAllDays ? week.days : week.days.slice(0, 2)).map((day) => (
                   <div key={day.d} style={{ background: day.d % 2 ? "linear-gradient(135deg, #ffffff, #f8fbf8)" : "linear-gradient(135deg, #fffdf9, #ffffff)", border: `1px solid ${T.line}`, borderRadius: 17, padding: "12px 13px", marginTop: 12, boxShadow: "0 5px 14px rgba(47,97,72,0.045)" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 4 }}><div style={{ fontSize: 11, fontWeight: 900, color: T.greenDk, textTransform: "uppercase", letterSpacing: 0.8 }}>Day {day.d}</div>{started && <div style={{ fontSize: 11, color: T.sub }}>{fmtD(dayDate(week.n, day.d))}</div>}</div>
                     <div style={{ height: 2, width: 34, borderRadius: 999, background: day.d % 2 ? T.green : "#d99b67", marginBottom: 4 }} />
-                    {(day.tasks || []).map((t, ti) => <TaskRow key={ti} label={t} k={`w${week.n}d${day.d}t${ti}`} />)}
+                    {day.d === week.days[0].d && !firstDayCheckIn ? <div style={{ fontSize: 13, color: T.sub, padding: "10px 0 3px", lineHeight: 1.45 }}>Choose a quick check-in above and we’ll show the right-sized version of today’s tasks.</div> : day.d === week.days[0].d && firstDayCheckIn === "overwhelmed" ? <TaskRow label="Bare minimum for today: put both feet on the floor, take three slow breaths, and let the rest wait." k={`w${week.n}d${day.d}t0`} /> : (day.tasks || []).map((t, ti) => <TaskRow key={ti} label={t} k={`w${week.n}d${day.d}t${ti}`} />)}
                   </div>
                 ))}
                 {week.days.length > 2 && (
@@ -5780,6 +5835,15 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
     }
     sendLockRef.current = true;
     if (!img) lastSubmittedTextRef.current = { text, at: now };
+    if (!img && isCrisisText(text)) {
+      stop(); setErr(null); setInput("");
+      const crisisUser = { role: "user", content: text, ts: Date.now() };
+      const crisisReply = { role: "assistant", content: "I’m really glad you told me. I’m going to pause the usual conversation because you deserve proper human support around you right now. Please use one of the contacts below, and if you might act on these thoughts or are in immediate danger, call 000 now.", ts: Date.now() };
+      setHistory([...history, crisisUser, crisisReply]);
+      setCrisisActive(true);
+      sendLockRef.current = false; setBusy(false);
+      return;
+    }
     // Response speed: the person's saved Settings preference, unless this one
     // reply was sent via the ⚡ Fast Reply button, which overrides it just once.
     const effSpeed = (opts && opts.forceFast) ? "fast" : (responseSpeed || "normal");
@@ -5980,6 +6044,8 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
         {busy && <div style={{ fontSize: 13, color: T.sub, paddingLeft: 4 }}>{char.name} is thinking…</div>}
         {err && <div style={{ fontSize: 13, color: "#c0392b", background: "#fdecec", borderRadius: 12, padding: "8px 12px" }}>{err}</div>}
       </div>
+
+      {crisisActive && <CrisisInterception onDismiss={() => setCrisisActive(false)} />}
 
       {pendingImage && (
         <div style={{ display: "flex", alignItems: "center", gap: 10, background: T.card, borderRadius: 14,
