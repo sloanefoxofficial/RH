@@ -1717,14 +1717,23 @@ function HoldToTalk({ onText, onStart, size = 52 }) {
       if (e && (e.error === "not-allowed" || e.error === "service-not-allowed")) {
         setErr("Mic access is blocked — check your browser/site permissions.");
         heldRef.current = false;
+      } else if (e && e.error) {
+        voiceDebug("tap recognition error", e.error);
       }
     };
     r.onend = () => {
       recRef.current = null;
-      const seg = sessionFinal.trim();     // only finalized recognition results are committed
+      // On iPhone, tapping to stop can arrive while the last phrase is still
+      // interim. Keep it rather than silently submitting an empty message.
+      const seg = (sessionFinal || interimText).trim();
       if (seg) committedRef.current = (committedRef.current + " " + seg).trim();
       sessionFinal = ""; interimText = "";
-      if (heldRef.current) { runSession(); return; } // still held — keep listening seamlessly
+      if (heldRef.current) {
+        // Chain short sessions while the button remains active, but yield to
+        // WebKit briefly so it can release the previous recognition instance.
+        setTimeout(() => { if (heldRef.current && !recRef.current) runSession(); }, 60);
+        return;
+      }
       setListening(false);
       const t = cleanTranscript(committedRef.current);
       if (t && !submittedRef.current) { submittedRef.current = true; voiceDebug("tap transcript submitted", t); onText(t); }
@@ -1758,18 +1767,17 @@ function HoldToTalk({ onText, onStart, size = 52 }) {
     if (!supported) { setErr("Voice input isn't supported here — please type."); return; }
     if (onStart) onStart();
     setErr(null); committedRef.current = ""; submittedRef.current = false; heldRef.current = true;
-    // Only pay the mic-wake delay when it's actually needed — right after a
-    // guide's voice has played. Otherwise (first message, or voice off) start
-    // listening immediately, so the beginning of what someone says isn't lost.
-    const justHeardVoice = Date.now() - __lastVoiceAt < 4000;
-    if (justHeardVoice) {
-      setTimeout(() => {
-        if (!heldRef.current) return;
-        wakeMic().then(() => { if (heldRef.current) runSession(); });
-      }, 150);
-    } else {
-      runSession();
-    }
+    // Start inside the original tap gesture. Waiting for getUserMedia() or a
+    // timeout before calling SpeechRecognition.start() can lose WebKit's user
+    // activation and leave the button red but completely silent.
+    runSession();
+    // If the just-finished guide audio left iOS's audio session in playback mode,
+    // use the microphone wake-up only as a recovery attempt after the immediate
+    // start has failed. This path never delays the first recognition attempt.
+    setTimeout(() => {
+      if (!heldRef.current || recRef.current) return;
+      wakeMic().then(() => { if (heldRef.current && !recRef.current) runSession(); });
+    }, 180);
     // Browsers cap a single listening session (~1 min, and they stop on pauses).
     // This keeps the mic alive no matter how long someone talks: if a session has
     // ended and a restart didn't take, revive it. Nobody gets cut off mid-sentence.
