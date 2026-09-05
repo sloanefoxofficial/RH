@@ -5198,7 +5198,7 @@ function MerchPage({ onBack }) {
 /* ---------- Your 8-week program page ---------- */
 function ProgramPage({ profile, plan, progress, saveProgress, answers, journalCount, chats, onSaveChat, memories, onConversation, voiceOn, setVoiceOn, responseSpeed, onOpenTool, persona, onOpenChat, onOpenJournal, onStartPlan, isSignupLanding, onBack }) {
   const [coachOpen, setCoachOpen] = useState(false);
-  const programWelcome = "This is where it all began — our story, our program, and exactly how it works. Welcome. I built this so no one has to walk this road alone. Take your time, read through, and reach out anytime.";
+  const programWelcome = "This is your tailor-made 8-week plan, shaped around what you told us about your life, your energy, and what you want to work towards. It grows week by week, starting gently and building practical steps at a pace that fits you. I’m here to help you understand each week, answer your questions, make tasks feel manageable, and help you notice your progress — without pressure and without judgement.";
   const { speak: speakProgramWelcome, stop: stopProgramWelcome, prefetch: prefetchProgramWelcome } = useVoice(voiceOn);
   useEffect(() => {
     if (!voiceOn || !__autoVoiceOn) return undefined;
