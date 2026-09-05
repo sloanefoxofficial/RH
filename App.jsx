@@ -936,7 +936,7 @@ export default function App() {
             onOpenJournal={() => go("journal")}
             onStartPlan={() => { setOnbMode("full"); setOnbFromSignup(false); setOnbReturn("program"); setPlanSignupLanding(false); go("onboarding"); }}
             isSignupLanding={planSignupLanding}
-            onBack={planSignupLanding ? openHubFromPlan : openToolkitFromPlan}
+            onBack={openHubFromPlan}
           />
         ) : screen === "guides" ? (
           <GuidesPage voiceOn={voiceOn} onOpenChat={(slug) => go("chat", slug)} onBack={back} />
@@ -4002,7 +4002,7 @@ function Settings({ textScale, reduceMotion, responseSpeed, speechLang, autoIntr
         Set up the Hub in a way that feels comfortable. Your choices are saved on this device.
       </p>
 
-      <div style={{ fontSize: 11.5, color: T.greenDk, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase", margin: "4px 2px 9px" }}>Make it comfortable</div>
+      <div style={{ fontSize: 15, color: T.greenDk, fontWeight: 900, letterSpacing: 0.7, textTransform: "uppercase", margin: "7px 2px 10px" }}>Make it comfortable</div>
       <div style={{ background: T.card, borderRadius: 18, padding: 16, boxShadow: T.soft, marginBottom: 14 }}>
         <div style={{ fontWeight: 700, marginBottom: 4 }}>Text size</div>
         <p style={{ fontSize: 12.5, color: T.sub, margin: "0 0 12px" }}>Make everything a little smaller or larger.</p>
@@ -4025,7 +4025,7 @@ function Settings({ textScale, reduceMotion, responseSpeed, speechLang, autoIntr
         </p>
       </div>
 
-      <div style={{ fontSize: 11.5, color: T.greenDk, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase", margin: "20px 2px 9px" }}>Voice &amp; speech</div>
+      <div style={{ fontSize: 15, color: T.greenDk, fontWeight: 900, letterSpacing: 0.7, textTransform: "uppercase", margin: "22px 2px 10px" }}>Voice &amp; speech</div>
       <div style={{ background: T.card, borderRadius: 18, padding: 16, boxShadow: T.soft, marginBottom: 14 }}>
         <div style={{ fontWeight: 700, marginBottom: 4 }}>Response speed</div>
         <p style={{ fontSize: 12.5, color: T.sub, margin: "0 0 12px", lineHeight: 1.45 }}>
@@ -4071,7 +4071,7 @@ function Settings({ textScale, reduceMotion, responseSpeed, speechLang, autoIntr
         </select>
       </div>
 
-      <div style={{ fontSize: 11.5, color: T.greenDk, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase", margin: "20px 2px 9px" }}>Your device</div>
+      <div style={{ fontSize: 15, color: T.greenDk, fontWeight: 900, letterSpacing: 0.7, textTransform: "uppercase", margin: "22px 2px 10px" }}>Your device</div>
       <div style={{ background: T.card, borderRadius: 18, padding: 16, boxShadow: T.soft, marginTop: 0, marginBottom: 14 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{ width: 40, height: 40, borderRadius: 12, background: "#e6f3ec", display: "grid", placeItems: "center", flexShrink: 0 }}>
@@ -4144,7 +4144,7 @@ function Settings({ textScale, reduceMotion, responseSpeed, speechLang, autoIntr
         </div>
       )}
 
-      <div style={{ fontSize: 11.5, color: "#7055a8", fontWeight: 800, letterSpacing: 1, textTransform: "uppercase", margin: "20px 2px 9px" }}>Privacy</div>
+      <div style={{ fontSize: 15, color: "#7055a8", fontWeight: 900, letterSpacing: 0.7, textTransform: "uppercase", margin: "22px 2px 10px" }}>Privacy</div>
       <div style={{ background: T.card, borderRadius: 18, padding: 16, boxShadow: T.soft, marginTop: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
           <div style={{ width: 40, height: 40, borderRadius: 12, background: "#eee9f8", display: "grid", placeItems: "center", flexShrink: 0 }}>
@@ -4186,7 +4186,7 @@ function Settings({ textScale, reduceMotion, responseSpeed, speechLang, autoIntr
         )}
       </div>
 
-      <div style={{ fontSize: 11.5, color: T.greenDk, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase", margin: "20px 2px 9px" }}>Help &amp; feedback</div>
+      <div style={{ fontSize: 15, color: T.greenDk, fontWeight: 900, letterSpacing: 0.7, textTransform: "uppercase", margin: "22px 2px 10px" }}>Help &amp; feedback</div>
       <button onClick={onOpenBugReport} style={{ width: "100%", background: T.card, borderRadius: 18, padding: 16,
         boxShadow: T.soft, border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 12,
         textAlign: "left", marginTop: 14 }}>
@@ -4213,7 +4213,7 @@ function Settings({ textScale, reduceMotion, responseSpeed, speechLang, autoIntr
         <ChevronRight size={20} color={T.sub} />
       </button>
 
-      <div style={{ fontSize: 11.5, color: "#9b761f", fontWeight: 800, letterSpacing: 1, textTransform: "uppercase", margin: "20px 2px 9px" }}>Reset</div>
+      <div style={{ fontSize: 15, color: "#9b761f", fontWeight: 900, letterSpacing: 0.7, textTransform: "uppercase", margin: "22px 2px 10px" }}>Reset</div>
       <div style={{ background: "#fffaf0", border: "1px solid #f0dfb1", borderRadius: 18, padding: 16, boxShadow: T.soft, marginTop: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{ width: 40, height: 40, borderRadius: 12, background: "#fff0c7", display: "grid", placeItems: "center", flexShrink: 0 }}>
@@ -5328,7 +5328,7 @@ function ProgramPage({ profile, plan, progress, saveProgress, answers, journalCo
 
   return (
     <>
-      <Brand right={<BackBtn onBack={onBack} label={isSignupLanding ? "Explore The App" : "Toolkit"} />} />
+      <Brand right={<BackBtn onBack={onBack} label={isSignupLanding ? "Explore The App" : "Hub"} />} />
       <SectionTitle>Your 8-Week Plan</SectionTitle>
       <div className="rh-in" style={{ display: "flex", gap: 11, alignItems: "center", margin: "0 0 14px" }}>
         <Portrait src={CHARS.carlos.img} name="Carlos" size={58} speaking={false} tint={CHARS.carlos.tint} />
@@ -5635,7 +5635,7 @@ function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, set
         </div>
         <div style={{ position: "relative", fontSize: 13.5, color: T.sub, lineHeight: 1.55 }}>
           A warm place to get support, one step at a time. Not sure who to talk to?
-          <br />• <strong style={{ color: T.ink }}>Juan</strong> — a mate who gets it, for anything at all
+          <br />• <strong style={{ color: T.ink }}>Nicolas</strong> — an AI mate who gets it, for anything at all
           <br />• <strong style={{ color: T.ink }}>Carlos</strong> — calming, clinical tools for stress &amp; low mood
           <br />• <strong style={{ color: T.ink }}>Mick</strong> — housing, bills &amp; practical life
           <br />• <strong style={{ color: T.ink }}>Lila</strong> — family &amp; relationships
@@ -5661,7 +5661,7 @@ function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, set
       <SectionTitle>Your journey</SectionTitle>
       <div style={{ display: "flex", flexDirection: "column", gap: 11 }}>
         {card(onOpenProgramInfo, "#e9f5ee", "#2c7d50", Heart, "Resilience & Recovery Program", "Our free 8-week in-person program — how it works & how to join")}
-        {card(onOpenGuides, "#f4e3d9", "#c9803f", Users, "Your guides", "Juan, Carlos, Mick & Lila — chat any time")}
+        {card(onOpenGuides, "#f4e3d9", "#c9803f", Users, "Your guides", "Nicolas, Carlos, Mick & Lila — chat any time")}
         {card(onOpenToolkit, "#dceee2", "#2c7d50", Wrench, "Toolkit", "Calm down, reflect & grow, stay safe")}
         {card(onOpenProgram, "#e7eefb", "#3f6faf", CalendarCheck, plan ? "Your 8-Week Plan" : "Optional 8-Week Plan", plan ? "Your active plan, progress & next steps" : "Your plan, progress & next steps — use it if it helps")}
         <button onClick={onOpenJournal} aria-label="Private Journal: A calm, PIN-protected place for your thoughts" style={{ width: "100%", background: "linear-gradient(125deg, #fffdf7 0%, #f7f0dc 48%, #edf7f0 100%)", borderRadius: 21, padding: 15, boxShadow: T.soft, border: "1px solid rgba(201,162,39,0.20)", cursor: "pointer", display: "flex", alignItems: "center", gap: 13, textAlign: "left", position: "relative", overflow: "hidden" }}>
