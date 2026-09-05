@@ -5961,7 +5961,7 @@ function GuideRow({ char, onClick, big }) {
 function Chat({ char, profile, answers, history, setHistory, plan, progress, saveProgress, persona, memories, onConversation, voiceOn, setVoiceOn, onBack, onOpenTool, embedded, planCoachContext, responseSpeed, speechLang, onReplayIntro }) {
   const { speak, stop, speaking, paused, pauseResume, prefetch } = useVoice(voiceOn);
   const guideWelcome = char.slug === "juan"
-    ? "G'day, I'm Juan. Ask me anything — I'm here for it all. No question is too small, and no topic is off-limits."
+    ? "G'day, I'm Nicolas. Ask me anything — I'm here for it all. No question is too small, and no topic is off-limits."
     : char.slug === "carlos"
     ? "Hi, I'm Carlos, an AI guide inspired by our Registered Psychologist, Carlos Camacho. We can take things one step at a time."
     : char.slug === "lila"
