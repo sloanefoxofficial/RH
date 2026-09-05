@@ -870,11 +870,11 @@ export default function App() {
             onStart={() => { saveProfile({ name: "", path: "full", onboardingComplete: false }); go("intro"); }}
           />
         ) : screen === "intro" ? (
-          <RexIntro voiceOn={voiceOn}
+          <RexIntro voiceOn={voiceOn} speechLang={speechLang}
             onReady={() => { if (rexIntroReplay) { setRexIntroReplay(false); back(); } else go("planChoice"); }}
             onExit={rexIntroReplay ? () => { setRexIntroReplay(false); back(); } : null} />
         ) : screen === "planChoice" ? (
-          <PlanChoice voiceOn={voiceOn}
+          <PlanChoice voiceOn={voiceOn} speechLang={speechLang}
             onYes={() => { setOnbMode("full"); setOnbFromSignup(true); setOnbReturn("program"); saveProfile({ ...profile, planPath: "full" }); go("onboarding"); }}
             onNo={() => { setOnbMode("short"); setOnbFromSignup(true); setOnbReturn("hub"); saveProfile({ ...profile, planPath: "short" }); go("onboarding"); }} />
         ) : screen === "onboarding" ? (
@@ -930,7 +930,7 @@ export default function App() {
             answers={answers} journalCount={journal.length} chats={chats}
             onSaveChat={saveCharChat} memories={memoryOn ? memories : []}
             onConversation={refreshMemory} voiceOn={voiceOn} setVoiceOn={setVoiceOn}
-            responseSpeed={responseSpeed} onOpenTool={openTool}
+            responseSpeed={responseSpeed} speechLang={speechLang} onOpenTool={openTool}
             persona={guidePrompts.carlos ?? PERSONALITY_DEFAULTS.carlos}
             onOpenChat={(slug) => go("chat", slug)}
             onOpenJournal={() => go("journal")}
@@ -939,7 +939,7 @@ export default function App() {
             onBack={openHubFromPlan}
           />
         ) : screen === "guides" ? (
-          <GuidesPage voiceOn={voiceOn} onOpenChat={(slug) => go("chat", slug)} onBack={back} />
+          <GuidesPage voiceOn={voiceOn} speechLang={speechLang} onOpenChat={(slug) => go("chat", slug)} onBack={back} />
         ) : screen === "merch" ? (
           <MerchPage onBack={back} />
         ) : screen === "carlosLibrary" ? (
@@ -959,7 +959,7 @@ export default function App() {
             memories={memoryOn ? memories : []}
             onConversation={refreshMemory}
             voiceOn={voiceOn} setVoiceOn={setVoiceOn}
-            responseSpeed={responseSpeed}
+            responseSpeed={responseSpeed} speechLang={speechLang}
             onBack={back}
             onOpenTool={openTool}
             onReplayIntro={() => { setRexIntroReplay(true); go("intro"); }}
@@ -972,7 +972,7 @@ export default function App() {
               onBack={() => { setJournalUnlocked(false); back(); }} />
           )
         ) : screen === "toolkit" ? (
-          <Toolkit voiceOn={voiceOn} initial={toolkitInitial} onUseTool={tickToolTask} onOpenJournal={() => go("journal")} onBack={back} />
+          <Toolkit voiceOn={voiceOn} speechLang={speechLang} initial={toolkitInitial} onUseTool={tickToolTask} onOpenJournal={() => go("journal")} onBack={back} />
         ) : screen === "resources" ? (
           <ResourcesPage onOpenSafety={() => openTool("safety")} onOpenMensShed={() => go("mensShed")} onBack={back} />
         ) : screen === "admin" ? (
@@ -994,7 +994,7 @@ export default function App() {
         ) : screen === "mensGroup" ? (
           <MensGroup onBack={back} />
         ) : screen === "programInfo" ? (
-          <ProgramInfo voiceOn={voiceOn} onBack={back} onMessageJuan={() => go("coordinator")} onBookAppointment={() => go("bookAppointment")} />
+          <ProgramInfo voiceOn={voiceOn} speechLang={speechLang} onBack={back} onMessageJuan={() => go("coordinator")} onBookAppointment={() => go("bookAppointment")} />
         ) : screen === "bookAppointment" ? (
           <BookAppointment onBack={back} />
         ) : screen === "memory" ? (
@@ -1238,6 +1238,7 @@ let __speechLang = "en-AU";
 const SPEECH_LANGS = [
   { code: "en-AU", label: "English (Australia)" },
   { code: "es-ES", label: "Spanish — Español" },
+  { code: "es-UY", label: "Spanish — Uruguay (Español uruguayo)" },
   { code: "it-IT", label: "Italian — Italiano" },
   { code: "el-GR", label: "Greek — Ελληνικά" },
   { code: "vi-VN", label: "Vietnamese — Tiếng Việt" },
@@ -1252,6 +1253,143 @@ const SPEECH_LANGS = [
   { code: "id-ID", label: "Indonesian — Bahasa Indonesia" },
   { code: "th-TH", label: "Thai — ภาษาไทย" },
 ];
+
+// Spoken copy for automatic welcomes and introductions. The on-screen copy stays
+// in English for now; only the audio follows the language selected in Settings.
+const AUTO_INTRO_SPEECH = {
+  "en-AU": {
+    toolkit: "Welcome to the Toolkit — a collection of things that can help, whenever you need them. Take your time, look around, and choose whatever feels right today.",
+    guides: "Welcome to your guides — AI guided support from a team you can turn to whenever you need it. Choose the voice that feels right for you today.",
+    plan: "This is your tailor-made 8-week plan, shaped around what you told us about your life, your energy, and what you want to work towards. It grows week by week, starting gently and building practical steps at a pace that fits you. I’m here to help you understand each week, answer your questions, and help you notice your progress without pressure or judgement.",
+    program: "Hi, I’m Juan, the founder of The Resilience Hub. This program is free and built around you. We listen to where you’re at, shape practical support at your pace, and connect you with the right people. If you need help, use Message Juan to reach the real me, talk with an AI guide, or use Help Now for urgent human support.",
+    planChoice: "Before we go any further, would you like Carlos to put together a personalised 8-week plan for you? I’ll ask a handful of questions so he can shape it around what you’re dealing with. If you’d rather use the guides and Toolkit for now, that’s completely fine.",
+    chat: "Hi, I’m your AI guide. Take your time — we can talk things through at your pace."
+  },
+  "es-ES": {
+    toolkit: "Te damos la bienvenida al Kit de herramientas: una colección de recursos que pueden ayudarte cuando los necesites. Tómate tu tiempo y elige lo que te parezca adecuado hoy.",
+    guides: "Te damos la bienvenida a tus guías: apoyo guiado por inteligencia artificial, disponible cuando lo necesites. Elige la voz que te resulte más cómoda hoy.",
+    plan: "Este es tu plan personalizado de ocho semanas, creado a partir de lo que nos contaste sobre tu vida, tu energía y tus objetivos. Avanza semana a semana, empezando con calma y construyendo pasos prácticos a un ritmo que te encaje. Estoy aquí para ayudarte a entender cada semana, responder tus preguntas y reconocer tu progreso sin presión ni juicios.",
+    program: "Hola, soy Juan, el fundador de The Resilience Hub. Este programa es gratuito y está pensado para ti. Escuchamos cómo estás, adaptamos el apoyo a tu ritmo y te conectamos con las personas adecuadas. Si necesitas ayuda, usa Mensaje a Juan para contactar conmigo, habla con una guía de inteligencia artificial o usa Ayuda ahora para recibir apoyo humano urgente.",
+    planChoice: "Antes de continuar, ¿te gustaría que Carlos preparara para ti un plan personalizado de ocho semanas? Te haré unas preguntas para adaptarlo a lo que estás viviendo. Si prefieres usar primero las guías y el Kit de herramientas, también está bien.",
+    chat: "Hola, soy tu guía de inteligencia artificial. Tómate tu tiempo: podemos hablar de lo que necesites a tu ritmo."
+  },
+  "es-UY": {
+    toolkit: "Bienvenido al Kit de herramientas: un conjunto de recursos que pueden ayudarte cuando los necesites. Tomate tu tiempo y elegí lo que te haga sentido hoy.",
+    guides: "Bienvenido a tus guías: apoyo acompañado por inteligencia artificial, disponible cuando lo necesites. Elegí la voz que te resulte más cómoda hoy.",
+    plan: "Este es tu plan personalizado de ocho semanas, armado a partir de lo que nos contaste sobre tu vida, tu energía y lo que querés alcanzar. Avanza semana a semana, empezando de forma tranquila y sumando pasos prácticos a un ritmo que te quede bien. Estoy acá para ayudarte a entender cada semana, responder tus preguntas y reconocer tus avances, sin presión ni juicios.",
+    program: "Hola, soy Juan, el fundador de The Resilience Hub. Este programa es gratuito y está pensado para vos. Escuchamos en qué estás, adaptamos el apoyo a tu ritmo y te conectamos con las personas indicadas. Si necesitás ayuda, usá Mensaje a Juan para contactarme, hablá con una guía de inteligencia artificial o usá Ayuda ahora para recibir apoyo humano urgente.",
+    planChoice: "Antes de seguir, ¿querés que Carlos te prepare un plan personalizado de ocho semanas? Te voy a hacer algunas preguntas para adaptarlo a lo que estás viviendo. Si preferís usar primero las guías y el Kit de herramientas, está perfecto.",
+    chat: "Hola, soy tu guía de inteligencia artificial. Tomate tu tiempo: podemos hablar de lo que necesites, a tu ritmo."
+  },
+  "it-IT": {
+    toolkit: "Benvenuto nel Kit di strumenti: una raccolta di risorse che possono aiutarti quando ne hai bisogno. Prenditi il tuo tempo e scegli ciò che ti sembra giusto oggi.",
+    guides: "Benvenuto tra le tue guide: supporto guidato dall’intelligenza artificiale, disponibile quando ne hai bisogno. Scegli la voce che ti fa sentire più a tuo agio oggi.",
+    plan: "Questo è il tuo piano personalizzato di otto settimane, costruito intorno a ciò che ci hai raccontato della tua vita, della tua energia e dei tuoi obiettivi. Cresce settimana dopo settimana, iniziando con calma e aggiungendo passi pratici al ritmo adatto a te. Sono qui per aiutarti a capire ogni settimana, rispondere alle tue domande e riconoscere i tuoi progressi senza pressione né giudizio.",
+    program: "Ciao, sono Juan, il fondatore di The Resilience Hub. Questo programma è gratuito ed è costruito intorno a te. Ascoltiamo dove ti trovi, adattiamo il supporto al tuo ritmo e ti colleghiamo alle persone giuste. Se hai bisogno di aiuto, usa Messaggia Juan per contattare me, parla con una guida di intelligenza artificiale oppure usa Aiuto ora per ricevere supporto umano urgente.",
+    planChoice: "Prima di continuare, vuoi che Carlos prepari per te un piano personalizzato di otto settimane? Ti farò alcune domande per adattarlo a ciò che stai vivendo. Se preferisci usare prima le guide e il Kit di strumenti, va benissimo.",
+    chat: "Ciao, sono la tua guida di intelligenza artificiale. Prenditi il tuo tempo: possiamo parlare di ciò che ti serve al tuo ritmo."
+  },
+  "el-GR": {
+    toolkit: "Καλώς ήρθες στην Εργαλειοθήκη — μια συλλογή από πράγματα που μπορούν να σε βοηθήσουν όταν τα χρειάζεσαι. Πάρε τον χρόνο σου και διάλεξε ό,τι σου ταιριάζει σήμερα.",
+    guides: "Καλώς ήρθες στους οδηγούς σου — υποστήριξη με τεχνητή νοημοσύνη από μια ομάδα στην οποία μπορείς να απευθυνθείς όποτε χρειάζεσαι. Διάλεξε τη φωνή που σου ταιριάζει σήμερα.",
+    plan: "Αυτό είναι το προσωπικό σου πρόγραμμα οκτώ εβδομάδων, φτιαγμένο γύρω από όσα μας είπες για τη ζωή σου, την ενέργειά σου και τους στόχους σου. Προχωρά εβδομάδα με την εβδομάδα, ξεκινώντας ήπια και προσθέτοντας πρακτικά βήματα στον ρυθμό που σου ταιριάζει. Είμαι εδώ για να σε βοηθήσω να καταλάβεις κάθε εβδομάδα, να απαντήσω στις ερωτήσεις σου και να δεις την πρόοδό σου χωρίς πίεση ή κριτική.",
+    program: "Γεια, είμαι ο Juan, ο ιδρυτής του The Resilience Hub. Αυτό το πρόγραμμα είναι δωρεάν και είναι φτιαγμένο για εσένα. Ακούμε πού βρίσκεσαι, προσαρμόζουμε την υποστήριξη στον ρυθμό σου και σε συνδέουμε με τους σωστούς ανθρώπους. Αν χρειάζεσαι βοήθεια, στείλε μήνυμα στον Juan, μίλησε με έναν οδηγό τεχνητής νοημοσύνης ή χρησιμοποίησε την Άμεση βοήθεια για επείγουσα ανθρώπινη υποστήριξη.",
+    planChoice: "Πριν προχωρήσουμε, θα ήθελες ο Carlos να ετοιμάσει για εσένα ένα προσωπικό πρόγραμμα οκτώ εβδομάδων; Θα σου κάνω μερικές ερωτήσεις ώστε να το προσαρμόσει σε όσα αντιμετωπίζεις. Αν προτιμάς πρώτα τους οδηγούς και την Εργαλειοθήκη, είναι απολύτως εντάξει.",
+    chat: "Γεια, είμαι ο οδηγός σου με τεχνητή νοημοσύνη. Πάρε τον χρόνο σου — μπορούμε να μιλήσουμε με τον δικό σου ρυθμό."
+  },
+  "vi-VN": {
+    toolkit: "Chào mừng bạn đến với Bộ công cụ — nơi có những điều có thể giúp bạn bất cứ khi nào cần. Hãy thong thả và chọn điều phù hợp với bạn hôm nay.",
+    guides: "Chào mừng bạn đến với các hướng dẫn viên — sự hỗ trợ có AI, luôn sẵn sàng khi bạn cần. Hãy chọn giọng nói khiến bạn thấy thoải mái hôm nay.",
+    plan: "Đây là kế hoạch tám tuần được thiết kế riêng cho bạn, dựa trên những gì bạn chia sẻ về cuộc sống, năng lượng và điều bạn muốn hướng tới. Kế hoạch tiến triển từng tuần, bắt đầu nhẹ nhàng và thêm các bước thực tế theo nhịp phù hợp với bạn. Tôi ở đây để giúp bạn hiểu từng tuần, trả lời câu hỏi và nhận ra tiến bộ của mình mà không áp lực hay phán xét.",
+    program: "Xin chào, tôi là Juan, người sáng lập The Resilience Hub. Chương trình này miễn phí và được xây dựng quanh bạn. Chúng tôi lắng nghe hoàn cảnh của bạn, điều chỉnh hỗ trợ theo nhịp của bạn và kết nối bạn với đúng người. Nếu cần giúp đỡ, hãy nhắn cho Juan thật, trò chuyện với hướng dẫn viên AI hoặc dùng Help Now để nhận hỗ trợ khẩn cấp từ con người.",
+    planChoice: "Trước khi tiếp tục, bạn có muốn Carlos tạo một kế hoạch tám tuần riêng cho mình không? Tôi sẽ hỏi vài câu để điều chỉnh kế hoạch theo những gì bạn đang trải qua. Nếu bạn muốn dùng các hướng dẫn viên và Bộ công cụ trước, điều đó hoàn toàn ổn.",
+    chat: "Xin chào, tôi là hướng dẫn viên AI của bạn. Hãy thong thả — chúng ta có thể trò chuyện theo nhịp của bạn."
+  },
+  "zh-CN": {
+    toolkit: "欢迎来到工具箱——这里有一些在你需要时可以帮助你的内容。慢慢来，选择今天对你有用的东西。",
+    guides: "欢迎来到你的向导区——一组随时可以陪伴你的人工智能支持向导。请选择今天让你感觉舒服的声音。",
+    plan: "这是为你量身定制的八周计划，根据你分享的生活、精力和目标来安排。计划会一周一周地发展，从轻松的步骤开始，以适合你的节奏增加实际行动。我会帮助你理解每一周、回答问题，并在没有压力或评判的情况下看见自己的进步。",
+    program: "你好，我是 Juan，Resilience Hub 的创始人。这个项目完全免费，并且围绕你来安排。我们会了解你的处境，按照你的节奏提供实际支持，并帮助你联系合适的人。如果你需要帮助，可以给真实的 Juan 发消息，和人工智能向导聊天，或使用“现在需要帮助”获得紧急人工支持。",
+    planChoice: "在继续之前，你想让 Carlos 为你制定一份个性化的八周计划吗？我会问几个问题，让计划贴合你正在经历的事情。如果你想先使用向导和工具箱，也完全可以。",
+    chat: "你好，我是你的人工智能向导。慢慢来——我们可以按照你的节奏聊聊。"
+  },
+  "yue-Hant-HK": {
+    toolkit: "歡迎嚟到工具箱——入面有一啲喺你需要時可以幫到你嘅嘢。慢慢嚟，揀一樣今日適合你嘅就得。",
+    guides: "歡迎嚟到你嘅向導區——一班你有需要時可以搵到嘅人工智能向導。揀一把今日令你覺得舒服嘅聲音啦。",
+    plan: "呢個係為你度身訂造嘅八星期計劃，按住你分享嘅生活、精力同目標去安排。計劃會一星期一星期咁發展，由輕鬆嘅步驟開始，按住你嘅節奏加入實際行動。我會幫你了解每一星期、回答問題，亦會陪你睇到自己嘅進步，唔會畀你壓力或者批判你。",
+    program: "你好，我係 Juan，Resilience Hub 嘅創辦人。呢個計劃係免費，而且係圍繞你去安排。我哋會聽你而家嘅情況，按你嘅步伐提供實際支援，亦會幫你連繫合適嘅人。如果你需要幫手，可以留言畀真正嘅 Juan、同人工智能向導傾偈，或者用「即時求助」搵緊急真人支援。",
+    planChoice: "繼續之前，你想唔想 Carlos 幫你整一份個人化八星期計劃？我會問幾條問題，令計劃貼合你而家面對嘅事。如果你想先用向導同工具箱，完全冇問題。",
+    chat: "你好，我係你嘅人工智能向導。慢慢嚟——我哋可以按你嘅節奏傾下偈。"
+  },
+  "ar-SA": {
+    toolkit: "مرحباً بك في مجموعة الأدوات — مجموعة من الأشياء التي يمكن أن تساعدك عندما تحتاج إليها. خذ وقتك واختر ما يناسبك اليوم.",
+    guides: "مرحباً بك في مساحة المرشدين — دعم موجّه بالذكاء الاصطناعي من فريق يمكنك الرجوع إليه متى احتجت. اختر الصوت الذي يناسبك اليوم.",
+    plan: "هذه خطتك الشخصية لثمانية أسابيع، وقد صُممت حول ما أخبرتنا به عن حياتك وطاقتك وما تريد الوصول إليه. تتقدم أسبوعاً بعد أسبوع، وتبدأ بلطف ثم تضيف خطوات عملية بالسرعة المناسبة لك. أنا هنا لأساعدك على فهم كل أسبوع، والإجابة عن أسئلتك، ورؤية تقدمك من دون ضغط أو أحكام.",
+    program: "مرحباً، أنا خوان، مؤسس Resilience Hub. هذا البرنامج مجاني ومصمم حولك. نستمع إلى وضعك، ونقدم دعماً عملياً بإيقاعك، ونساعدك على التواصل مع الأشخاص المناسبين. إذا احتجت إلى مساعدة، راسل خوان الحقيقي، أو تحدث مع أحد المرشدين بالذكاء الاصطناعي، أو استخدم المساعدة الآن للدعم البشري العاجل.",
+    planChoice: "قبل أن نتابع، هل تريد من كارلوس أن يضع لك خطة شخصية لثمانية أسابيع؟ سأطرح عليك بعض الأسئلة حتى تناسب ما تمر به. وإذا كنت تفضل استخدام المرشدين ومجموعة الأدوات أولاً، فهذا مقبول تماماً.",
+    chat: "مرحباً، أنا مرشدك بالذكاء الاصطناعي. خذ وقتك — يمكننا التحدث بالإيقاع الذي يناسبك."
+  },
+  "hi-IN": {
+    toolkit: "टूलकिट में आपका स्वागत है — यहाँ ऐसी चीज़ें हैं जो ज़रूरत पड़ने पर आपकी मदद कर सकती हैं। अपना समय लें और आज जो ठीक लगे उसे चुनें।",
+    guides: "आपके गाइड्स में आपका स्वागत है — यह AI आधारित सहायता है, जिसे आप जब चाहें अपना सकते हैं। आज जिस आवाज़ से आराम मिले, उसे चुनें।",
+    plan: "यह आपका खास तौर पर बनाया गया आठ हफ्तों का प्लान है, जो आपकी ज़िंदगी, ऊर्जा और लक्ष्यों के बारे में आपकी बातों के आधार पर तैयार किया गया है। यह हर हफ्ते धीरे-धीरे आगे बढ़ता है और आपकी गति के अनुसार व्यावहारिक कदम जोड़ता है। मैं हर हफ्ते को समझने, सवालों के जवाब देने और बिना दबाव या आलोचना के आपकी प्रगति देखने में आपकी मदद करूँगा।",
+    program: "नमस्ते, मैं Juan हूँ, The Resilience Hub का संस्थापक। यह कार्यक्रम मुफ़्त है और आपके हिसाब से बनाया गया है। हम आपकी स्थिति सुनते हैं, आपकी गति से व्यावहारिक मदद देते हैं और आपको सही लोगों से जोड़ते हैं। मदद चाहिए तो असली Juan को संदेश भेजें, किसी AI गाइड से बात करें या तुरंत मानवीय सहायता के लिए Help Now इस्तेमाल करें।",
+    planChoice: "आगे बढ़ने से पहले, क्या आप चाहेंगे कि Carlos आपके लिए आठ हफ्तों का व्यक्तिगत प्लान बनाए? मैं कुछ सवाल पूछूँगा ताकि यह आपकी स्थिति के अनुसार हो। अगर आप अभी गाइड्स और टूलकिट इस्तेमाल करना चाहते हैं, तो यह भी बिल्कुल ठीक है।",
+    chat: "नमस्ते, मैं आपका AI गाइड हूँ। अपना समय लें — हम आपकी गति से बात कर सकते हैं।"
+  },
+  "fil-PH": {
+    toolkit: "Maligayang pagdating sa Toolkit — mga bagay na makakatulong sa iyo kapag kailangan mo. Dahan-dahan lang at piliin kung ano ang bagay sa iyo ngayon.",
+    guides: "Maligayang pagdating sa iyong mga guide — AI-guided support mula sa mga guide na maaari mong lapitan anumang oras. Piliin ang boses na komportable para sa iyo ngayon.",
+    plan: "Ito ang iyong tailor-made na walong linggong plano, batay sa ibinahagi mo tungkol sa buhay, enerhiya, at mga gusto mong maabot. Unti-unti itong umuunlad bawat linggo, nagsisimula nang banayad at nagdadagdag ng praktikal na hakbang sa bilis na bagay sa iyo. Nandito ako para tulungan kang maintindihan ang bawat linggo, sagutin ang iyong mga tanong, at makita ang progreso mo nang walang pressure o panghuhusga.",
+    program: "Kumusta, ako si Juan, ang founder ng The Resilience Hub. Libre ang programang ito at ginawa ito para sa iyo. Pakikinggan namin ang pinagdadaanan mo, magbibigay ng praktikal na suporta sa bilis mo, at tutulungan kang makipag-ugnayan sa tamang tao. Kung kailangan mo ng tulong, i-message ang totoong Juan, makipag-usap sa AI guide, o gamitin ang Help Now para sa agarang suporta ng tao.",
+    planChoice: "Bago tayo magpatuloy, gusto mo bang gumawa si Carlos ng personal na walong linggong plano para sa iyo? Magtatanong ako nang kaunti para maiangkop ito sa pinagdadaanan mo. Kung gusto mo munang gamitin ang mga guide at Toolkit, ayos lang iyon.",
+    chat: "Kumusta, ako ang iyong AI guide. Dahan-dahan lang — maaari tayong mag-usap sa bilis na komportable sa iyo."
+  },
+  "hr-HR": {
+    toolkit: "Dobro došli u Alatke — zbirku stvari koje vam mogu pomoći kada ih trebate. Uzmite vremena i odaberite ono što vam danas odgovara.",
+    guides: "Dobro došli među svoje vodiče — podrška uz umjetnu inteligenciju kojoj se možete obratiti kad god vam zatreba. Odaberite glas koji vam danas najviše odgovara.",
+    plan: "Ovo je vaš prilagođeni plan od osam tjedana, napravljen prema onome što ste nam rekli o svom životu, energiji i ciljevima. Razvija se iz tjedna u tjedan, počinje nježno i dodaje praktične korake tempom koji vam odgovara. Ovdje sam da vam pomognem razumjeti svaki tjedan, odgovorim na pitanja i primijetite svoj napredak bez pritiska i osuđivanja.",
+    program: "Pozdrav, ja sam Juan, osnivač The Resilience Hub-a. Ovaj je program besplatan i napravljen za vas. Slušamo gdje se nalazite, pružamo praktičnu podršku vašim tempom i povezujemo vas s pravim ljudima. Ako trebate pomoć, pošaljite poruku pravom Juanu, razgovarajte s AI vodičem ili upotrijebite Pomoć odmah za hitnu ljudsku podršku.",
+    planChoice: "Prije nego nastavimo, želite li da Carlos za vas sastavi osobni plan od osam tjedana? Postavit ću vam nekoliko pitanja kako bi odgovarao onome kroz što prolazite. Ako zasad želite koristiti vodiče i Alatke, i to je potpuno u redu.",
+    chat: "Pozdrav, ja sam vaš AI vodič. Uzmite vremena — možemo razgovarati vašim tempom."
+  },
+  "ko-KR": {
+    toolkit: "도구 상자에 오신 것을 환영합니다. 필요할 때 도움이 될 수 있는 여러 가지가 있어요. 천천히 둘러보고 오늘 마음에 맞는 것을 골라 보세요.",
+    guides: "가이드 공간에 오신 것을 환영합니다. 필요할 때 찾을 수 있는 AI 기반 지원팀이에요. 오늘 편안하게 느껴지는 목소리를 골라 보세요.",
+    plan: "이것은 여러분의 삶과 에너지, 이루고 싶은 목표에 대해 알려주신 내용을 바탕으로 만든 맞춤형 8주 계획입니다. 매주 조금씩 나아가며, 처음에는 부드럽게 시작하고 여러분에게 맞는 속도로 실천적인 단계를 더해 갑니다. 매주 내용을 이해하고 질문에 답하며, 부담이나 판단 없이 여러분의 발전을 알아차릴 수 있도록 도와드릴게요.",
+    program: "안녕하세요. 저는 The Resilience Hub의 설립자 Juan입니다. 이 프로그램은 무료이며 여러분을 중심으로 만들어졌습니다. 지금 어떤 상황인지 듣고, 여러분의 속도에 맞춰 실질적인 지원을 제공하며, 알맞은 사람들과 연결해 드립니다. 도움이 필요하면 실제 Juan에게 메시지를 보내거나 AI 가이드와 이야기하거나 긴급한 사람의 도움을 위해 Help Now를 이용하세요.",
+    planChoice: "계속하기 전에 Carlos가 여러분을 위한 맞춤형 8주 계획을 만들어 드릴까요? 지금 겪고 있는 일에 맞도록 몇 가지 질문을 드릴게요. 당장은 가이드와 도구 상자만 사용하고 싶다면 그것도 괜찮습니다.",
+    chat: "안녕하세요. 저는 여러분의 AI 가이드입니다. 천천히 하세요. 여러분의 속도에 맞춰 이야기할 수 있어요."
+  },
+  "ja-JP": {
+    toolkit: "ツールキットへようこそ。必要なときに役立つものを集めています。急がずに、今日の自分に合うものを選んでください。",
+    guides: "ガイドのページへようこそ。必要なときに頼れるAIガイドのサポートです。今日は安心できる声を選んでください。",
+    plan: "これは、あなたが話してくれた生活、エネルギー、目指したいことをもとに作る、あなた専用の8週間プランです。毎週少しずつ進み、最初は無理なく、あなたに合うペースで実践的な一歩を加えていきます。毎週の内容を理解し、質問に答え、プレッシャーや批判なく進歩に気づけるように、ここで支えます。",
+    program: "こんにちは。The Resilience Hubの創設者、Juanです。このプログラムは無料で、あなたを中心に作られています。今の状況を聞き、あなたのペースで実際的なサポートを考え、適切な人につなぎます。助けが必要なときは、本物のJuanにメッセージを送るか、AIガイドに話しかけるか、緊急の人の支援にはHelp Nowを使ってください。",
+    planChoice: "先に進む前に、Carlosにあなた専用の8週間プランを作ってもらいませんか。今抱えていることに合わせるため、いくつか質問します。まずはガイドやツールキットだけ使いたい場合も、もちろん大丈夫です。",
+    chat: "こんにちは。あなたのAIガイドです。急がなくて大丈夫。あなたのペースで話しましょう。"
+  },
+  "id-ID": {
+    toolkit: "Selamat datang di Toolkit — kumpulan hal yang bisa membantu saat kamu membutuhkannya. Luangkan waktu dan pilih yang terasa tepat untukmu hari ini.",
+    guides: "Selamat datang di panduanmu — dukungan berbasis AI dari tim yang bisa kamu datangi kapan pun kamu butuh. Pilih suara yang terasa nyaman hari ini.",
+    plan: "Ini adalah rencana delapan minggu yang dibuat khusus untukmu, berdasarkan cerita tentang hidup, energi, dan tujuanmu. Rencana ini berkembang setiap minggu, dimulai dengan lembut dan menambahkan langkah praktis sesuai ritmemu. Aku di sini untuk membantu memahami setiap minggu, menjawab pertanyaan, dan melihat kemajuanmu tanpa tekanan atau penilaian.",
+    program: "Hai, aku Juan, pendiri The Resilience Hub. Program ini gratis dan dibuat untukmu. Kami mendengarkan keadaanmu, memberi dukungan praktis sesuai ritmemu, dan menghubungkanmu dengan orang yang tepat. Jika butuh bantuan, kirim pesan kepada Juan yang asli, bicara dengan panduan AI, atau gunakan Help Now untuk dukungan manusia yang mendesak.",
+    planChoice: "Sebelum melanjutkan, apakah kamu ingin Carlos membuat rencana delapan minggu yang khusus untukmu? Aku akan menanyakan beberapa hal agar sesuai dengan yang sedang kamu hadapi. Jika ingin memakai panduan dan Toolkit dulu, itu juga tidak apa-apa.",
+    chat: "Hai, aku panduan AI-mu. Santai saja — kita bisa berbicara dengan ritmemu."
+  },
+  "th-TH": {
+    toolkit: "ยินดีต้อนรับสู่ชุดเครื่องมือ ที่รวมสิ่งต่าง ๆ ซึ่งช่วยคุณได้เมื่อจำเป็น ค่อย ๆ ดูและเลือกสิ่งที่เหมาะกับคุณในวันนี้ได้เลย",
+    guides: "ยินดีต้อนรับสู่ผู้แนะนำของคุณ นี่คือการสนับสนุนด้วย AI จากทีมที่คุณติดต่อได้เมื่อจำเป็น เลือกเสียงที่ทำให้คุณรู้สึกสบายในวันนี้",
+    plan: "นี่คือแผนแปดสัปดาห์ที่ออกแบบเฉพาะสำหรับคุณ จากสิ่งที่คุณเล่าเกี่ยวกับชีวิต พลังงาน และเป้าหมายของคุณ แผนจะค่อย ๆ พัฒนาในแต่ละสัปดาห์ เริ่มอย่างอ่อนโยนและเพิ่มขั้นตอนที่ทำได้จริงตามจังหวะของคุณ ฉันอยู่ตรงนี้เพื่อช่วยให้คุณเข้าใจแต่ละสัปดาห์ ตอบคำถาม และมองเห็นความก้าวหน้าโดยไม่กดดันหรือตัดสิน",
+    program: "สวัสดี ฉันชื่อ Juan ผู้ก่อตั้ง The Resilience Hub โปรแกรมนี้ฟรีและสร้างขึ้นเพื่อคุณ เรารับฟังสถานการณ์ของคุณ ให้การสนับสนุนที่ทำได้จริงตามจังหวะของคุณ และช่วยเชื่อมต่อคุณกับคนที่เหมาะสม หากต้องการความช่วยเหลือ ให้ส่งข้อความหา Juan ตัวจริง พูดคุยกับผู้แนะนำ AI หรือใช้ Help Now เพื่อรับการช่วยเหลือฉุกเฉินจากคนจริง",
+    planChoice: "ก่อนจะไปต่อ คุณอยากให้ Carlos จัดทำแผนแปดสัปดาห์เฉพาะสำหรับคุณไหม ฉันจะถามคำถามเล็กน้อยเพื่อให้แผนเหมาะกับสิ่งที่คุณกำลังเผชิญ หากอยากใช้ผู้แนะนำและชุดเครื่องมือไปก่อน ก็ไม่เป็นไรเลย",
+    chat: "สวัสดี ฉันคือผู้แนะนำ AI ของคุณ ค่อย ๆ ไปได้เลย เราคุยกันตามจังหวะของคุณได้"
+  }
+};
+function spokenIntro(key, fallback, lang = __speechLang) {
+  return AUTO_INTRO_SPEECH[lang]?.[key] || AUTO_INTRO_SPEECH["en-AU"][key] || fallback;
+}
+
 // This is a valid 50 ms 8 kHz WAV with real silent samples. The old zero-length WAV
 // could not establish an iOS audio session, even though more permissive browsers accepted it.
 const __SILENT = "data:audio/wav;base64,UklGRrQBAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YZABAACA" + "gICA".repeat(133);
@@ -1335,8 +1473,9 @@ if (typeof window !== "undefined") {
 const __ttsCache = new Map(); // "voiceId|text" -> object URL
 const __ttsPending = new Map(); // same key -> in-flight request, preventing duplicate fetches during prefetch/playback
 const __TTS_CACHE_MAX = 24;
-async function fetchTtsUrl(text, voiceId) {
-  const key = voiceId + "|" + text;
+async function fetchTtsUrl(text, voiceId, languageCode = __speechLang) {
+  const lang = languageCode || __speechLang;
+  const key = lang + "|" + voiceId + "|" + text;
   const hit = __ttsCache.get(key);
   if (hit) return hit;
   const pending = __ttsPending.get(key);
@@ -1345,7 +1484,7 @@ async function fetchTtsUrl(text, voiceId) {
     const res = await fetch("/api/tts", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text, voiceId }),
+      body: JSON.stringify({ text, voiceId, languageCode: lang }),
     });
     if (!res.ok) throw new Error("tts_failed");
     const blob = await res.blob();
@@ -1867,17 +2006,18 @@ function CarlosSpotlight() {
   );
 }
 
-function Toolkit({ voiceOn, initial, onUseTool, onOpenJournal, onBack }) {
+function Toolkit({ voiceOn, speechLang, initial, onUseTool, onOpenJournal, onBack }) {
   const [tool, setTool] = useState(initial || null);
   const toolkitWelcome = "Welcome to the Toolkit — a collection of things that can help, whenever you need them. Take your time, look around, pick whatever feels right for you today. No rush at all — whenever you're ready.";
+  const spokenToolkitWelcome = spokenIntro("toolkit", toolkitWelcome, speechLang);
   const { speak: speakToolkitWelcome, stop: stopToolkitWelcome } = useVoice(voiceOn);
   useEffect(() => {
     if (!voiceOn || !__autoIntroVoiceOn) return undefined;
-    const timer = setTimeout(() => speakToolkitWelcome(toolkitWelcome, CHARS.rex), 220);
+    const timer = setTimeout(() => speakToolkitWelcome(spokenToolkitWelcome, CHARS.rex), 220);
     return () => { clearTimeout(timer); stopToolkitWelcome(); };
     // Deliberately speak once when the section opens or voice is enabled.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [voiceOn]);
+  }, [voiceOn, speechLang]);
   if (tool === "breathing") return <BreathingTool onBack={() => setTool(null)} />;
   if (tool === "grounding") return <GroundingTool onBack={() => setTool(null)} />;
   if (tool === "meditation") return <MeditationTool onBack={() => setTool(null)} />;
@@ -4060,8 +4200,7 @@ function Settings({ textScale, reduceMotion, responseSpeed, speechLang, autoIntr
         <div style={{ height: 1, background: T.line, margin: "14px 0" }} />
         <div style={{ fontWeight: 700, marginBottom: 4 }}>Speech language</div>
         <p style={{ fontSize: 12.5, color: T.sub, margin: "0 0 12px", lineHeight: 1.45 }}>
-          The language the mic listens for when you tap to talk. This is separate from typing — guides already reply
-          in whatever language you type in, but the microphone needs to be told which language to expect.
+          This sets the language used for automatic welcomes and introductions, browser voice fallback, and the language the mic listens for when you tap to talk. Guides still reply to typed messages in the language you use.
         </p>
         <select value={speechLang || "en-AU"} onChange={(e) => onSave({ speechLang: e.target.value })}
           style={{ ...inputStyle, appearance: "auto" }}>
@@ -4422,13 +4561,14 @@ const REX_INTRO_LINES = [
 ];
 
 /* ---------- do they want an 8-week plan? (after Rex's intro) ---------- */
-function PlanChoice({ voiceOn, onYes, onNo }) {
+function PlanChoice({ voiceOn, speechLang, onYes, onNo }) {
   const { speak, stop, speaking } = useVoice(voiceOn);
   const line = "Before we go any further — would you like Carlos to put together a personalised 8-week plan for you? " +
     "If you would, I'll ask you a handful of questions so he can shape it around what you're dealing with. " +
     "If you'd rather just use the guides and the toolkit for now, that's completely fine — I'll only ask a couple of quick things, " +
     "and you can start a plan whenever you feel ready.";
-  useEffect(() => { speak(line, CHARS.rex); return () => stop(); /* eslint-disable-next-line */ }, []);
+  const spokenLine = spokenIntro("planChoice", line, speechLang);
+  useEffect(() => { speak(spokenLine, CHARS.rex); return () => stop(); /* eslint-disable-next-line */ }, [speechLang]);
   return (
     <>
       <Brand />
@@ -5215,20 +5355,21 @@ function MerchPage({ onBack }) {
 }
 
 /* ---------- Your 8-week program page ---------- */
-function ProgramPage({ profile, plan, progress, saveProgress, answers, journalCount, chats, onSaveChat, memories, onConversation, voiceOn, setVoiceOn, responseSpeed, onOpenTool, persona, onOpenChat, onOpenJournal, onStartPlan, isSignupLanding, onBack }) {
+function ProgramPage({ profile, plan, progress, saveProgress, answers, journalCount, chats, onSaveChat, memories, onConversation, voiceOn, setVoiceOn, responseSpeed, speechLang, onOpenTool, persona, onOpenChat, onOpenJournal, onStartPlan, isSignupLanding, onBack }) {
   const [coachOpen, setCoachOpen] = useState(false);
   const programWelcome = "This is your tailor-made 8-week plan, shaped around what you told us about your life, your energy, and what you want to work towards. It grows week by week, starting gently and building practical steps at a pace that fits you. I’m here to help you understand each week, answer your questions, make tasks feel manageable, and help you notice your progress — without pressure and without judgement.";
+  const spokenProgramWelcome = spokenIntro("plan", programWelcome, speechLang);
   const { speak: speakProgramWelcome, stop: stopProgramWelcome, prefetch: prefetchProgramWelcome } = useVoice(voiceOn);
   useEffect(() => {
     if (!voiceOn || !__autoIntroVoiceOn) return undefined;
     // Begin the voice request as soon as the page mounts. The in-flight cache
     // lets the later playback call reuse this request instead of starting a
     // second network round-trip.
-    prefetchProgramWelcome(programWelcome, CHARS.carlos);
-    const timer = setTimeout(() => speakProgramWelcome(programWelcome, CHARS.carlos), 60);
+    prefetchProgramWelcome(spokenProgramWelcome, CHARS.carlos);
+    const timer = setTimeout(() => speakProgramWelcome(spokenProgramWelcome, CHARS.carlos), 60);
     return () => { clearTimeout(timer); stopProgramWelcome(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [voiceOn]);
+  }, [voiceOn, speechLang]);
   const weeks = plan?.weeks || [];
   // Support day-based plans ({days:[{d,tasks:[]}]}) and legacy step-based plans ({steps:[]}).
   const weekTaskKeys = (w) => {
@@ -5444,17 +5585,18 @@ function ProgramPage({ profile, plan, progress, saveProgress, answers, journalCo
 }
 
 /* ---------- Your guides page ---------- */
-function GuidesPage({ voiceOn, onOpenChat, onBack }) {
+function GuidesPage({ voiceOn, speechLang, onOpenChat, onBack }) {
   const [filter, setFilter] = useState("all");
   const guidesWelcome = "Welcome to your guides — AI guided support from a team you can turn to whenever you need it. Choose the voice that feels right for you today.";
+  const spokenGuidesWelcome = spokenIntro("guides", guidesWelcome, speechLang);
   const { speak: speakGuidesWelcome, stop: stopGuidesWelcome, prefetch: prefetchGuidesWelcome } = useVoice(voiceOn);
   useEffect(() => {
     if (!voiceOn || !__autoIntroVoiceOn) return undefined;
-    prefetchGuidesWelcome(guidesWelcome, CHARS.rex);
-    const timer = setTimeout(() => speakGuidesWelcome(guidesWelcome, CHARS.rex), 70);
+    prefetchGuidesWelcome(spokenGuidesWelcome, CHARS.rex);
+    const timer = setTimeout(() => speakGuidesWelcome(spokenGuidesWelcome, CHARS.rex), 70);
     return () => { clearTimeout(timer); stopGuidesWelcome(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [voiceOn]);
+  }, [voiceOn, speechLang]);
   const specialists = [
     { char: CHARS.rex, tag: "Your welcomer", filter: "support", roleLine: "Here to help you get started", forWhat: "Finding your way around the Hub and choosing the right guide", tip: "What is this place, and where should I start?", accent: "#e5f3eb" },
     { char: CHARS.juan, tag: "Your main mate", filter: "support", forWhat: "Ask me anything — I'm here for it all:", prompts: ["Nicolas, what should my routine be today?", "Someone spoke to me like this — how should I respond?", "Can we just talk through what happened today?", "I'm stuck — what do I do next?"], closing: "No question is too small. No topic is off-limits. I'm your mate — run it all by me.", accent: "#e5f3eb" },
@@ -5840,7 +5982,7 @@ function GuideRow({ char, onClick, big }) {
 }
 
 /* ---------- chat ---------- */
-function Chat({ char, profile, answers, history, setHistory, plan, progress, saveProgress, persona, memories, onConversation, voiceOn, setVoiceOn, onBack, onOpenTool, embedded, planCoachContext, responseSpeed, onReplayIntro }) {
+function Chat({ char, profile, answers, history, setHistory, plan, progress, saveProgress, persona, memories, onConversation, voiceOn, setVoiceOn, onBack, onOpenTool, embedded, planCoachContext, responseSpeed, speechLang, onReplayIntro }) {
   const { speak, stop, speaking, paused, pauseResume, prefetch } = useVoice(voiceOn);
   const guideWelcome = char.slug === "juan"
     ? "G'day, I'm Juan. Ask me anything — I'm here for it all. No question is too small, and no topic is off-limits."
@@ -5851,6 +5993,7 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
     : char.slug === "mick"
     ? "Hi, I'm Mick. We can break practical things down into clear, manageable next steps."
     : "Hi, I'm Rex. I can help you find your way around The Resilience Hub.";
+  const spokenGuideWelcome = speechLang === "en-AU" ? guideWelcome : spokenIntro("chat", guideWelcome, speechLang);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const sendLockRef = useRef(false);
@@ -5894,12 +6037,12 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
     if (!voiceOn || !guideWelcome) return undefined;
     // Warm the guide welcome immediately, then play the same in-flight request.
     // This avoids waiting for a second TTS network round-trip after navigation.
-    prefetch(guideWelcome, char);
-    const timer = setTimeout(() => speak(guideWelcome, char), 70);
+    prefetch(spokenGuideWelcome, char);
+    const timer = setTimeout(() => speak(spokenGuideWelcome, char), 70);
     return () => { clearTimeout(timer); stop(); };
     // The welcome should replay when a different guide is opened or voice is enabled.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [voiceOn, char?.slug]);
+  }, [voiceOn, char?.slug, speechLang]);
   useEffect(() => () => { stop(); }, [stop]);
 
   const send = async (raw, opts) => {
@@ -6559,16 +6702,17 @@ function FounderVideoSection() {
   );
 }
 
-function ProgramInfo({ voiceOn, onBack, onMessageJuan, onBookAppointment }) {
+function ProgramInfo({ voiceOn, speechLang, onBack, onMessageJuan, onBookAppointment }) {
   const juanProgramIntro = "Hi, I'm Juan, the founder of The Resilience Hub. This program is free and built around you: we listen to where you're at, shape practical support at your pace, and help connect you with the right people. If you need help at any point, use Message Juan to reach the real me, talk with one of the AI guides, or use Help Now for urgent human support.";
+  const spokenJuanProgramIntro = spokenIntro("program", juanProgramIntro, speechLang);
   const { speak: speakJuanProgramIntro, stop: stopJuanProgramIntro, prefetch: prefetchJuanProgramIntro } = useVoice(voiceOn);
   useEffect(() => {
     if (!voiceOn || !__autoIntroVoiceOn) return undefined;
-    prefetchJuanProgramIntro(juanProgramIntro, CHARS.juan);
-    const timer = setTimeout(() => speakJuanProgramIntro(juanProgramIntro, CHARS.juan), 70);
+    prefetchJuanProgramIntro(spokenJuanProgramIntro, CHARS.juan);
+    const timer = setTimeout(() => speakJuanProgramIntro(spokenJuanProgramIntro, CHARS.juan), 70);
     return () => { clearTimeout(timer); stopJuanProgramIntro(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [voiceOn]);
+  }, [voiceOn, speechLang]);
   return (
     <>
       <Brand right={<BackBtn onBack={onBack} label="Home" />} />
