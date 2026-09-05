@@ -5744,6 +5744,13 @@ function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, set
           </div>
           <ExternalLink size={18} color={T.greenDk} />
         </a>
+        <a href="https://linkfoundationaod.org.au/" target="_blank" rel="noopener noreferrer" aria-label="Visit Link Foundation website"
+          style={{ display: "flex", alignItems: "center", gap: 12, background: "linear-gradient(135deg, #fff2e4 0%, #fffaf5 42%, #e3f1ed 100%)", border: "1px solid rgba(211,137,71,0.24)", borderRadius: 20, padding: 14, boxShadow: "0 8px 18px rgba(181,110,53,0.10)", textDecoration: "none", color: T.ink, position: "relative", overflow: "hidden" }}>
+          <div style={{ position: "absolute", width: 92, height: 92, borderRadius: "50%", right: -35, top: -42, background: "rgba(77,155,138,0.12)" }} />
+          <div style={{ width: 48, height: 48, borderRadius: 15, background: "#fff", display: "grid", placeItems: "center", overflow: "hidden", flexShrink: 0, border: "1px solid rgba(211,137,71,0.20)", position: "relative" }}><img src="/link-foundation-logo.webp" alt="Link Foundation logo" style={{ width: "100%", height: "100%", objectFit: "contain", padding: 4 }} /></div>
+          <div style={{ flex: 1, minWidth: 0, position: "relative" }}><div style={{ display: "inline-block", color: "#b56e35", fontSize: 10, fontWeight: 900, letterSpacing: 0.9, marginBottom: 2 }}>LINK FOUNDATION AOD</div><div style={{ fontWeight: 800, fontSize: 16 }}>Link Foundation</div><div style={{ fontSize: 13, color: T.sub, lineHeight: 1.35 }}>Free counselling and recovery support for people and families affected by substance use</div></div>
+          <ExternalLink size={19} color="#b56e35" style={{ position: "relative", flexShrink: 0 }} />
+        </a>
         <button onClick={onOpenMensShed} aria-label="Open South West Sydney Men's Shed"
           style={{ width: "100%", background: "linear-gradient(135deg, #e8f5ec 0%, #fffdf7 62%, #fff1d1 100%)", border: "1px solid rgba(41,126,77,0.14)", borderRadius: 20, padding: 12, boxShadow: T.soft, cursor: "pointer", display: "flex", alignItems: "center", gap: 12, textAlign: "left" }}>
           <img src="/mens-shed/south-west-sydney-mens-shed-sign.png" alt="South West Sydney Men’s Shed sign" style={{ width: 46, height: 46, borderRadius: 14, objectFit: "cover", objectPosition: "50% 50%", flexShrink: 0 }} />
