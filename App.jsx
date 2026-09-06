@@ -4859,9 +4859,18 @@ const CARLOS_QUOTES = [
   `Aristotle said: “We become just by doing just acts, temperate by doing temperate acts, brave by doing brave acts.” You don't wait to be strong — you become strong by acting strong.`,
 ];
 
-function PlanBuilding() {
+function PlanBuilding({ voiceOn, speechLang = __speechLang }) {
   const [i, setI] = useState(0);
   const [quoteI, setQuoteI] = useState(0);
+  const buildingText = "Thanks for sharing all that. I'm putting together a plan shaped just for you — this can take a minute or two, so hang tight while I work through it. Once it's ready, you can ask me about any week right from the plan page, or come and talk to me in Your Guides whenever you like.";
+  const spokenBuildingText = spokenIntro("planBuilding", buildingText, speechLang);
+  const { speak: speakBuilding, stop: stopBuilding, prefetch: prefetchBuilding } = useVoice(voiceOn);
+  useEffect(() => {
+    if (!voiceOn || !__autoIntroVoiceOn) return undefined;
+    prefetchBuilding(spokenBuildingText, CHARS.carlos);
+    const timer = setTimeout(() => speakBuilding(spokenBuildingText, CHARS.carlos), 70);
+    return () => { clearTimeout(timer); stopBuilding(); };
+  }, [voiceOn, speechLang, spokenBuildingText, speakBuilding, stopBuilding, prefetchBuilding]);
   useEffect(() => {
     const t = setInterval(() => setI((k) => (k < PLAN_STEPS.length - 1 ? k + 1 : k)), 4200);
     const q = setInterval(() => setQuoteI((k) => (k + 1) % CARLOS_QUOTES.length), 7000);
@@ -4876,9 +4885,7 @@ function PlanBuilding() {
           <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 600, marginBottom: 4 }}>
             <Sparkles size={18} color={T.green} /> Carlos here.
           </div>
-          Thanks for sharing all that. I'm putting together a plan shaped just for you — this can take a minute or two,
-          so hang tight while I work through it. Once it's ready, you can ask me about any week right from the plan page,
-          or come and talk to me in Your Guides whenever you like.
+          {buildingText}
         </Bubble>
 
         <div style={{ background: T.card, borderRadius: 18, padding: "16px 16px 18px", boxShadow: T.soft,
@@ -5006,7 +5013,7 @@ Respond with ONLY valid JSON, no markdown fences, exactly this shape:
     onDone({ createdPlan: true });
   };
 
-  if (building) return <PlanBuilding />;
+  if (building) return <PlanBuilding voiceOn={voiceOn} speechLang={speechLang} />;
 
   if (safetyPanel) {
     return (
