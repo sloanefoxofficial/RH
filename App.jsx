@@ -32,7 +32,7 @@ const T = {
 const SCREEN_BACK_LABELS = {
   welcome: "Welcome", hub: "Home", onboarding: "Get Started", program: "8-Week Plan",
   guides: "Guides", chat: "Guide Chat", toolkit: "Toolkit", journal: "Private Journal",
-  resources: "Hub", games: "Games & Puzzles", merch: "Sloane Fox Merch",
+  resources: "Hub", supportUs: "Hub", games: "Games & Puzzles", merch: "Sloane Fox Merch",
   carlosLibrary: "Carlos Library", programInfo: "Program", bookAppointment: "Program",
   mensShed: "Men’s Shed", mensGroup: "Men’s Group", settings: "Settings", profile: "Profile",
   memory: "Profile", notifications: "Home", coordinator: "Message Juan", admin: "Admin",
@@ -900,6 +900,7 @@ export default function App() {
             onOpenGames={() => go("games")}
             onOpenToolkit={() => { setToolkitInitial(null); go("toolkit"); }}
             onOpenResources={() => go("resources")}
+            onOpenSupportUs={() => go("supportUs")}
             onOpenSafety={() => openTool("safety")}
             onOpenNotifications={() => go("notifications")}
             onOpenCoordinator={() => go("coordinator")}
@@ -975,6 +976,8 @@ export default function App() {
           <Toolkit voiceOn={voiceOn} speechLang={speechLang} initial={toolkitInitial} onUseTool={tickToolTask} onOpenJournal={() => go("journal")} onBack={back} />
         ) : screen === "resources" ? (
           <ResourcesPage onOpenSafety={() => openTool("safety")} onOpenMensShed={() => go("mensShed")} onOpenGames={() => go("games")} onBack={back} />
+        ) : screen === "supportUs" ? (
+          <SupportUsPage onOpenMerch={() => go("merch")} onOpenCarlosLibrary={() => go("carlosLibrary")} onBack={back} />
         ) : screen === "admin" ? (
           <Admin isAdmin={isAdmin} guidePrompts={guidePrompts} onSaveGuidePrompt={saveGuidePrompt} onBack={back} />
         ) : screen === "profile" ? (
@@ -5677,10 +5680,9 @@ function ResourcesIcon({ size = 24, color = "currentColor", strokeWidth = 2.2 })
   </svg>;
 }
 
-function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, setVoiceOn, onOpenChat, onOpenProgram, onOpenJournal, onOpenGuides, onOpenMerch, onOpenCarlosLibrary, onOpenGames, onOpenToolkit, onOpenResources, onOpenSafety, onOpenNotifications, onOpenCoordinator, onOpenSettings, onOpenMensGroup, onOpenMensShed, onOpenAdminMessages, onOpenProgramInfo, onReset, isAdmin, authEnabled, guestMode, onExitGuest, onOpenAdmin, onOpenProfile, onSignOut, session, rexHistory, onSaveRexChat, memories, onConversation, answers, rexPersona }) {
+function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, setVoiceOn, onOpenChat, onOpenProgram, onOpenJournal, onOpenGuides, onOpenMerch, onOpenCarlosLibrary, onOpenGames, onOpenToolkit, onOpenResources, onOpenSupportUs, onOpenSafety, onOpenNotifications, onOpenCoordinator, onOpenSettings, onOpenMensGroup, onOpenMensShed, onOpenAdminMessages, onOpenProgramInfo, onReset, isAdmin, authEnabled, guestMode, onExitGuest, onOpenAdmin, onOpenProfile, onSignOut, session, rexHistory, onSaveRexChat, memories, onConversation, answers, rexPersona }) {
   const { speak, stop, speaking } = useVoice(voiceOn);
   const [notifRefresh, setNotifRefresh] = useState(0);
-  const [supportOpen, setSupportOpen] = useState(true);
   const [shareMsg, setShareMsg] = useState("");
   const shareApp = async () => {
     const url = typeof window !== "undefined" ? window.location.origin : "";
@@ -5841,8 +5843,6 @@ function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, set
 
       </div>
 
-      <SectionTitle>Support Directory</SectionTitle>
-      <p style={{ margin: "-3px 2px 12px", fontSize: 12, color: T.sub, lineHeight: 1.5 }}>Practical services, community connections, recovery support, and everyday help — all organised in one place.</p>
       <div className="rh-hub-card-stack" style={{ display: "flex", flexDirection: "column", gap: 11 }}>
         <button onClick={onOpenResources} aria-label="Open Support Directory" style={{ width: "100%", background: "linear-gradient(135deg, #dff3e7 0%, #f8fcf8 48%, #fff0dc 100%)", border: "1px solid rgba(61,142,91,0.22)", borderRadius: 24, padding: 18, boxShadow: "0 10px 24px rgba(44,125,80,0.12)", cursor: "pointer", display: "flex", alignItems: "center", gap: 14, textAlign: "left", position: "relative", overflow: "hidden" }}>
           <div style={{ position: "absolute", width: 150, height: 150, borderRadius: "50%", right: -55, top: -70, background: "rgba(255,255,255,0.45)" }} />
@@ -5850,41 +5850,13 @@ function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, set
           <div style={{ flex: 1, minWidth: 0, position: "relative" }}><div style={{ display: "inline-block", color: T.greenDk, fontSize: 10, fontWeight: 900, letterSpacing: 1, marginBottom: 3 }}>PRACTICAL SUPPORT · COMMUNITY · WELLBEING</div><div style={{ fontWeight: 800, fontSize: 18, color: T.ink }}>Support Directory</div><div style={{ fontSize: 13, color: T.sub, lineHeight: 1.45, marginTop: 3 }}>Food, crisis support, recovery, local services, activities, and people to connect with</div></div>
           <ChevronRight size={24} color={T.greenDk} style={{ position: "relative", flexShrink: 0 }} />
         </button>
-      </div>
-
-      <button type="button" onClick={() => setSupportOpen((open) => !open)} aria-expanded={supportOpen} style={{ width: "100%", border: "none", background: "linear-gradient(135deg, #fff2f0 0%, #fffaf7 58%, #f8edf1 100%)", borderRadius: 18, padding: "13px 15px", margin: "4px 0 11px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, cursor: "pointer", textAlign: "left", boxShadow: "0 6px 16px rgba(201,79,79,0.08)" }}>
-        <span style={{ display: "flex", alignItems: "center", gap: 9, color: "#b63f49", fontSize: 18, fontWeight: 850 }}><Heart size={20} fill="#f38a73" color="#c94f4f" />Support Us</span>
-        {supportOpen ? <ChevronUp size={20} color="#b63f49" /> : <ChevronDown size={20} color="#b63f49" />}
-      </button>
-      {supportOpen && (
-      <div className="rh-hub-card-stack" style={{ display: "flex", flexDirection: "column", gap: 11 }}>
-        <a href="https://gofund.me/4ce6afdc4" target="_blank" rel="noopener noreferrer" aria-label="Support The Resilience Hub on GoFundMe"
-          style={{ display: "flex", alignItems: "center", gap: 12, background: "linear-gradient(135deg, #fff0f0 0%, #fff8f4 58%, #ffe7e1 100%)", border: "1px solid rgba(201, 79, 79, 0.18)", borderRadius: 20, padding: 14, boxShadow: T.soft, textDecoration: "none", color: T.ink }}>
-          <div style={{ width: 46, height: 46, borderRadius: 14, background: "linear-gradient(145deg, #e5484d, #f38a73)", display: "grid", placeItems: "center", flexShrink: 0, boxShadow: "0 6px 14px rgba(201, 79, 79, 0.2)" }}>
-            <Heart size={23} color="#fff" fill="#fff" />
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: "inline-block", color: "#c43f45", fontSize: 10, fontWeight: 900, letterSpacing: 1, marginBottom: 2 }}>GOFUNDME</div>
-            <div style={{ fontWeight: 800, fontSize: 16 }}>Support The Resilience Hub</div>
-            <div style={{ fontSize: 13, color: T.sub, lineHeight: 1.4 }}>Help us keep support free for everyone</div>
-          </div>
-          <ExternalLink size={18} color="#c94f4f" />
-        </a>
-        <button onClick={onOpenMerch} style={{ width: "100%", background: "linear-gradient(135deg, #f4eef7 0%, #fff 72%)", border: "none", borderRadius: 20, padding: 14, boxShadow: T.soft, cursor: "pointer", display: "flex", alignItems: "center", gap: 12, textAlign: "left" }}>
-          <img src="/merch/choose-your-edition-new.jpg" alt="Sloane Fox artwork" style={{ width: 46, height: 46, borderRadius: 14, objectFit: "cover", objectPosition: "50% 37%", flexShrink: 0, border: "1px solid rgba(91,75,122,0.14)" }} />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontWeight: 800, fontSize: 16 }}>Sloane Fox merch</div>
-            <div style={{ fontSize: 13, color: T.sub }}>Built Not Bought — every piece supports the Hub</div>
-          </div>
-          <ChevronRight size={20} color={T.sub} />
-        </button>
-        <button onClick={onOpenCarlosLibrary} aria-label="Open Support Carlos Camacho library" style={{ width: "100%", background: "linear-gradient(135deg, #e8f0fb 0%, #ffffff 62%, #f3eafa 100%)", border: "1px solid rgba(63,111,175,0.16)", borderRadius: 20, padding: 14, boxShadow: T.soft, cursor: "pointer", display: "flex", alignItems: "center", gap: 12, textAlign: "left" }}>
-          <div style={{ width: 46, height: 46, borderRadius: 14, overflow: "hidden", background: "#dfeafa", flexShrink: 0, border: "1px solid rgba(63,111,175,0.12)" }}><img src={CHARS.carlos.img} alt="Carlos Camacho" style={{ width: "100%", height: "100%", objectFit: "contain" }} /></div>
-          <div style={{ flex: 1, minWidth: 0 }}><div style={{ display: "inline-block", color: T.blueDk, fontSize: 10, fontWeight: 900, letterSpacing: 0.9, marginBottom: 2 }}>CARLOS CAMACHO</div><div style={{ fontWeight: 800, fontSize: 16 }}>Support Carlos Camacho</div><div style={{ fontSize: 13, color: T.sub, lineHeight: 1.4 }}>Explore his books on happiness, philosophy and life</div></div>
-          <ChevronRight size={20} color={T.blueDk} />
+        <button onClick={onOpenSupportUs} aria-label="Open Support Us" style={{ width: "100%", background: "linear-gradient(135deg, #fff0f0 0%, #fffaf7 56%, #f5eaf0 100%)", border: "1px solid rgba(201,79,79,0.18)", borderRadius: 22, padding: 16, boxShadow: "0 9px 21px rgba(201,79,79,0.10)", cursor: "pointer", display: "flex", alignItems: "center", gap: 13, textAlign: "left", position: "relative", overflow: "hidden" }}>
+          <div style={{ position: "absolute", width: 120, height: 120, borderRadius: "50%", right: -42, top: -50, background: "rgba(255,255,255,0.48)" }} />
+          <div style={{ width: 56, height: 56, borderRadius: 18, background: "linear-gradient(145deg, #e5484d, #f38a73)", display: "grid", placeItems: "center", flexShrink: 0, boxShadow: "0 7px 15px rgba(201,79,79,0.18)", position: "relative" }}><Heart size={28} color="#fff" fill="#fff" /></div>
+          <div style={{ flex: 1, minWidth: 0, position: "relative" }}><div style={{ display: "inline-block", color: "#c43f45", fontSize: 10, fontWeight: 900, letterSpacing: 1, marginBottom: 3 }}>HELP KEEP THE HUB FREE</div><div style={{ fontWeight: 800, fontSize: 18, color: T.ink }}>Support Us</div><div style={{ fontSize: 13, color: T.sub, lineHeight: 1.42 }}>GoFundMe, Sloane Fox merch, and Carlos’s books — all in one place</div></div>
+          <ChevronRight size={23} color="#c94f4f" style={{ position: "relative", flexShrink: 0 }} />
         </button>
       </div>
-      )}
 
       <Disclaimer />
 
@@ -6840,6 +6812,38 @@ function CarlosLibraryPage({ onBack }) {
     {bookGrid(spanish)}
     <div style={{ margin: "18px 2px 28px", padding: 13, background: "#f6f4fa", border: `1px solid ${T.line}`, borderRadius: 16, color: T.sub, fontSize: 11.5, lineHeight: 1.5 }}>Book titles and cover images are shown from the supplied Amazon listings. Product details and availability may change on Amazon.</div>
   </>;
+}
+
+function SupportUsPage({ onOpenMerch, onOpenCarlosLibrary, onBack }) {
+  return (
+    <>
+      <Brand right={<BackBtn onBack={onBack} />} />
+      <div style={{ background: "linear-gradient(135deg, #fff0f0 0%, #fffaf7 56%, #f5eaf0 100%)", borderRadius: 24, padding: "22px 19px 20px", marginTop: 7, boxShadow: T.soft, border: "1px solid rgba(201,79,79,0.16)", position: "relative", overflow: "hidden" }}>
+        <div style={{ position: "absolute", width: 180, height: 180, borderRadius: "50%", right: -65, top: -82, background: "rgba(255,255,255,0.46)" }} />
+        <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 9, color: "#b63f49", fontSize: 11, fontWeight: 900, letterSpacing: 1, textTransform: "uppercase" }}><Heart size={16} fill="#f38a73" /> Help keep support free</div>
+        <h1 style={{ position: "relative", fontSize: 28, lineHeight: 1.12, margin: "9px 0 8px", color: T.ink }}>Support Us</h1>
+        <p style={{ position: "relative", margin: 0, color: T.sub, fontSize: 13.5, lineHeight: 1.55 }}>There are a few simple ways to support The Resilience Hub and the people who help make it possible. Choose whatever feels right for you — there is never any pressure.</p>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 11, marginTop: 15 }}>
+        <a href="https://gofund.me/4ce6afdc4" target="_blank" rel="noopener noreferrer" aria-label="Support The Resilience Hub on GoFundMe" style={{ display: "flex", alignItems: "center", gap: 12, background: "linear-gradient(135deg, #fff0f0 0%, #fff8f4 58%, #ffe7e1 100%)", border: "1px solid rgba(201,79,79,0.18)", borderRadius: 20, padding: 14, boxShadow: T.soft, textDecoration: "none", color: T.ink }}>
+          <div style={{ width: 48, height: 48, borderRadius: 15, background: "linear-gradient(145deg, #e5484d, #f38a73)", display: "grid", placeItems: "center", flexShrink: 0 }}><Heart size={24} color="#fff" fill="#fff" /></div>
+          <div style={{ flex: 1, minWidth: 0 }}><div style={{ display: "inline-block", color: "#c43f45", fontSize: 10, fontWeight: 900, letterSpacing: 1, marginBottom: 2 }}>GOFUNDME</div><div style={{ fontWeight: 800, fontSize: 16 }}>Support The Resilience Hub</div><div style={{ fontSize: 13, color: T.sub, lineHeight: 1.4 }}>Help us keep support free for everyone</div></div>
+          <ExternalLink size={18} color="#c94f4f" />
+        </a>
+        <button onClick={onOpenMerch} aria-label="Open Sloane Fox merch" style={{ width: "100%", background: "linear-gradient(135deg, #f4eef7 0%, #fff 72%)", border: "1px solid rgba(91,75,122,0.14)", borderRadius: 20, padding: 14, boxShadow: T.soft, cursor: "pointer", display: "flex", alignItems: "center", gap: 12, textAlign: "left" }}>
+          <img src="/merch/choose-your-edition-new.jpg" alt="Sloane Fox artwork" style={{ width: 48, height: 48, borderRadius: 15, objectFit: "cover", objectPosition: "50% 37%", flexShrink: 0 }} />
+          <div style={{ flex: 1, minWidth: 0 }}><div style={{ display: "inline-block", color: "#5b4b7a", fontSize: 10, fontWeight: 900, letterSpacing: 1, marginBottom: 2 }}>SLOANE FOX</div><div style={{ fontWeight: 800, fontSize: 16 }}>Sloane Fox merch</div><div style={{ fontSize: 13, color: T.sub, lineHeight: 1.4 }}>Built Not Bought — every piece supports the Hub</div></div>
+          <ChevronRight size={20} color="#5b4b7a" />
+        </button>
+        <button onClick={onOpenCarlosLibrary} aria-label="Open Support Carlos Camacho library" style={{ width: "100%", background: "linear-gradient(135deg, #e8f0fb 0%, #ffffff 62%, #f3eafa 100%)", border: "1px solid rgba(63,111,175,0.16)", borderRadius: 20, padding: 14, boxShadow: T.soft, cursor: "pointer", display: "flex", alignItems: "center", gap: 12, textAlign: "left" }}>
+          <div style={{ width: 48, height: 48, borderRadius: 15, overflow: "hidden", background: "#dfeafa", flexShrink: 0 }}><img src={CHARS.carlos.img} alt="Carlos Camacho" style={{ width: "100%", height: "100%", objectFit: "contain" }} /></div>
+          <div style={{ flex: 1, minWidth: 0 }}><div style={{ display: "inline-block", color: T.blueDk, fontSize: 10, fontWeight: 900, letterSpacing: 1, marginBottom: 2 }}>CARLOS CAMACHO</div><div style={{ fontWeight: 800, fontSize: 16 }}>Support Carlos Camacho</div><div style={{ fontSize: 13, color: T.sub, lineHeight: 1.4 }}>Explore his books on happiness, philosophy and life</div></div>
+          <ChevronRight size={20} color={T.blueDk} />
+        </button>
+      </div>
+      <p style={{ margin: "15px 3px 28px", color: T.sub, fontSize: 11.5, lineHeight: 1.5 }}>All support options are optional. The Hub remains free for the people who use it.</p>
+    </>
+  );
 }
 
 function ResourcesPage({ onOpenSafety, onOpenMensShed, onOpenGames, onBack }) {
