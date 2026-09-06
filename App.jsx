@@ -4585,7 +4585,13 @@ function PlanChoice({ voiceOn, speechLang, onYes, onNo }) {
     "If you'd rather just use the guides and the toolkit for now, that's completely fine — I'll only ask a couple of quick things, " +
     "and you can start a plan whenever you feel ready.";
   const spokenLine = spokenIntro("planChoice", line, speechLang);
-  useEffect(() => { speak(spokenLine, CHARS.rex); return () => stop(); /* eslint-disable-next-line */ }, [speechLang]);
+  useEffect(() => {
+    // Warm Juan’s first question while Rex’s plan-choice screen is open.
+    if (voiceOn) prefetch(QUESTIONS[0].q, CHARS.juan);
+    speak(spokenLine, CHARS.rex);
+    return () => stop();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [speechLang, voiceOn]);
   return (
     <>
       <Brand />
@@ -4593,7 +4599,7 @@ function PlanChoice({ voiceOn, speechLang, onYes, onNo }) {
         <Portrait src={IMG.rex} name="Rex" size={170} speaking={speaking} tint={CHARS.rex.tint} />
         <Bubble>{line}</Bubble>
         <div style={{ display: "flex", flexDirection: "column", gap: 12, maxWidth: 420, margin: "0 auto" }}>
-          <button onClick={() => { stop(); prefetch(QUESTIONS[0].q, CHARS.juan); onYes(); }}
+          <button onClick={() => { stop(); QUESTIONS.forEach(({ q }) => prefetch(q, CHARS.juan)); onYes(); }}
             style={{ width: "100%", background: `linear-gradient(180deg, #3fb072, ${T.green})`, color: "#fff",
               border: "none", borderRadius: 16, padding: "15px", fontSize: 16.5, fontWeight: 800, cursor: "pointer",
               boxShadow: "0 10px 24px rgba(55,160,101,0.32)" }}>
