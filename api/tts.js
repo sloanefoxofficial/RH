@@ -20,7 +20,12 @@ const FISH_KEY =
 const FISH_FALLBACK_GOOGLE_VOICE =
   process.env.FISH_FALLBACK_VOICE || "en-AU-Chirp3-HD-Umbriel";
 
-async function googleSynth(text, voiceName, key) {
+async function googleSynth(text, voiceName, key, languageCode = "en-AU") {
+  const voice = { languageCode: languageCode || "en-AU" };
+  // The configured voice names are Australian English voices. For another
+  // selected language, omit the English voice name so Google can choose a
+  // compatible voice for that locale instead of rejecting the request.
+  if (!languageCode || languageCode === "en-AU") voice.name = voiceName;
   const r = await fetch(
     `https://texttospeech.googleapis.com/v1beta1/text:synthesize?key=${key}`,
     {
@@ -28,7 +33,7 @@ async function googleSynth(text, voiceName, key) {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         input: { text },
-        voice: { languageCode: "en-AU", name: voiceName },
+        voice,
         audioConfig: { audioEncoding: "MP3" },
       }),
     }
@@ -52,7 +57,11 @@ async function fishSynth(text, referenceId) {
         text,
         reference_id: referenceId,
         format: "mp3",
-        mp3_bitrate: 128,
+        mp3_bitrate: 64,
+        latency: "balanced",
+        chunk_length: 100,
+        min_chunk_length: 50,
+        condition_on_previous_chunks: false,
       }),
     });
     if (!r.ok) return null;
@@ -73,6 +82,7 @@ export default async function handler(req, res) {
       typeof req.body === "string" ? JSON.parse(req.body || "{}") : req.body || {};
     let text = body.text;
     const voiceId = body.voiceId;
+    const languageCode = typeof body.languageCode === "string" ? body.languageCode : "en-AU";
     if (!text || !voiceId) {
       res.status(400).json({ error: "missing_text_or_voice" });
       return;
@@ -86,7 +96,7 @@ export default async function handler(req, res) {
       let buf = await fishSynth(text, referenceId);
       // graceful fallback so Juan still sounds Australian if Fish is down
       if (!buf && googleKey) {
-        buf = await googleSynth(text, FISH_FALLBACK_GOOGLE_VOICE, googleKey);
+        buf = await googleSynth(text, FISH_FALLBACK_GOOGLE_VOICE, googleKey, languageCode);
       }
       if (!buf) {
         res.status(502).json({ error: "tts_failed" });
@@ -103,7 +113,7 @@ export default async function handler(req, res) {
       res.status(503).json({ error: "tts_not_configured" });
       return;
     }
-    const buf = await googleSynth(text, voiceId, googleKey);
+    const buf = await googleSynth(text, voiceId, googleKey, languageCode);
     if (!buf) {
       res.status(500).json({ error: "tts_failed" });
       return;
