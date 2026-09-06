@@ -32,7 +32,7 @@ const T = {
 const SCREEN_BACK_LABELS = {
   welcome: "Welcome", hub: "Home", onboarding: "Get Started", program: "8-Week Plan",
   guides: "Guides", chat: "Guide Chat", toolkit: "Toolkit", journal: "Private Journal",
-  resources: "Support & Community", games: "Games & Puzzles", merch: "Sloane Fox Merch",
+  resources: "Hub", games: "Games & Puzzles", merch: "Sloane Fox Merch",
   carlosLibrary: "Carlos Library", programInfo: "Program", bookAppointment: "Program",
   mensShed: "Men’s Shed", mensGroup: "Men’s Group", settings: "Settings", profile: "Profile",
   memory: "Profile", notifications: "Home", coordinator: "Message Juan", admin: "Admin",
@@ -200,13 +200,13 @@ You ARE Rex, the friendly face of The Resilience Hub — the first hello. Your O
 - What the Hub is for: a warm support space alongside real life, not a replacement for professional or emergency help.
 - The guides: Nicolas (lived-experience mate, the main voice), Carlos (psychologist — clinical tools like stress, anxiety, low mood), Mick (practical life — housing, bills, Centrelink, tenancy), Lila (family and relationships). People pick whichever fits, and can switch any time.
 - IMPORTANT — always be upfront that the guides (including you) are AI, not real people. Say it plainly and kindly; never let someone believe they're talking to a real human.
-- That they can reach the REAL Juan — an actual person — using the "Message Juan" button at the bottom of the hub; a real human reads and replies, though not instantly. They can use it for anything at all — a chat, a question, or to report a bug, a glitch, or any technical problem they run into with the app.
+- That they can reach the REAL Juan — an actual person — from the Message Juan button inside the Resilience & Recovery Program page; a real human reads and replies, though not instantly. They can use it for anything at all — a chat, a question, or to report a bug, a glitch, or any technical problem they run into with the app.
 - The toolkit (breathing, grounding, meditation, staying safe, self-help videos, quick calm), the journal, the 8-week plan, and notifications.
 - Accessibility & settings: there's a gear/settings icon at the top of the home screen. Tapping it opens Settings, where they can change the TEXT SIZE (XS up to XL — this makes everything in the app bigger or smaller, just for their device), choose a RESPONSE SPEED (Chilled for slower and more thoughtful replies, Normal, or Fast for quick and direct ones), turn on "reduce motion", and turn on "reduce motion". So if someone asks how to make the text bigger or smaller in the app, tell them to tap the settings (gear) icon at the top of the home screen and choose a text size — do NOT send them to their phone's own settings, because the app has its own text-size control.
 - Fast Reply: inside any chat, there's a small lightning-bolt (⚡) button next to Send. Tapping it sends the message and asks that ONE reply to come back quick and to the point — it doesn't change their saved Response Speed setting, it's just a one-off for when they're in a rush.
 - The profile: the person icon at the top of the home screen opens their profile — their name and details, password, the reset option, and "What the guides remember" (their memory controls).
 - What the guides remember: to feel familiar, guides keep a few plain notes about the person; sensitive things (like anything about feeling unsafe) are never kept; and they can view, edit, turn it off, or clear it all under "What the guides remember" in their profile.
-- Getting around: the home screen has a welcome, a card to chat with you (Rex), and cards for their 8-Week Plan (plan, progress and journal), Your Guides (Nicolas, Carlos, Mick and Lila), the toolkit, the merch store, Message Juan, and notifications. Each card opens its own screen.
+- Getting around: the home screen has a welcome, a card to chat with you (Rex), and cards for their 8-Week Plan (plan, progress and journal), Your Guides (Nicolas, Carlos, Mick and Lila), the Toolkit, Support Directory, Support Us, and notifications. The Resilience & Recovery Program page includes direct Message Juan and call buttons.
 
 You do NOT give personal, emotional, practical, clinical, or relationship help yourself. If someone starts opening up about how they're feeling or what they're going through, respond kindly and briefly, then guide them to the right person rather than trying to help yourself: Nicolas for mateship and general support, Carlos for clinical tools, Mick for practical life and housing, Lila for family and relationships. Something like: "I'm so glad you're here — that sounds really important, and I want you talking to the right person for it. Nicolas is brilliant for exactly this — shall I point you his way?" The only exception is safety: if someone mentions being unsafe or thoughts of self-harm, gently and directly point them to 000 or Lifeline 13 11 14 right away, like every guide does.`,
   },
@@ -974,7 +974,7 @@ export default function App() {
         ) : screen === "toolkit" ? (
           <Toolkit voiceOn={voiceOn} speechLang={speechLang} initial={toolkitInitial} onUseTool={tickToolTask} onOpenJournal={() => go("journal")} onBack={back} />
         ) : screen === "resources" ? (
-          <ResourcesPage onOpenSafety={() => openTool("safety")} onOpenMensShed={() => go("mensShed")} onBack={back} />
+          <ResourcesPage onOpenSafety={() => openTool("safety")} onOpenMensShed={() => go("mensShed")} onOpenGames={() => go("games")} onBack={back} />
         ) : screen === "admin" ? (
           <Admin isAdmin={isAdmin} guidePrompts={guidePrompts} onSaveGuidePrompt={saveGuidePrompt} onBack={back} />
         ) : screen === "profile" ? (
@@ -4557,7 +4557,7 @@ const REX_INTRO_LINES = [
   "Mick's great with practical life and housing. And Lila's there for family and relationships.",
   "Quick honest note: all of us guides are AI, not real people.",
   "Carlos here is an AI inspired by a real psychologist, Carlos Camacho — he offers supportive tools, not therapy or diagnosis.",
-  "And if you'd ever like to do the in-person 8-week program with the real team, just tap Message Juan any time.",
+  "And if you'd ever like to do the in-person 8-week program with the real team, open the Resilience & Recovery Program and tap Message Juan or Call Juan there.",
   "There's also a toolkit for calming down, a journal to get things out of your head, and an 8-week program to work through at your own pace.",
   "And I'm always here on the home screen if you need pointing in the right direction.",
   "Tap the little person icon up the top of the home screen to open your profile.",
@@ -5680,6 +5680,7 @@ function ResourcesIcon({ size = 24, color = "currentColor", strokeWidth = 2.2 })
 function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, setVoiceOn, onOpenChat, onOpenProgram, onOpenJournal, onOpenGuides, onOpenMerch, onOpenCarlosLibrary, onOpenGames, onOpenToolkit, onOpenResources, onOpenSafety, onOpenNotifications, onOpenCoordinator, onOpenSettings, onOpenMensGroup, onOpenMensShed, onOpenAdminMessages, onOpenProgramInfo, onReset, isAdmin, authEnabled, guestMode, onExitGuest, onOpenAdmin, onOpenProfile, onSignOut, session, rexHistory, onSaveRexChat, memories, onConversation, answers, rexPersona }) {
   const { speak, stop, speaking } = useVoice(voiceOn);
   const [notifRefresh, setNotifRefresh] = useState(0);
+  const [supportOpen, setSupportOpen] = useState(true);
   const [shareMsg, setShareMsg] = useState("");
   const shareApp = async () => {
     const url = typeof window !== "undefined" ? window.location.origin : "";
@@ -5816,7 +5817,11 @@ function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, set
       {/* menu cards — grouped for clarity */}
       <SectionTitle>Your journey</SectionTitle>
       <div className="rh-hub-card-stack" style={{ display: "flex", flexDirection: "column", gap: 11 }}>
-        {card(onOpenProgramInfo, "#e9f5ee", "#2c7d50", Heart, "Resilience & Recovery Program", "Our free 8-week in-person program — how it works & how to join")}
+        <button onClick={onOpenProgramInfo} aria-label="Resilience & Recovery Program: Our free 8-week in-person program — how it works & how to join" style={{ width: "100%", background: "linear-gradient(110deg, #ffffff 0%, #f4fbf6 58%, #fff7ed 100%)", borderRadius: 21, padding: 15, boxShadow: T.soft, border: "1px solid rgba(77,159,104,0.18)", cursor: "pointer", display: "flex", alignItems: "center", gap: 13, textAlign: "left" }}>
+          <div style={{ width: 50, height: 50, borderRadius: 16, background: "#fff", display: "grid", placeItems: "center", flexShrink: 0, overflow: "hidden", boxShadow: "inset 0 0 0 1px rgba(44,125,80,0.16)" }}><img src="/resilience-hub-logo.png" alt="Resilience Hub logo" style={{ width: "100%", height: "100%", objectFit: "contain", padding: 3 }} /></div>
+          <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontWeight: 700, fontSize: 16 }}>Resilience &amp; Recovery Program</div><div style={{ fontSize: 13, color: T.sub }}>Our free 8-week in-person program — how it works &amp; how to join</div></div>
+          <ChevronRight size={20} color={T.sub} />
+        </button>
         {card(onOpenGuides, "#f4e3d9", "#c9803f", Users, "Your guides", "Nicolas, Carlos, Mick & Lila — chat any time")}
         {card(onOpenToolkit, "#dceee2", "#2c7d50", Wrench, "Toolkit", "Calm down, reflect & grow, stay safe")}
         {card(onOpenProgram, "#e7eefb", "#3f6faf", CalendarCheck, plan ? "Your 8-Week Plan" : "Optional 8-Week Plan", plan ? "Your active plan, progress & next steps" : "Your plan, progress & next steps — use it if it helps")}
@@ -5836,40 +5841,22 @@ function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, set
 
       </div>
 
-      <SectionTitle>Resources</SectionTitle>
-      <p style={{ margin: "-3px 2px 12px", fontSize: 12, color: T.sub, lineHeight: 1.5 }}>Practical services, community connections, and support options — all in one place.</p>
+      <SectionTitle>Support Directory</SectionTitle>
+      <p style={{ margin: "-3px 2px 12px", fontSize: 12, color: T.sub, lineHeight: 1.5 }}>Practical services, community connections, recovery support, and everyday help — all organised in one place.</p>
       <div className="rh-hub-card-stack" style={{ display: "flex", flexDirection: "column", gap: 11 }}>
-        <button onClick={onOpenResources} aria-label="Open Support Directory" style={{ width: "100%", background: "linear-gradient(135deg, #e0f3e7 0%, #f7fbf7 54%, #fff0dc 100%)", border: "1px solid rgba(61, 142, 91, 0.2)", borderRadius: 20, padding: 14, boxShadow: T.soft, cursor: "pointer", display: "flex", alignItems: "center", gap: 12, textAlign: "left" }}>
-          <div style={{ width: 48, height: 48, borderRadius: 16, background: "linear-gradient(145deg, #236b4d, #58a878)", display: "grid", placeItems: "center", flexShrink: 0, boxShadow: "0 7px 15px rgba(35,107,77,0.2)" }}><ResourcesIcon size={27} color="#fff" /></div>
-          <div style={{ flex: 1, minWidth: 0 }}><div style={{ display: "inline-block", color: T.greenDk, fontSize: 10, fontWeight: 900, letterSpacing: 1, marginBottom: 2 }}>PRACTICAL SUPPORT</div><div style={{ fontWeight: 800, fontSize: 16 }}>Support Directory</div><div style={{ fontSize: 13, color: T.sub, lineHeight: 1.4 }}>Food, recovery, safety, housing and everyday help</div></div><ChevronRight size={20} color={T.greenDk} />
-        </button>
-        <a href="https://www.facebook.com/Uranastreet/" target="_blank" rel="noopener noreferrer" aria-label="Visit Urana St Community Centre on Facebook" style={{ display: "flex", alignItems: "center", gap: 12, background: "linear-gradient(135deg, #fff0f0 0%, #fff9f6 58%, #f7efe9 100%)", border: "1px solid rgba(198,40,59,0.18)", borderRadius: 20, padding: 14, boxShadow: T.soft, textDecoration: "none", color: T.ink }}>
-          <div style={{ width: 48, height: 48, borderRadius: 15, background: "#fff", display: "grid", placeItems: "center", overflow: "hidden", flexShrink: 0, border: "1px solid rgba(198,40,59,0.16)" }}><img src="/community/salvation-army-shield.jpg" alt="The Salvation Army shield" style={{ width: "100%", height: "100%", objectFit: "contain", padding: 3, borderRadius: 12 }} /></div>
-          <div style={{ flex: 1, minWidth: 0 }}><div style={{ display: "inline-block", color: "#b6263a", fontSize: 10, fontWeight: 900, letterSpacing: 0.9, marginBottom: 2 }}>VILLAWOOD COMMUNITY</div><div style={{ fontWeight: 800, fontSize: 16 }}>Urana St Community Centre</div><div style={{ fontSize: 13, color: T.sub, lineHeight: 1.4 }}>Local community information, updates and ways to connect through the Villawood Salvos</div></div>
-          <ExternalLink size={19} color="#b6263a" />
-        </a>
-        <a href="https://linkfoundationaod.org.au/" target="_blank" rel="noopener noreferrer" aria-label="Visit Link Foundation website" style={{ display: "flex", alignItems: "center", gap: 12, background: "linear-gradient(135deg, #fff2e4 0%, #fffaf5 42%, #e3f1ed 100%)", border: "1px solid rgba(211,137,71,0.24)", borderRadius: 20, padding: 14, boxShadow: "0 8px 18px rgba(181,110,53,0.10)", textDecoration: "none", color: T.ink, position: "relative", overflow: "hidden" }}>
-          <div style={{ position: "absolute", width: 92, height: 92, borderRadius: "50%", right: -35, top: -42, background: "rgba(77,155,138,0.12)" }} />
-          <div style={{ width: 48, height: 48, borderRadius: 15, background: "#fff", display: "grid", placeItems: "center", overflow: "hidden", flexShrink: 0, border: "1px solid rgba(211,137,71,0.20)", position: "relative" }}><img src="/community/link-foundation-logo.webp" alt="Link Foundation logo" style={{ width: "100%", height: "100%", objectFit: "contain", padding: 4 }} /></div>
-          <div style={{ flex: 1, minWidth: 0, position: "relative" }}><div style={{ display: "inline-block", color: "#b56e35", fontSize: 10, fontWeight: 900, letterSpacing: 0.9, marginBottom: 2 }}>LINK FOUNDATION AOD</div><div style={{ fontWeight: 800, fontSize: 16 }}>Link Foundation</div><div style={{ fontSize: 13, color: T.sub, lineHeight: 1.35 }}>Free counselling and recovery support for people and families affected by substance use</div></div>
-          <ExternalLink size={19} color="#b56e35" style={{ position: "relative", flexShrink: 0 }} />
-        </a>
-        <a href="https://www.fairfieldcityleisurecentres.com.au/" target="_blank" rel="noopener noreferrer" aria-label="Visit Fairfield City Leisure Centres website" style={{ display: "flex", alignItems: "center", gap: 12, background: "linear-gradient(135deg, #e8f6fb 0%, #f9fdff 54%, #fff3d8 100%)", border: "1px solid rgba(31,127,169,0.18)", borderRadius: 20, padding: 14, boxShadow: "0 8px 18px rgba(31,127,169,0.10)", textDecoration: "none", color: T.ink, position: "relative", overflow: "hidden" }}>
-          <div style={{ position: "absolute", width: 88, height: 88, borderRadius: "50%", right: -27, bottom: -44, background: "rgba(250,186,67,0.18)" }} />
-          <div style={{ width: 48, height: 48, borderRadius: 15, background: "#fff", display: "grid", placeItems: "center", overflow: "hidden", flexShrink: 0, border: "1px solid rgba(31,127,169,0.16)", position: "relative" }}><img src="/community/fairfield-city-leisure-centres-logo.png" alt="Fairfield City Leisure Centres logo" style={{ width: "100%", height: "100%", objectFit: "contain", padding: 4 }} /></div>
-          <div style={{ flex: 1, minWidth: 0, position: "relative" }}><div style={{ display: "inline-block", color: "#197aa8", fontSize: 10, fontWeight: 900, letterSpacing: 0.9, marginBottom: 2 }}>LOCAL HEALTH &amp; WELLBEING</div><div style={{ fontWeight: 800, fontSize: 16 }}>Fairfield Leisure Centre</div><div style={{ fontSize: 13, color: T.sub, lineHeight: 1.35 }}>Pools, gym, classes and active ways to feel good across Fairfield City</div></div>
-          <ExternalLink size={19} color="#197aa8" style={{ position: "relative", flexShrink: 0 }} />
-        </a>
-        {card(onOpenGames, "#efeaf5", "#6d55b0", Gamepad2, "Games & puzzles", "A little light relief when you need it")}
-        <button onClick={onOpenCoordinator} aria-label={unreadCoord > 0 ? `${unreadCoord} reply from Juan` : "Message the real Juan privately"} style={{ width: "100%", background: "linear-gradient(125deg, #e2f4e8 0%, #ffffff 57%, #fff1e4 100%)", border: "1px solid rgba(44,125,80,0.18)", borderRadius: 20, padding: 13, boxShadow: T.soft, cursor: "pointer", display: "flex", alignItems: "center", gap: 12, textAlign: "left", position: "relative", overflow: "hidden" }}>
-          <div style={{ position: "absolute", right: -26, top: -33, width: 112, height: 112, borderRadius: "50%", background: "rgba(255,255,255,0.46)" }} />
-          <div style={{ width: 50, height: 50, borderRadius: 16, overflow: "hidden", background: "#dceee2", flexShrink: 0, border: "2px solid rgba(255,255,255,0.92)", boxShadow: "0 5px 13px rgba(32,95,72,0.15)", position: "relative" }}><img src={CHARS.juan.img} alt="Juan Carroso" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "50% 24%" }} /></div>
-          <div style={{ flex: 1, minWidth: 0, position: "relative" }}><div style={{ color: T.greenDk, fontSize: 10, fontWeight: 900, letterSpacing: 0.9, marginBottom: 2 }}>REAL PERSON · PRIVATE MESSAGE</div><div style={{ fontWeight: 800, fontSize: 16, color: T.ink }}>Message Juan</div><div style={{ fontSize: 13, color: T.sub, lineHeight: 1.35 }}>{unreadCoord > 0 ? `${unreadCoord} reply from Juan` : "Send a private message to the real Juan"}</div></div>
-          <div style={{ width: 34, height: 34, borderRadius: "50%", background: "rgba(255,255,255,0.86)", display: "grid", placeItems: "center", position: "relative", flexShrink: 0 }}><MessageCircle size={17} color={T.greenDk} />{unreadCoord > 0 && <span style={{ position: "absolute", top: -5, right: -5, minWidth: 17, height: 17, borderRadius: 999, background: "#e5484d", color: "#fff", fontSize: 10, fontWeight: 800, display: "grid", placeItems: "center", padding: "0 3px" }}>{unreadCoord}</span>}</div>
+        <button onClick={onOpenResources} aria-label="Open Support Directory" style={{ width: "100%", background: "linear-gradient(135deg, #dff3e7 0%, #f8fcf8 48%, #fff0dc 100%)", border: "1px solid rgba(61,142,91,0.22)", borderRadius: 24, padding: 18, boxShadow: "0 10px 24px rgba(44,125,80,0.12)", cursor: "pointer", display: "flex", alignItems: "center", gap: 14, textAlign: "left", position: "relative", overflow: "hidden" }}>
+          <div style={{ position: "absolute", width: 150, height: 150, borderRadius: "50%", right: -55, top: -70, background: "rgba(255,255,255,0.45)" }} />
+          <div style={{ width: 62, height: 62, borderRadius: 20, background: "linear-gradient(145deg, #236b4d, #62ad80)", display: "grid", placeItems: "center", flexShrink: 0, boxShadow: "0 8px 16px rgba(35,107,77,0.2)", position: "relative" }}><ResourcesIcon size={32} color="#fff" /></div>
+          <div style={{ flex: 1, minWidth: 0, position: "relative" }}><div style={{ display: "inline-block", color: T.greenDk, fontSize: 10, fontWeight: 900, letterSpacing: 1, marginBottom: 3 }}>PRACTICAL SUPPORT · COMMUNITY · WELLBEING</div><div style={{ fontWeight: 800, fontSize: 18, color: T.ink }}>Support Directory</div><div style={{ fontSize: 13, color: T.sub, lineHeight: 1.45, marginTop: 3 }}>Food, crisis support, recovery, local services, activities, and people to connect with</div></div>
+          <ChevronRight size={24} color={T.greenDk} style={{ position: "relative", flexShrink: 0 }} />
         </button>
       </div>
 
-      <SectionTitle>Support us</SectionTitle>
+      <button type="button" onClick={() => setSupportOpen((open) => !open)} aria-expanded={supportOpen} style={{ width: "100%", border: "none", background: "linear-gradient(135deg, #fff2f0 0%, #fffaf7 58%, #f8edf1 100%)", borderRadius: 18, padding: "13px 15px", margin: "4px 0 11px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, cursor: "pointer", textAlign: "left", boxShadow: "0 6px 16px rgba(201,79,79,0.08)" }}>
+        <span style={{ display: "flex", alignItems: "center", gap: 9, color: "#b63f49", fontSize: 18, fontWeight: 850 }}><Heart size={20} fill="#f38a73" color="#c94f4f" />Support Us</span>
+        {supportOpen ? <ChevronUp size={20} color="#b63f49" /> : <ChevronDown size={20} color="#b63f49" />}
+      </button>
+      {supportOpen && (
       <div className="rh-hub-card-stack" style={{ display: "flex", flexDirection: "column", gap: 11 }}>
         <a href="https://gofund.me/4ce6afdc4" target="_blank" rel="noopener noreferrer" aria-label="Support The Resilience Hub on GoFundMe"
           style={{ display: "flex", alignItems: "center", gap: 12, background: "linear-gradient(135deg, #fff0f0 0%, #fff8f4 58%, #ffe7e1 100%)", border: "1px solid rgba(201, 79, 79, 0.18)", borderRadius: 20, padding: 14, boxShadow: T.soft, textDecoration: "none", color: T.ink }}>
@@ -5897,6 +5884,7 @@ function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, set
           <ChevronRight size={20} color={T.blueDk} />
         </button>
       </div>
+      )}
 
       <Disclaimer />
 
@@ -5961,7 +5949,7 @@ function GuideRow({ char, onClick, big }) {
 function Chat({ char, profile, answers, history, setHistory, plan, progress, saveProgress, persona, memories, onConversation, voiceOn, setVoiceOn, onBack, onOpenTool, embedded, planCoachContext, responseSpeed, speechLang, onReplayIntro }) {
   const { speak, stop, speaking, paused, pauseResume, prefetch } = useVoice(voiceOn);
   const guideWelcome = char.slug === "juan"
-    ? "G'day, I'm Nicolas. Ask me anything — I'm here for it all. No question is too small, and no topic is off-limits."
+    ? "G'day, I'm Juan. Ask me anything — I'm here for it all. No question is too small, and no topic is off-limits."
     : char.slug === "carlos"
     ? "Hi, I'm Carlos, an AI guide inspired by our Registered Psychologist, Carlos Camacho. We can take things one step at a time."
     : char.slug === "lila"
@@ -6854,7 +6842,7 @@ function CarlosLibraryPage({ onBack }) {
   </>;
 }
 
-function ResourcesPage({ onOpenSafety, onOpenMensShed, onBack }) {
+function ResourcesPage({ onOpenSafety, onOpenMensShed, onOpenGames, onBack }) {
   useEffect(() => {
     // Each visit should begin at the Resources hero and table of contents,
     // rather than inheriting the scroll position from the previous screen.
@@ -6862,7 +6850,7 @@ function ResourcesPage({ onOpenSafety, onOpenMensShed, onBack }) {
     requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "auto" }));
   }, []);
   const jump = (id) => document.getElementById(id)?.scrollIntoView({ behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
-  const sectionLabel = (id, Icon, title, sub, color) => <div id={id} style={{ scrollMarginTop: 18, margin: "28px 2px 10px", paddingBottom: 9, borderBottom: "1px solid rgba(77,159,104,0.18)" }}><div style={{ display: "flex", alignItems: "center", gap: 9, color: T.greenDk, fontSize: 17, fontWeight: 850, letterSpacing: 0.1 }}><span style={{ width: 34, height: 34, borderRadius: 11, background: `${color}18`, display: "grid", placeItems: "center" }}><Icon size={18} color={color} /></span>{title}</div><div style={{ fontSize: 12.5, color: T.sub, margin: "6px 0 0 43px", lineHeight: 1.4 }}>{sub}</div></div>;
+  const sectionLabel = (id, Icon, title, sub, color) => <div id={id} style={{ scrollMarginTop: 18, margin: "28px 0 11px", padding: "10px 11px 11px", borderRadius: 17, background: `linear-gradient(135deg, ${color}0d 0%, rgba(255,255,255,0.72) 78%)`, border: `1px solid ${color}22`, boxShadow: "0 5px 14px rgba(37,78,54,0.05)" }}><div style={{ display: "flex", alignItems: "center", gap: 9, color, fontSize: 18, fontWeight: 900, letterSpacing: 0.1 }}><span style={{ width: 37, height: 37, borderRadius: 13, background: `${color}1b`, display: "grid", placeItems: "center", boxShadow: `inset 0 0 0 1px ${color}18` }}><Icon size={19} color={color} /></span>{title}</div><div style={{ fontSize: 12.5, color: T.sub, margin: "6px 0 0 46px", lineHeight: 1.4 }}>{sub}</div></div>;
   const resourceCard = ({ Icon, image, imageAlt, tint, color, eyebrow, title, children, href, phone, email, onClick, actionLabel }) => {
     const opensExternal = /^https?:\/\//i.test(href || "");
     const body = <><div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}><div style={{ width: 44, height: 44, borderRadius: 14, background: tint, display: "grid", placeItems: "center", overflow: "hidden", flexShrink: 0, padding: image ? 4 : 0 }}>{image ? <img src={image} alt={imageAlt || title} style={{ width: "100%", height: "100%", objectFit: "contain", borderRadius: 10 }} /> : <Icon size={22} color={color} />}</div><div style={{ flex: 1, minWidth: 0 }}><div style={{ color, fontSize: 10, fontWeight: 900, letterSpacing: 0.9, textTransform: "uppercase", marginBottom: 3 }}>{eyebrow}</div><div style={{ fontWeight: 800, fontSize: 16, color: T.ink }}>{title}</div><div style={{ fontSize: 13, color: T.sub, lineHeight: 1.48, marginTop: 5 }}>{children}</div></div>{(href || onClick) && (opensExternal ? <ExternalLink size={18} color={color} style={{ flexShrink: 0, marginTop: 12 }} /> : <ChevronRight size={19} color={T.sub} style={{ flexShrink: 0, marginTop: 12 }} />)}</div>{(phone || email || actionLabel) && <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginTop: 11 }}><span style={{ padding: "7px 10px", borderRadius: 999, background: "rgba(255,255,255,0.78)", color: T.ink, fontWeight: 750, fontSize: 11.5 }}>{phone ? `Phone: ${phone}` : email ? `Email: ${email}` : actionLabel}</span></div>}</>;
@@ -6872,7 +6860,7 @@ function ResourcesPage({ onOpenSafety, onOpenMensShed, onBack }) {
     return <button type="button" onClick={onClick} style={style}>{body}</button>;
   };
   const toc = [
-    ["resources-immediate", "Immediate support"], ["resources-community", "Community and connection"], ["resources-food", "Food and meals"], ["resources-housing", "Housing and essentials"], ["resources-money", "Legal, money and bills"], ["resources-recovery", "Addiction recovery"], ["resources-family", "Family, children and youth"], ["resources-health", "Health and wellbeing"], ["resources-safety", "Stay safe"],
+    ["resources-immediate", "Immediate support"], ["resources-community", "Community and connection"], ["resources-food", "Food and meals"], ["resources-housing", "Housing and essentials"], ["resources-money", "Legal, money and bills"], ["resources-recovery", "Addiction recovery"], ["resources-wellbeing", "Wellbeing and activities"], ["resources-family", "Family, children and youth"], ["resources-health", "Health and wellbeing"], ["resources-safety", "Stay safe"],
   ];
   return (
     <>
@@ -6880,7 +6868,7 @@ function ResourcesPage({ onOpenSafety, onOpenMensShed, onBack }) {
       <div style={{ background: "linear-gradient(135deg, #e5f5ea 0%, #f8fcf9 54%, #fff0e4 100%)", borderRadius: 24, padding: "22px 19px 20px", marginTop: 7, boxShadow: T.soft, border: `1px solid ${T.line}`, position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", width: 170, height: 170, borderRadius: "50%", background: "rgba(255,255,255,0.45)", top: -95, right: -55 }} />
         <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 8, color: T.greenDk, fontSize: 11, fontWeight: 900, letterSpacing: 1, textTransform: "uppercase" }}><BookOpen size={15} /> Practical support, services &amp; connection</div>
-        <h1 style={{ position: "relative", fontSize: 26, lineHeight: 1.12, margin: "9px 0 7px", color: T.greenDk }}>Support &amp; Community</h1>
+        <h1 style={{ position: "relative", fontSize: 28, lineHeight: 1.12, margin: "9px 0 7px", color: T.greenDk }}>Support Directory</h1>
         <div style={{ position: "relative", display: "flex", alignItems: "flex-start", gap: 7, padding: "9px 10px", margin: "0 0 10px", borderRadius: 12, background: "rgba(255,255,255,0.64)", border: "1px solid rgba(77,159,104,0.14)", color: T.sub, fontSize: 11.5, lineHeight: 1.42 }}><Shield size={15} color={T.greenDk} style={{ flexShrink: 0, marginTop: 1 }} /><span>All listed services are recommendations only. We do not run or manage them. Always check directly with each provider for current details.</span></div>
         <p style={{ position: "relative", fontSize: 13.5, color: T.sub, lineHeight: 1.55, margin: 0 }}>A clear starting place for practical services, community connections, recovery support, safety, and everyday help. Information and availability can change, so check before travelling.</p>
         <div id="resources-toc" style={{ position: "relative", scrollMarginTop: 18, marginTop: 16, padding: 13, borderRadius: 17, background: "rgba(255,255,255,0.68)", border: "1px solid rgba(77,159,104,0.14)" }}>
@@ -6927,11 +6915,17 @@ function ResourcesPage({ onOpenSafety, onOpenMensShed, onBack }) {
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {resourceCard({ Icon: MessageCircle, tint: "#e8f0fb", color: T.blueDk, eyebrow: "Community group", title: "Resilience Hub group", href: "https://www.facebook.com/share/g/1Edkyyez1t/", children: "Join the Resilience Hub Facebook group for conversation, encouragement, and connection with the wider community." })}
         {resourceCard({ Icon: BookOpen, tint: "#e9f5ee", color: T.greenDk, eyebrow: "The Resilience Hub", title: "The Resilience Hub website", href: "https://resiliencehub.s.gy/website", children: "Meet the team, learn more about the Hub, and find ways to stay connected beyond the app." })}
+        {resourceCard({ Icon: Users, image: "/community/salvation-army-shield.jpg", imageAlt: "The Salvation Army shield", tint: "#fff0f0", color: "#b6263a", eyebrow: "Villawood community", title: "Urana St Community Centre", href: "https://www.facebook.com/Uranastreet/", children: "Local community information, updates, and ways to connect through the Villawood Salvos." })}
         {resourceCard({ Icon: Shield, tint: "#fff2e4", color: "#b56e35", eyebrow: "Addiction recovery support", title: "Link Foundation", href: "https://linkfoundationaod.org.au/", children: "Free counselling and recovery support for people and families affected by alcohol and other drug use." })}
         {resourceCard({ Icon: Users, tint: "#e8f5ec", color: T.greenDk, eyebrow: "Community connection · Bonnyrigg", title: "South West Sydney Men’s Shed", onClick: onOpenMensShed, children: "Mateship, practical skills, and a welcoming place to connect. Open the listing for location and current fees.", actionLabel: "Open Men’s Shed information" })}
         {resourceCard({ Icon: MessageCircle, tint: "#fffaf0", color: "#336f52", eyebrow: "Safe conversation", title: "The Men’s Table", href: "https://www.themenstable.org", children: "A place for men to share honestly, listen, and build meaningful connection." })}
         {resourceCard({ Icon: Heart, image: "/community/fairfield-city-leisure-centres-logo.png", imageAlt: "Fairfield City Leisure Centres logo", tint: "#e8f0fb", color: "#197aa8", eyebrow: "Local health and wellbeing", title: "Fairfield Leisure Centre", href: "https://www.fairfieldcityleisurecentres.com.au/", children: "Affordable local options including gym, group fitness, pools, Learn to Swim, and Aquatopia across Fairfield City." })}
         {resourceCard({ Icon: User, image: "/community/david-saliba-portrait.jpg", imageAlt: "Dr David Saliba MP", tint: "#f3ecd6", color: "#80621b", eyebrow: "Your local representative", title: "Dr David Saliba, MP for Fairfield", href: "https://www.davidsaliba.com.au/", children: "David Saliba was born and raised in Fairfield City and shares local news, initiatives, services, and ways to contact his office." })}
+      </div>
+
+      {sectionLabel("resources-wellbeing", Gamepad2, "Wellbeing and activities", "Small enjoyable things can help create breathing space, movement, and a bit of light relief.", "#6d55b0")}
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        {resourceCard({ Icon: Gamepad2, tint: "#efeaf5", color: "#6d55b0", eyebrow: "In-app wellbeing break", title: "Games & puzzles", onClick: onOpenGames, children: "A little light relief whenever you need something easy, absorbing, or just enjoyable." })}
       </div>
 
       {sectionLabel("resources-family", Users, "Family, children and youth", "Support for family safety, young people, carers, and children.", "#b56739")}
