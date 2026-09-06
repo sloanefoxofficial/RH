@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   Phone, LifeBuoy, X, Mic, Send, Square, Volume2, VolumeX,
-  ArrowLeft, ArrowUp, LogOut, BookOpen, CheckCircle2, Circle, ChevronRight,
+  ArrowLeft, ArrowUp, LogOut, BookOpen, CheckCircle2, Circle, ChevronRight, ChevronUp, ChevronDown,
   ChevronLeft, Sparkles, Heart, Wind, Anchor, Play, Pause, RotateCcw, Wrench,
   Shield, Eye, EyeOff, User, Megaphone, Youtube, ExternalLink, Radio, Paperclip, MessageCircle, Share2, Flame, HelpCircle, Plus, Search, Settings as SettingsIcon, CalendarCheck, Users, ShoppingBag, Gamepad2, Zap, Download, FileText, Clock, MapPin, DollarSign,
 } from "lucide-react";
