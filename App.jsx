@@ -881,7 +881,7 @@ export default function App() {
           <Onboarding
             profile={profile} saveProfile={saveProfile}
             answers={answers} saveAnswers={saveAnswers}
-            savePlan={savePlan} voiceOn={voiceOn}
+            savePlan={savePlan} voiceOn={voiceOn} speechLang={speechLang}
             mode={onbMode}
             onBackToIntro={() => go("intro")}
             onSignOut={showAuth ? signOut : null}
@@ -4579,7 +4579,7 @@ const REX_INTRO_LINES = [
 
 /* ---------- do they want an 8-week plan? (after Rex's intro) ---------- */
 function PlanChoice({ voiceOn, speechLang, onYes, onNo }) {
-  const { speak, stop, speaking } = useVoice(voiceOn);
+  const { speak, stop, speaking, prefetch } = useVoice(voiceOn);
   const line = "Before we go any further — would you like Carlos to put together a personalised 8-week plan for you? " +
     "If you would, I'll ask you a handful of questions so he can shape it around what you're dealing with. " +
     "If you'd rather just use the guides and the toolkit for now, that's completely fine — I'll only ask a couple of quick things, " +
@@ -4593,7 +4593,7 @@ function PlanChoice({ voiceOn, speechLang, onYes, onNo }) {
         <Portrait src={IMG.rex} name="Rex" size={170} speaking={speaking} tint={CHARS.rex.tint} />
         <Bubble>{line}</Bubble>
         <div style={{ display: "flex", flexDirection: "column", gap: 12, maxWidth: 420, margin: "0 auto" }}>
-          <button onClick={() => { stop(); onYes(); }}
+          <button onClick={() => { stop(); prefetch(QUESTIONS[0].q, CHARS.juan); onYes(); }}
             style={{ width: "100%", background: `linear-gradient(180deg, #3fb072, ${T.green})`, color: "#fff",
               border: "none", borderRadius: 16, padding: "15px", fontSize: 16.5, fontWeight: 800, cursor: "pointer",
               boxShadow: "0 10px 24px rgba(55,160,101,0.32)" }}>
@@ -4743,6 +4743,7 @@ function VoiceToggle({ on, set }) {
 }
 
 /* ---------- onboarding (Juan guides) ---------- */
+const PROGRAM_WELCOME_TEXT = "This is your tailor-made 8-week plan, shaped around what you told us about your life, your energy, and what you want to work towards. It grows week by week, starting gently and building practical steps at a pace that fits you. I’m here to help you understand each week, answer your questions, make tasks feel manageable, and help you notice your progress — without pressure and without judgement.";
 const QUESTIONS = [
   { key: "name", type: "name", q: "First up — what should we call you?" },
   { key: "age", type: "single", q: "Which stage of life are you in? It helps us pitch things right.",
@@ -4897,7 +4898,7 @@ function PlanBuilding() {
   );
 }
 
-function Onboarding({ profile, saveProfile, answers, saveAnswers, savePlan, voiceOn, mode = "full", onBackToIntro, onSignOut, onDone }) {
+function Onboarding({ profile, saveProfile, answers, saveAnswers, savePlan, voiceOn, speechLang = __speechLang, mode = "full", onBackToIntro, onSignOut, onDone }) {
   const QS = mode === "short" ? QUESTIONS.filter((x) => SHORT_KEYS.includes(x.key)) : QUESTIONS;
   const [i, setI] = useState(0);
   const [local, setLocal] = useState(answers || {});
@@ -4905,10 +4906,18 @@ function Onboarding({ profile, saveProfile, answers, saveAnswers, savePlan, voic
   const [name, setName] = useState(profile?.name || "");
   const [safetyPanel, setSafetyPanel] = useState(false);
   const [building, setBuilding] = useState(false);
-  const { speak, stop, speaking } = useVoice(voiceOn);
+  const { speak, stop, speaking, prefetch } = useVoice(voiceOn);
   const q = QS[i];
 
-  useEffect(() => { setText(local[q.key] || ""); speak(q.q, CHARS.juan); return () => stop(); /* eslint-disable-next-line */ }, [i]);
+  useEffect(() => {
+    setText(local[q.key] || "");
+    // While the person reads and answers this question, warm the next one so
+    // advancing does not have to wait for a fresh TTS request.
+    if (QS[i + 1]?.q) prefetch(QS[i + 1].q, CHARS.juan);
+    speak(q.q, CHARS.juan);
+    return () => stop();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [i, speechLang]);
 
   const set = (val) => { const next = { ...local, [q.key]: val }; setLocal(next); saveAnswers(next); return next; };
 
@@ -4983,6 +4992,9 @@ Respond with ONLY valid JSON, no markdown fences, exactly this shape:
       plan = fallbackPlan(name, local);
     }
     savePlan(plan);
+    // Start Carlos’s completed-plan welcome before leaving onboarding. The
+    // finished plan page will reuse this in-flight/cached audio immediately.
+    prefetch(spokenIntro("plan", PROGRAM_WELCOME_TEXT, speechLang), CHARS.carlos);
     saveProfile({ ...profile, name: name.trim() || "friend", onboardingComplete: true });
     setBuilding(false);
     onDone({ createdPlan: true });
@@ -5374,7 +5386,7 @@ function MerchPage({ onBack }) {
 /* ---------- Your 8-week program page ---------- */
 function ProgramPage({ profile, plan, progress, saveProgress, answers, journalCount, chats, onSaveChat, memories, onConversation, voiceOn, setVoiceOn, responseSpeed, speechLang, onOpenTool, persona, onOpenChat, onOpenJournal, onStartPlan, isSignupLanding, onBack }) {
   const [coachOpen, setCoachOpen] = useState(false);
-  const programWelcome = "This is your tailor-made 8-week plan, shaped around what you told us about your life, your energy, and what you want to work towards. It grows week by week, starting gently and building practical steps at a pace that fits you. I’m here to help you understand each week, answer your questions, make tasks feel manageable, and help you notice your progress — without pressure and without judgement.";
+  const programWelcome = PROGRAM_WELCOME_TEXT;
   const spokenProgramWelcome = spokenIntro("plan", programWelcome, speechLang);
   const { speak: speakProgramWelcome, stop: stopProgramWelcome, prefetch: prefetchProgramWelcome } = useVoice(voiceOn);
   useEffect(() => {
