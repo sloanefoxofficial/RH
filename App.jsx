@@ -5843,7 +5843,7 @@ function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, set
 
       </div>
 
-      <div className="rh-hub-card-stack" style={{ display: "flex", flexDirection: "column", gap: 11 }}>
+      <div className="rh-hub-card-stack" style={{ display: "flex", flexDirection: "column", gap: 11, marginTop: 11 }}>
         <button onClick={onOpenResources} aria-label="Open Support Directory" style={{ width: "100%", background: "linear-gradient(135deg, #dff3e7 0%, #f8fcf8 48%, #fff0dc 100%)", border: "1px solid rgba(61,142,91,0.22)", borderRadius: 24, padding: 18, boxShadow: "0 10px 24px rgba(44,125,80,0.12)", cursor: "pointer", display: "flex", alignItems: "center", gap: 14, textAlign: "left", position: "relative", overflow: "hidden" }}>
           <div style={{ position: "absolute", width: 150, height: 150, borderRadius: "50%", right: -55, top: -70, background: "rgba(255,255,255,0.45)" }} />
           <div style={{ width: 62, height: 62, borderRadius: 20, background: "linear-gradient(145deg, #236b4d, #62ad80)", display: "grid", placeItems: "center", flexShrink: 0, boxShadow: "0 8px 16px rgba(35,107,77,0.2)", position: "relative" }}><ResourcesIcon size={32} color="#fff" /></div>
