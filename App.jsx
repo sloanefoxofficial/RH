@@ -1041,7 +1041,7 @@ function StyleTag() {
       @media (prefers-reduced-motion: no-preference){ button:hover,a:hover{transform:translateY(-1px)} }
       @media (prefers-reduced-motion: reduce){ .rh-float,.rh-in,button:hover,a:hover{animation:none!important;transform:none!important} }
       /* Keep the Hub’s navigation cards generous and visually consistent. */
-      .rh-hub-card-stack > button,.rh-hub-card-stack > a{min-height:92px}
+      .rh-hub-card-stack > button,.rh-hub-card-stack > a{height:108px;min-height:108px;overflow:hidden}
     `}</style>
   );
 }
@@ -5700,21 +5700,21 @@ function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, set
 
   useEffect(() => () => stop(), [stop]);
 
-      const card = (onClick, tint, ic, Icon, title, sub, badge) => (
-    <button onClick={onClick} aria-label={`${title}: ${sub}`} style={{ width: "100%", background: "linear-gradient(110deg, #ffffff 0%, #fbfefc 100%)", borderRadius: 21, padding: 15,
-      boxShadow: T.soft, border: `1px solid ${T.line}`, cursor: "pointer", display: "flex", alignItems: "center", gap: 13, textAlign: "left", transition: "transform .15s ease, box-shadow .15s ease" }}>
-      <div style={{ width: 48, height: 48, borderRadius: 16, background: `linear-gradient(145deg, ${tint}, #ffffff)`, display: "grid", placeItems: "center", position: "relative", flexShrink: 0, boxShadow: `inset 0 0 0 1px ${ic}18` }}>
-        <Icon size={22} color={ic} strokeWidth={2.2} />
+      const card = (onClick, tint, ic, Icon, title, sub, badge, options = {}) => (
+    <button onClick={onClick} aria-label={`${title}: ${sub}`} style={{ width: "100%", background: options.background || "linear-gradient(110deg, #ffffff 0%, #fbfefc 100%)", borderRadius: 21, padding: 15,
+      boxShadow: options.shadow || T.soft, border: options.border || `1px solid ${T.line}`, cursor: "pointer", display: "flex", alignItems: "center", gap: 13, textAlign: "left", transition: "transform .15s ease, box-shadow .15s ease", ...options.button }}>
+      <div style={{ width: 50, height: 50, borderRadius: 17, background: options.iconBackground || `linear-gradient(145deg, ${tint}, #ffffff)`, display: "grid", placeItems: "center", position: "relative", flexShrink: 0, boxShadow: options.iconShadow || `inset 0 0 0 1px ${ic}18`, ...options.icon }}>
+        <Icon size={23} color={options.iconColor || ic} strokeWidth={2.2} />
         {badge > 0 && (
           <span style={{ position: "absolute", top: -5, right: -5, minWidth: 18, height: 18, borderRadius: 999,
             background: "#e5484d", color: "#fff", fontSize: 11, fontWeight: 700, display: "grid", placeItems: "center", padding: "0 4px" }}>{badge}</span>
         )}
       </div>
-      <div style={{ flex: 1 }}>
-        <div style={{ fontWeight: 700, fontSize: 16 }}>{title}</div>
-        <div style={{ fontSize: 13, color: T.sub }}>{sub}</div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontWeight: 800, fontSize: 16, color: options.titleColor || T.ink }}>{title}</div>
+        <div style={{ fontSize: 13, color: options.subColor || T.sub, lineHeight: 1.4 }}>{sub}</div>
       </div>
-      <ChevronRight size={20} color={T.sub} />
+      <ChevronRight size={21} color={options.arrowColor || T.sub} />
     </button>
   );
 
@@ -5824,9 +5824,9 @@ function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, set
           <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontWeight: 700, fontSize: 16 }}>Resilience &amp; Recovery Program</div><div style={{ fontSize: 13, color: T.sub }}>Our free 8-week in-person program — how it works &amp; how to join</div></div>
           <ChevronRight size={20} color={T.sub} />
         </button>
-        {card(onOpenGuides, "#f4e3d9", "#c9803f", Users, "Your guides", "Nicolas, Carlos, Mick & Lila — chat any time")}
-        {card(onOpenToolkit, "#dceee2", "#2c7d50", Wrench, "Toolkit", "Calm down, reflect & grow, stay safe")}
-        {card(onOpenProgram, "#e7eefb", "#3f6faf", CalendarCheck, plan ? "Your 8-Week Plan" : "Optional 8-Week Plan", plan ? "Your active plan, progress & next steps" : "Your plan, progress & next steps — use it if it helps")}
+        {card(onOpenGuides, "#f4e3d9", "#c9803f", Users, "Your guides", "Nicolas, Carlos, Mick & Lila — chat any time", undefined, { background: "linear-gradient(135deg, #fff4eb 0%, #fffaf6 52%, #f2e4dc 100%)", border: "1px solid rgba(201,128,63,0.22)", iconBackground: "linear-gradient(145deg, #e8b894, #fff3e7)", iconColor: "#b56739", arrowColor: "#b56739", subColor: "#7f6b60" })}
+        {card(onOpenToolkit, "#dceee2", "#2c7d50", Wrench, "Toolkit", "Calm down, reflect & grow, stay safe", undefined, { background: "linear-gradient(135deg, #e5f5eb 0%, #f8fcf8 54%, #e1f1ef 100%)", border: "1px solid rgba(46,133,120,0.20)", iconBackground: "linear-gradient(145deg, #72b88b, #e1f5e7)", iconColor: "#236b58", arrowColor: "#2e8578", subColor: "#5f776e" })}
+        {card(onOpenProgram, "#e7eefb", "#3f6faf", CalendarCheck, plan ? "Your 8-Week Plan" : "Optional 8-Week Plan", plan ? "Your active plan, progress & next steps" : "Your plan, progress & next steps — use it if it helps", undefined, { background: "linear-gradient(135deg, #eaf1ff 0%, #f9fbff 54%, #eeeafd 100%)", border: "1px solid rgba(63,111,175,0.20)", iconBackground: "linear-gradient(145deg, #8eaddc, #eef4ff)", iconColor: "#345c8d", arrowColor: "#4e71a6", subColor: "#64758c" })}
         <button onClick={onOpenJournal} aria-label="Private Journal: A calm, PIN-protected place for your thoughts" style={{ width: "100%", background: "linear-gradient(125deg, #fffdf7 0%, #f7f0dc 48%, #edf7f0 100%)", borderRadius: 21, padding: 15, boxShadow: T.soft, border: "1px solid rgba(201,162,39,0.20)", cursor: "pointer", display: "flex", alignItems: "center", gap: 13, textAlign: "left", position: "relative", overflow: "hidden" }}>
           <div style={{ position: "absolute", right: -22, top: -28, width: 100, height: 100, borderRadius: "50%", background: "rgba(255,255,255,0.52)" }} />
           <div style={{ width: 48, height: 48, borderRadius: 16, background: "linear-gradient(145deg, #e9d783, #fffaf0)", display: "grid", placeItems: "center", position: "relative", flexShrink: 0, boxShadow: "inset 0 0 0 1px rgba(151,113,24,0.16)" }}>
@@ -5921,7 +5921,7 @@ function GuideRow({ char, onClick, big }) {
 function Chat({ char, profile, answers, history, setHistory, plan, progress, saveProgress, persona, memories, onConversation, voiceOn, setVoiceOn, onBack, onOpenTool, embedded, planCoachContext, responseSpeed, speechLang, onReplayIntro }) {
   const { speak, stop, speaking, paused, pauseResume, prefetch } = useVoice(voiceOn);
   const guideWelcome = char.slug === "juan"
-    ? "G'day, I'm Nicolas. Ask me anything — I'm here for it all. No question is too small, and no topic is off-limits."
+    ? "G'day, I'm Juan. Ask me anything — I'm here for it all. No question is too small, and no topic is off-limits."
     : char.slug === "carlos"
     ? "Hi, I'm Carlos, an AI guide inspired by our Registered Psychologist, Carlos Camacho. We can take things one step at a time."
     : char.slug === "lila"
