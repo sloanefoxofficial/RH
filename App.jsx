@@ -4632,6 +4632,12 @@ function ChatHelp() {
 /* ---------- privacy notice (link + modal, drops in anywhere) ---------- */
 function PrivacyLink({ style, variant }) {
   const [open, setOpen] = useState(false);
+  const section = (title, children) => (
+    <div style={{ marginBottom: 14 }}>
+      <div style={{ fontWeight: 800, fontSize: 14, marginBottom: 4, color: T.greenDk }}>{title}</div>
+      <div style={{ fontSize: 13.5, color: T.ink, lineHeight: 1.55 }}>{children}</div>
+    </div>
+  );
   return (
     <>
       {variant === "menu" ? (
@@ -4641,56 +4647,47 @@ function PrivacyLink({ style, variant }) {
             <Shield size={18} color="#3b7fca" />
           </div>
           <div style={{ flex: 1 }}>
-            <div style={{ fontWeight: 700, fontSize: 15 }}>View Privacy Policy</div>
-            <div style={{ fontSize: 12.5, color: T.sub }}>How your information is kept, used & protected</div>
+            <div style={{ fontWeight: 700, fontSize: 15 }}>Privacy & security</div>
+            <div style={{ fontSize: 12.5, color: T.sub }}>How your information is encrypted, used and protected</div>
           </div>
           <ChevronRight size={20} color={T.sub} />
         </button>
       ) : (
         <button onClick={() => setOpen(true)} style={{ background: "none", border: "none", color: T.green,
           cursor: "pointer", fontSize: 12.5, fontWeight: 600, textDecoration: "underline", padding: 0, ...(style || {}) }}>
-          Privacy
+          Privacy & security
         </button>
       )}
       {open && (
         <div style={{ position: "fixed", inset: 0, zIndex: 120, background: "rgba(44,42,51,0.45)",
           display: "flex", alignItems: "center", justifyContent: "center", padding: 18 }}>
-          <div className="rh-in" style={{ width: "100%", maxWidth: 420, maxHeight: "84vh", overflowY: "auto",
+          <div className="rh-in" style={{ width: "100%", maxWidth: 440, maxHeight: "88vh", overflowY: "auto",
             background: T.card, borderRadius: 22, boxShadow: T.lift, position: "relative", padding: "22px 20px" }}>
             <button onClick={() => setOpen(false)} aria-label="Close"
               style={{ position: "absolute", top: 12, right: 12, width: 38, height: 38, borderRadius: "50%",
                 border: "none", background: "#f3eef7", color: T.ink, cursor: "pointer", display: "grid", placeItems: "center" }}>
               <X size={19} />
             </button>
-            <h2 style={{ fontSize: 19, margin: "0 0 4px", paddingRight: 30 }}>Your privacy</h2>
-            <p style={{ fontSize: 12.5, color: T.sub, margin: "0 0 14px" }}>A plain-language summary of how your information is handled.</p>
-
-            <div style={{ marginBottom: 12 }}>
-              <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 3 }}>What we keep</div>
-              <p style={{ fontSize: 13.5, color: T.ink, lineHeight: 1.5, margin: 0 }}>Your account (email), anything you add to your profile (name, pronouns, bio, photo, private contact notes), your journal, your conversations with all AI guides, and any private messages you send directly to Juan (the admin/founder).</p>
+            <h2 style={{ fontSize: 20, margin: "0 0 5px", paddingRight: 30 }}>Privacy & security</h2>
+            <p style={{ fontSize: 12.5, color: T.sub, margin: "0 0 16px", lineHeight: 1.45 }}>Plain-English notice · Updated 8 September 2026</p>
+            <div style={{ background: "#fff4d6", border: "1px solid #f0d493", borderRadius: 15, padding: 13, marginBottom: 16, color: "#6b5118", fontSize: 13.5, lineHeight: 1.5, fontWeight: 700 }}>
+              Important: no software can honestly promise absolute security. We use multiple protection layers, but please choose carefully what you share. The Hub is not an emergency, medical, or crisis-response service.
             </div>
-            <div style={{ marginBottom: 12 }}>
-              <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 3 }}>Where it's kept</div>
-              <p style={{ fontSize: 13.5, color: T.ink, lineHeight: 1.5, margin: 0 }}>Securely in our database. Your conversations with the guides are sent to a trusted AI service to generate replies. Voice, when on, is turned into speech by a voice service. We don't sell your information.</p>
+            {section("What you may choose to put into the Hub", <>Depending on the features you use, this may include your account email and sign-in provider; profile details; intake answers and recovery-plan information; plan and game progress; journal entries and fleeting thoughts; AI-guide conversations and memory notes; messages to the real Juan or support team; bug reports, feedback, appointment requests, optional screenshots, and app preferences. Optional information can be left blank.</>)}
+            {section("Personal data is encrypted before storage", <>Personal content is encrypted in your browser before it is sent to our database using AES-GCM encryption. Your privacy passphrase and recovery key unlock your private vault; they are not sent to The Resilience Hub and we do not store the passphrase. The personal vault covers profile and intake data, plans, progress, journal content, guide memories, and saved AI-guide conversations. Local browser copies are encrypted after the vault is unlocked.</>)}
+            <div style={{ background: "#fff0ef", border: "1px solid #efc2bd", borderRadius: 15, padding: 13, marginBottom: 14, color: "#7d302b", fontSize: 13.5, lineHeight: 1.5, fontWeight: 700 }}>
+              If you lose both your privacy passphrase and recovery key, your encrypted personal data cannot be recovered by you or by The Resilience Hub team. This is intentional. Please keep the recovery key somewhere safe.
             </div>
-            <div style={{ marginBottom: 12 }}>
-              <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 3 }}>Who can see it</div>
-              <p style={{ fontSize: 13.5, color: T.ink, lineHeight: 1.5, margin: "0 0 6px" }}>Your private contact notes are visible only to you — not even an admin can read them.</p>
-              <ul style={{ fontSize: 13.5, color: T.ink, lineHeight: 1.5, margin: "0 0 6px", paddingLeft: 18 }}>
-                <li style={{ marginBottom: 4 }}>Conversations with all AI guides (Juan, Carlos, Mick, Lila, Rex): 100% private — only you see them.</li>
-                <li style={{ marginBottom: 4 }}>Only messages you send via "Message Juan" (to the real founder/admin): visible to admin, to support and help you.</li>
-                <li>An admin can see your basic profile (name, email, bio). Other members can never see your information.</li>
-              </ul>
+            {section("Support messages and reports", <>Messages to the real Juan, bug reports, feedback, appointment requests, and optional screenshots use dual-recipient encryption. They are encrypted for your account and authorised Resilience Hub staff. This means staff can read something you deliberately send to them; these support submissions are not user-only encrypted. Other members cannot read them. Screenshots are optional and may contain sensitive details, so crop or hide anything unnecessary.</>)}
+            {section("AI and voice services", <>When you ask an AI guide to reply, the relevant content is sent through our server to Anthropic so a response can be generated. When voice playback is requested, text may be sent through Fish Audio or Google Cloud Text-to-Speech, with browser speech as a fallback. These providers may process content under their own terms and retention practices. Do not enter information you are not comfortable sending to an AI or speech service.</>)}
+            {section("Account, sign-in and notifications", <>The app uses Supabase authentication and database services. Email/password and Google sign-in may be available. “Stay logged in” controls session persistence; disable it on shared devices. The optional device-unlock setting is off by default and stores a device-wrapped key, not your passphrase. Push notification bodies are kept generic and should not contain journal text, message content, or crisis disclosures.</>)}
+            {section("Who may access information", <>Authorised Resilience Hub staff may access support submissions that you deliberately send. Supabase, Vercel, Anthropic, Fish Audio, Google Cloud Text-to-Speech, authentication providers, push-notification infrastructure, and other service providers may process limited information needed to provide the app. We do not sell personal information or use it for advertising profiling. We may disclose information where required by law or needed to respond to an immediate safety risk.</>)}
+            {section("Deletion and retention", <>You can clear your app data from your Profile. The app attempts to remove encrypted account rows, support rows linked to your account, game progress, push subscriptions, local encrypted data, vault metadata, and associated screenshot objects. Deleted data may remain in provider backups, point-in-time recovery, disaster-recovery systems, device backups, or third-party provider systems for a limited period. The team must confirm and publish the configured maximum backup/PITR period before release: <strong>[backup/PITR retention period to be confirmed]</strong>.</>)}
+            {section("Your choices and questions", <>You can change optional profile details, manage guide memory, control voice and notification preferences, disable device vault unlock, clear app data, sign out, and contact the team about privacy or deletion requests. Never send a privacy passphrase, recovery key, private encryption key, or service secret to support. For urgent danger, call 000 or use Help Now.</>)}
+            <div style={{ background: "#eef7f1", borderRadius: 15, padding: 13, marginTop: 2, fontSize: 12.5, color: T.sub, lineHeight: 1.5 }}>
+              <strong style={{ color: T.ink }}>Before public release:</strong> The Resilience Hub team should have this notice reviewed by a qualified Australian privacy lawyer and security adviser, confirm provider terms and cross-border handling, fill in the backup-retention period, and verify the final deletion and incident-response processes.
             </div>
-            <div style={{ marginBottom: 12 }}>
-              <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 3 }}>Your control</div>
-              <p style={{ fontSize: 13.5, color: T.ink, lineHeight: 1.5, margin: 0 }}>You can edit or clear your profile any time, and "Start over" wipes your journey, journal, and saved conversations. To manage what the guides remember about you — or to turn guide memory off completely — go to your Profile and open "What the guides remember". Delete your account by asking Juan.</p>
-            </div>
-            <div style={{ marginBottom: 12 }}>
-              <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 3 }}>Not for emergencies</div>
-              <p style={{ fontSize: 13.5, color: T.ink, lineHeight: 1.5, margin: 0 }}>The Hub is a support tool — not a crisis or medical service. If you're in danger or need urgent help, use the crisis contacts shown at the top of the app.</p>
-            </div>
-            <div style={{ marginTop: 8 }}><Btn onClick={() => setOpen(false)}>Close</Btn></div>
+            <div style={{ marginTop: 14 }}><Btn onClick={() => setOpen(false)}>Close</Btn></div>
           </div>
         </div>
       )}
