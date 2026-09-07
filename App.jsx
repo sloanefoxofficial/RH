@@ -6,7 +6,7 @@ import {
   Shield, Eye, EyeOff, User, Megaphone, Youtube, ExternalLink, Radio, Paperclip, MessageCircle, Share2, Flame, HelpCircle, Plus, Search, Settings as SettingsIcon, CalendarCheck, Users, ShoppingBag, Gamepad2, Zap, Download, FileText, Clock, MapPin, DollarSign,
 } from "lucide-react";
 import { IMG } from "./images.js";
-import { supabase, authEnabled } from "./supabase.js";
+import { supabase, authEnabled, setAuthSessionPersistence } from "./supabase.js";
 import { createUserVault, unlockUserVault, encryptJson, decryptJson, isEncrypted, encryptForTeam, decryptTeamForUser, getConfiguredTeamPublicKey, importTeamPublicKey } from "./securityVault.js";
 
 /* ------------------------------------------------------------------ *
@@ -370,6 +370,10 @@ export default function App() {
   const [consented, setConsented] = useState(false);
   const [toolkitInitial, setToolkitInitial] = useState(null);
   const [session, setSession] = useState(null);
+  const [stayLoggedIn, setStayLoggedIn] = useState(() => {
+    try { const raw = localStorage.getItem("rh_stay_logged_in"); return raw === null ? true : JSON.parse(raw) !== false; }
+    catch { return true; }
+  });
   const [isAdmin, setIsAdmin] = useState(false);
   const [authChecked, setAuthChecked] = useState(!authEnabled);
   const [memories, setMemories] = useState([]);          // durable "about me" notes
@@ -378,6 +382,10 @@ export default function App() {
   const [reduceMotion, setReduceMotion] = useState(false);
   const [guestMode, setGuestMode] = useState(false);      // testing/preview mode — no account, nothing account-synced, for people (or AIs) previewing the app who can't or don't want to sign in yet
   const showAuth = authEnabled && !guestMode;             // treat the app as "no auth" for the rest of this session while guestMode is on
+  const changeStayLoggedIn = useCallback((value) => {
+    setStayLoggedIn(Boolean(value));
+    setAuthSessionPersistence(Boolean(value));
+  }, []);
   const [rexIntroReplay, setRexIntroReplay] = useState(false); // true when Rex's intro was opened from inside chat (not first-time onboarding) — changes where "I'm ready" / close sends them back to
   const [responseSpeed, setResponseSpeed] = useState("normal"); // "chilled" | "normal" | "fast" — per-device reply pacing, set in Settings
   const [speechLang, setSpeechLang] = useState("en-AU"); // mic + fallback voice language, set in Settings
@@ -945,7 +953,7 @@ export default function App() {
         {authEnabled && !authChecked ? (
           <div style={{ paddingTop: 120, textAlign: "center", color: T.sub }}>Loading…</div>
         ) : showAuth && !session ? (
-          <Login onGuest={() => setGuestMode(true)} />
+          <Login onGuest={() => setGuestMode(true)} stayLoggedIn={stayLoggedIn} onStayLoggedInChange={changeStayLoggedIn} />
         ) : !ready ? (
           <div style={{ paddingTop: 120, textAlign: "center", color: T.sub }}>Warming up…</div>
         ) : !consented ? (
@@ -2668,7 +2676,7 @@ function QuickCalm({ onBack }) {
 }
 
 /* ---------- auth: login ---------- */
-function Login({ onGuest }) {
+function Login({ onGuest, stayLoggedIn = true, onStayLoggedInChange }) {
   const [mode, setMode] = useState("signin");
   const [email, setEmail] = useState("");
   const [pw, setPw] = useState("");
@@ -2774,6 +2782,10 @@ function Login({ onGuest }) {
               {showPw ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
           </div>
+          <label style={{ display: "flex", alignItems: "flex-start", gap: 9, marginTop: 12, color: T.ink, fontSize: 13, lineHeight: 1.4, cursor: "pointer" }}>
+            <input type="checkbox" checked={stayLoggedIn} onChange={(e) => onStayLoggedInChange?.(e.target.checked)} style={{ width: 18, height: 18, marginTop: 1, accentColor: T.green, flexShrink: 0 }} />
+            <span><strong>Stay logged in</strong><br /><span style={{ color: T.sub, fontSize: 12 }}>Leave this on for your own device. Turn it off on a shared device.</span></span>
+          </label>
           {err && <div style={{ color: "#c0392b", fontSize: 13, marginTop: 10, lineHeight: 1.4 }}>{err}</div>}
           {notice && <div style={{ color: T.greenDk, fontSize: 13, marginTop: 10, lineHeight: 1.4 }}>{notice}</div>}
           <div style={{ marginTop: 14 }}>
@@ -4637,6 +4649,8 @@ function PrivacyVaultGate({ status, onCreate, onUnlock }) {
   const [passphrase, setPassphrase] = useState("");
   const [confirm, setConfirm] = useState("");
   const [recoveryMode, setRecoveryMode] = useState(false);
+  const [showSecret, setShowSecret] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [recovery, setRecovery] = useState("");
@@ -4670,8 +4684,11 @@ function PrivacyVaultGate({ status, onCreate, onUnlock }) {
         <p style={{ color: T.sub, lineHeight: 1.6, marginTop: 0 }}>{mode === "create" ? "Your journal, plans, profile, memories, and guide conversations will be encrypted on your device before they are saved." : "Your private data stays locked until you unlock it on this device."}</p>
         {mode === "create" && <div style={{ background: "#fff4d6", border: "1px solid #f0d493", borderRadius: 16, padding: 14, color: "#6b5118", fontWeight: 700, lineHeight: 1.5, margin: "14px 0" }}>Important: if you lose both your privacy passphrase and recovery key, your encrypted personal data cannot be recovered. Please do not use a passphrase you cannot remember.</div>}
         <label style={{ display: "block", fontWeight: 800, color: T.ink, marginTop: 14 }}>{recoveryMode ? "Recovery key" : "Privacy passphrase"}</label>
-        <input value={passphrase} onChange={(e) => setPassphrase(e.target.value)} type="password" autoComplete="new-password" placeholder={recoveryMode ? "Enter your recovery key" : "At least 12 characters"} style={{ width: "100%", marginTop: 7, border: `1px solid ${T.line}`, borderRadius: 14, padding: "13px 14px", fontSize: 16, boxSizing: "border-box" }} />
-        {mode === "create" && <><label style={{ display: "block", fontWeight: 800, color: T.ink, marginTop: 14 }}>Confirm passphrase</label><input value={confirm} onChange={(e) => setConfirm(e.target.value)} type="password" autoComplete="new-password" style={{ width: "100%", marginTop: 7, border: `1px solid ${T.line}`, borderRadius: 14, padding: "13px 14px", fontSize: 16, boxSizing: "border-box" }} /></>}
+        <div style={{ position: "relative", marginTop: 7 }}>
+          <input value={passphrase} onChange={(e) => setPassphrase(e.target.value)} type={showSecret ? "text" : "password"} autoComplete={recoveryMode ? "off" : mode === "create" ? "new-password" : "current-password"} placeholder={recoveryMode ? "Enter your recovery key" : "At least 12 characters"} style={{ width: "100%", border: `1px solid ${T.line}`, borderRadius: 14, padding: "13px 48px 13px 14px", fontSize: 16, boxSizing: "border-box" }} />
+          <button type="button" onClick={() => setShowSecret((v) => !v)} aria-label={showSecret ? "Hide private key" : "Show private key"} title={showSecret ? "Hide private key" : "Show private key"} style={{ position: "absolute", right: 6, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: T.sub, padding: 8, display: "grid", placeItems: "center" }}>{showSecret ? <EyeOff size={18} /> : <Eye size={18} />}</button>
+        </div>
+        {mode === "create" && <><label style={{ display: "block", fontWeight: 800, color: T.ink, marginTop: 14 }}>Confirm passphrase</label><div style={{ position: "relative", marginTop: 7 }}><input value={confirm} onChange={(e) => setConfirm(e.target.value)} type={showConfirm ? "text" : "password"} autoComplete="new-password" style={{ width: "100%", border: `1px solid ${T.line}`, borderRadius: 14, padding: "13px 48px 13px 14px", fontSize: 16, boxSizing: "border-box" }} /><button type="button" onClick={() => setShowConfirm((v) => !v)} aria-label={showConfirm ? "Hide confirmation passphrase" : "Show confirmation passphrase"} title={showConfirm ? "Hide confirmation passphrase" : "Show confirmation passphrase"} style={{ position: "absolute", right: 6, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: T.sub, padding: 8, display: "grid", placeItems: "center" }}>{showConfirm ? <EyeOff size={18} /> : <Eye size={18} />}</button></div></>}
         {error && <div style={{ color: "#9a3d3d", background: "#fff0ef", borderRadius: 12, padding: 12, marginTop: 14, fontWeight: 700 }}>{error}</div>}
         <button disabled={busy} onClick={submit} style={{ width: "100%", marginTop: 18, border: 0, borderRadius: 14, padding: "14px 16px", background: T.greenDk, color: "#fff", fontWeight: 800, opacity: busy ? .6 : 1 }}>{busy ? "Working…" : mode === "create" ? "Create private vault" : "Unlock private data"}</button>
         <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
