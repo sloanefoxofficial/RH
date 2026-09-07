@@ -3907,7 +3907,19 @@ function CoordinatorChat({ session, userPublicKey, userPrivateKey, onBack }) {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ toAdmins: true, title: "New member message", body: "A new encrypted message is waiting in the staff inbox.", target: "adminMessages", url: "/?open=adminMessages" }),
       }).catch(() => {});
-    } catch (e) { setErr("Couldn't send just now — have you run the messages SQL?"); }
+    } catch (e) {
+      const message = String(e?.message || "");
+      const code = String(e?.code || "");
+      if (code === "42703" || /user_public_key_jwk|column .* does not exist/i.test(message)) {
+        setErr("Message privacy setup is incomplete. Please run ENCRYPTION_SPLIT_MIGRATION.sql in Supabase, then try again.");
+      } else if (/authorised team encryption key|team encryption key/i.test(message)) {
+        setErr("Message privacy setup is incomplete. Please check that VITE_RH_TEAM_PUBLIC_KEY is configured in Vercel and redeploy.");
+      } else if (/vault is locked|private vault/i.test(message)) {
+        setErr("Please unlock your private vault before sending a message.");
+      } else {
+        setErr("Couldn't send just now. Please try again in a moment.");
+      }
+    }
     finally { setBusy(false); }
   };
 
