@@ -5946,7 +5946,7 @@ function GuideRow({ char, onClick, big }) {
 function Chat({ char, profile, answers, history, setHistory, plan, progress, saveProgress, persona, memories, onConversation, voiceOn, setVoiceOn, onBack, onOpenTool, embedded, planCoachContext, responseSpeed, speechLang, onReplayIntro }) {
   const { speak, stop, speaking, paused, pauseResume, prefetch } = useVoice(voiceOn);
   const guideWelcome = char.slug === "juan"
-    ? "G'day, I'm Nicholas. Ask me anything — I'm here for it all. No question is too small, and no topic is off-limits."
+    ? "G'day, I'm Juan. Ask me anything — I'm here for it all. No question is too small, and no topic is off-limits."
     : char.slug === "carlos"
     ? "Hi, I'm Carlos, an AI guide inspired by our Registered Psychologist, Carlos Camacho. We can take things one step at a time."
     : char.slug === "lila"
@@ -6954,7 +6954,6 @@ function ResourcesPage({ onOpenSafety, onOpenMensShed, onOpenGames, onBack }) {
         {resourceCard({ Icon: Users, tint: "#e8f5ec", color: T.greenDk, eyebrow: "Community connection · Bonnyrigg", title: "South West Sydney Men’s Shed", onClick: onOpenMensShed, children: "Mateship, practical skills, and a welcoming place to connect. Open the listing for location and current fees.", actionLabel: "Open Men’s Shed information" })}
         {resourceCard({ Icon: MessageCircle, tint: "#fffaf0", color: "#336f52", eyebrow: "Safe conversation", title: "The Men’s Table", href: "https://www.themenstable.org", children: "A place for men to share honestly, listen, and build meaningful connection." })}
         {resourceCard({ Icon: Heart, image: "/community/fairfield-city-leisure-centres-logo.png", imageAlt: "Fairfield City Leisure Centres logo", tint: "#e8f0fb", color: "#197aa8", eyebrow: "Local health and wellbeing", title: "Fairfield Leisure Centre", href: "https://www.fairfieldcityleisurecentres.com.au/", children: "Affordable local options including gym, group fitness, pools, Learn to Swim, and Aquatopia across Fairfield City." })}
-        {resourceCard({ Icon: User, image: "/community/david-saliba-portrait.jpg", imageAlt: "Dr David Saliba MP", tint: "#f3ecd6", color: "#80621b", eyebrow: "Your local representative", title: "Dr David Saliba, MP for Fairfield", href: "https://www.davidsaliba.com.au/", children: "David Saliba was born and raised in Fairfield City and shares local news, initiatives, services, and ways to contact his office." })}
       </div>
 
       {sectionLabel("resources-wellbeing", Gamepad2, "Wellbeing and activities", "Small enjoyable things can help create breathing space, movement, and a bit of light relief.", "#6d55b0")}
