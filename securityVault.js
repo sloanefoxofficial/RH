@@ -64,7 +64,7 @@ async function open(envelope, key, aad) {
 }
 function validateSecret(secret, label = "privacy passphrase") { if (typeof secret !== "string" || secret.trim().length < 12) throw new Error(`Your ${label} must be at least 12 characters.`); }
 export function makeRecoveryKey() { return bytesToB64(randomBytes(32)).replace(/[^A-Za-z0-9]/g, "").slice(0, 40); }
-async function importRsaPublic(jwk) { return crypto.subtle.importKey("jwk", jwk, { name: "RSA-OAEP", hash: "SHA-256" }, false, ["encrypt"]); }
+async function importRsaPublic(jwk) { return crypto.subtle.importKey("jwk", jwk, { name: "RSA-OAEP", hash: "SHA-256" }, true, ["encrypt"]); }
 async function importRsaPrivate(jwk) { return crypto.subtle.importKey("jwk", jwk, { name: "RSA-OAEP", hash: "SHA-256" }, false, ["decrypt"]); }
 async function generateUserRecipientKey() {
   const pair = await crypto.subtle.generateKey({ name: "RSA-OAEP", modulusLength: 3072, publicExponent: new Uint8Array([1, 0, 1]), hash: "SHA-256" }, true, ["encrypt", "decrypt"]);
@@ -144,9 +144,22 @@ export async function unlockWithDevice(meta) {
 }
 
 export async function getConfiguredTeamPublicKey() {
-  const raw = import.meta.env.VITE_RH_TEAM_PUBLIC_KEY;
+  const raw = String(import.meta.env.VITE_RH_TEAM_PUBLIC_KEY || "").trim();
   if (!raw) throw new Error("The authorised team encryption key is not configured.");
-  return importTeamPublicKey(raw);
+  if (raw === "VITE_RH_TEAM_PUBLIC_KEY" || raw.includes("VITE_RH_TEAM_PUBLIC_KEY")) {
+    throw new Error("VITE_RH_TEAM_PUBLIC_KEY still contains its variable-name placeholder. Paste the full public-key JWK JSON into Vercel and redeploy.");
+  }
+  let jwk;
+  try {
+    jwk = JSON.parse(raw);
+    if (typeof jwk === "string") jwk = JSON.parse(jwk);
+  } catch {
+    throw new Error("VITE_RH_TEAM_PUBLIC_KEY must contain the complete public-key JWK JSON object, not the variable name or a PEM key.");
+  }
+  if (!jwk || typeof jwk !== "object" || jwk.kty !== "RSA" || !jwk.n || !jwk.e) {
+    throw new Error("VITE_RH_TEAM_PUBLIC_KEY is not a valid RSA public-key JWK. Paste the contents of RH_TEAM_PUBLIC_KEY.jwk.json.");
+  }
+  return importTeamPublicKey(jwk);
 }
 export const VAULT_VERSION = VERSION;
 export const KDF_ITERATIONS = PBKDF2_ITERATIONS;
