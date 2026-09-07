@@ -2,6 +2,39 @@ const VERSION = 1;
 const PBKDF2_ITERATIONS = 310000;
 const te = new TextEncoder();
 const td = new TextDecoder();
+const DEVICE_UNLOCK_STORAGE = "rh_device_vault_unlock_v1";
+const DEVICE_DB = "rh-device-vault";
+
+function openDeviceDb() {
+  return new Promise((resolve, reject) => {
+    if (!globalThis.indexedDB) return reject(new Error("Device unlock is not supported in this browser."));
+    const request = indexedDB.open(DEVICE_DB, 1);
+    request.onupgradeneeded = () => request.result.createObjectStore("keys");
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error || new Error("Could not open device vault."));
+  });
+}
+async function deviceKey(readOnly = false) {
+  const db = await openDeviceDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction("keys", readOnly ? "readonly" : "readwrite");
+    const store = tx.objectStore("keys");
+    const request = readOnly ? store.get("vault") : store.get("vault");
+    request.onsuccess = async () => {
+      try {
+        if (request.result) return resolve(request.result);
+        if (readOnly) return resolve(null);
+        const generated = await crypto.subtle.generateKey({ name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]);
+        store.put(generated, "vault");
+        resolve(generated);
+      } catch (e) { reject(e); }
+    };
+    request.onerror = () => reject(request.error || new Error("Could not read device vault."));
+  });
+}
+async function rawDeviceUnlockEnvelope() {
+  try { const raw = localStorage.getItem(DEVICE_UNLOCK_STORAGE); return raw ? JSON.parse(raw) : null; } catch { return null; }
+}
 
 function bytesToB64(bytes) {
   let out = "";
@@ -51,7 +84,7 @@ export async function createUserVault(passphrase) {
     wrappedForRecovery: await seal(rawDataKey, recoveryKey, "rh-vault-recovery-v1"),
     wrappedUserPrivateKey: await encryptJson(recipient.privateJwk, dataKey, "rh-user-private-key"), createdAt: Date.now(),
   };
-  return { meta, dataKey, userPrivateKey: recipient.privateKey, userPublicKey: recipient.publicKey, recoveryKey: recovery };
+  return { meta, rawDataKey, dataKey, userPrivateKey: recipient.privateKey, userPublicKey: recipient.publicKey, recoveryKey: recovery };
 }
 export async function unlockUserVault(meta, secret, recovery = false) {
   if (!meta || meta.v !== VERSION) throw new Error("Unsupported privacy-vault version.");
@@ -60,7 +93,7 @@ export async function unlockUserVault(meta, secret, recovery = false) {
   const rawDataKey = await open(recovery ? meta.wrappedForRecovery : meta.wrappedForPassphrase, wrappingKey, recovery ? "rh-vault-recovery-v1" : "rh-vault-passphrase-v1");
   const dataKey = await importAes(rawDataKey);
   const privateJwk = await decryptJson(meta.wrappedUserPrivateKey, dataKey, "rh-user-private-key");
-  return { dataKey, userPrivateKey: await importRsaPrivate(privateJwk), userPublicKey: await importRsaPublic(meta.userPublicKeyJwk) };
+  return { rawDataKey: new Uint8Array(rawDataKey), dataKey, userPrivateKey: await importRsaPrivate(privateJwk), userPublicKey: await importRsaPublic(meta.userPublicKeyJwk) };
 }
 export async function encryptJson(value, dataKey, field) {
   const aad = `rh:${field}:v${VERSION}`;
@@ -85,6 +118,31 @@ export async function decryptTeamForUser(envelope, userPrivateKey) {
   const rawContentKey = await crypto.subtle.decrypt({ name: "RSA-OAEP" }, userPrivateKey, b64ToBytes(envelope.userWrappedKey));
   return decryptJson(envelope.userEnvelope, await importAes(new Uint8Array(rawContentKey)), envelope.field);
 }
+export async function enableDeviceUnlock(rawDataKey) {
+  const key = await deviceKey(false);
+  const envelope = await seal(rawDataKey, key, "rh-device-unlock-v1");
+  localStorage.setItem(DEVICE_UNLOCK_STORAGE, JSON.stringify(envelope));
+}
+export async function disableDeviceUnlock() {
+  try { localStorage.removeItem(DEVICE_UNLOCK_STORAGE); } catch {}
+  try {
+    const db = await openDeviceDb();
+    await new Promise((resolve) => { const tx = db.transaction("keys", "readwrite"); tx.objectStore("keys").delete("vault"); tx.oncomplete = resolve; tx.onerror = resolve; });
+  } catch {}
+}
+export async function unlockWithDevice(meta) {
+  const envelope = await rawDeviceUnlockEnvelope();
+  if (!envelope || !meta?.userPublicKeyJwk) return null;
+  try {
+    const key = await deviceKey(true);
+    if (!key) return null;
+    const rawDataKey = await open(envelope, key, "rh-device-unlock-v1");
+    const dataKey = await importAes(rawDataKey);
+    const privateJwk = await decryptJson(meta.wrappedUserPrivateKey, dataKey, "rh-user-private-key");
+    return { rawDataKey, dataKey, userPrivateKey: await importRsaPrivate(privateJwk), userPublicKey: await importRsaPublic(meta.userPublicKeyJwk) };
+  } catch { return null; }
+}
+
 export async function getConfiguredTeamPublicKey() {
   const raw = import.meta.env.VITE_RH_TEAM_PUBLIC_KEY;
   if (!raw) throw new Error("The authorised team encryption key is not configured.");

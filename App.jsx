@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 import { IMG } from "./images.js";
 import { supabase, authEnabled, setAuthSessionPersistence } from "./supabase.js";
-import { createUserVault, unlockUserVault, encryptJson, decryptJson, isEncrypted, encryptForTeam, decryptTeamForUser, getConfiguredTeamPublicKey, importTeamPublicKey } from "./securityVault.js";
+import { createUserVault, unlockUserVault, encryptJson, decryptJson, isEncrypted, encryptForTeam, decryptTeamForUser, getConfiguredTeamPublicKey, importTeamPublicKey, enableDeviceUnlock, disableDeviceUnlock, unlockWithDevice } from "./securityVault.js";
 
 /* ------------------------------------------------------------------ *
  * The Resilience Hub — hosted build (React front end + /api/chat backend)
@@ -397,9 +397,11 @@ export default function App() {
   const [vaultStatus, setVaultStatus] = useState("checking");
   const [vaultMeta, setVaultMeta] = useState(null);
   const [vaultKey, setVaultKey] = useState(null);
+  const [deviceUnlockEnabled, setDeviceUnlockEnabled] = useState(false);
   const [userPublicKey, setUserPublicKey] = useState(null);
   const [userPrivateKey, setUserPrivateKey] = useState(null);
   const vaultKeyRef = useRef(null);
+  const vaultRawKeyRef = useRef(null);
   const userPublicKeyRef = useRef(null);
   const userPrivateKeyRef = useRef(null);
   vaultKeyRef.current = vaultKey;
@@ -428,7 +430,7 @@ export default function App() {
   const unlockPrivacyVault = useCallback(async (secret, useRecovery = false) => {
     try {
       const unlocked = await unlockUserVault(vaultMeta, secret, useRecovery);
-      setVaultKey(unlocked.dataKey); vaultKeyRef.current = unlocked.dataKey;
+      setVaultKey(unlocked.dataKey); vaultKeyRef.current = unlocked.dataKey; vaultRawKeyRef.current = unlocked.rawDataKey;
       setUserPublicKey(unlocked.userPublicKey); userPublicKeyRef.current = unlocked.userPublicKey;
       setUserPrivateKey(unlocked.userPrivateKey); userPrivateKeyRef.current = unlocked.userPrivateKey;
       setVaultStatus("unlocked");
@@ -439,7 +441,7 @@ export default function App() {
   }, [vaultMeta, migrateLocalPlaintext]);
   const createPrivacyVault = useCallback(async (passphrase) => {
     const created = await createUserVault(passphrase);
-    setVaultMeta(created.meta); setVaultKey(created.dataKey); vaultKeyRef.current = created.dataKey;
+    setVaultMeta(created.meta); setVaultKey(created.dataKey); vaultKeyRef.current = created.dataKey; vaultRawKeyRef.current = created.rawDataKey;
     setUserPublicKey(created.userPublicKey); userPublicKeyRef.current = created.userPublicKey;
     setUserPrivateKey(created.userPrivateKey); userPrivateKeyRef.current = created.userPrivateKey;
     setVaultStatus("unlocked");
@@ -447,6 +449,14 @@ export default function App() {
     await migrateLocalPlaintext();
     return created.recoveryKey;
   }, [migrateLocalPlaintext]);
+
+  const setDeviceUnlockPreference = useCallback(async (enabled) => {
+    const next = Boolean(enabled);
+    setDeviceUnlockEnabled(next);
+    await sset("rh_device_unlock_enabled", next);
+    if (next && vaultRawKeyRef.current) await enableDeviceUnlock(vaultRawKeyRef.current);
+    if (!next) await disableDeviceUnlock();
+  }, []);
 
   // Every internal screen starts at the top. The second reset catches pages
   // whose content finishes mounting after the route state changes.
@@ -471,6 +481,23 @@ export default function App() {
   useEffect(() => {
     if (authChecked && vaultStatus !== "checking") setReady(true);
   }, [authChecked, vaultStatus]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const enabled = (await sget("rh_device_unlock_enabled")) === true;
+      if (cancelled) return;
+      setDeviceUnlockEnabled(enabled);
+      if (!enabled || vaultStatus !== "locked" || !vaultMeta) return;
+      const unlocked = await unlockWithDevice(vaultMeta);
+      if (cancelled || !unlocked) return;
+      setVaultKey(unlocked.dataKey); vaultKeyRef.current = unlocked.dataKey; vaultRawKeyRef.current = unlocked.rawDataKey;
+      setUserPublicKey(unlocked.userPublicKey); userPublicKeyRef.current = unlocked.userPublicKey;
+      setUserPrivateKey(unlocked.userPrivateKey); userPrivateKeyRef.current = unlocked.userPrivateKey;
+      setVaultStatus("unlocked");
+    })();
+    return () => { cancelled = true; };
+  }, [vaultStatus, vaultMeta]);
 
   useEffect(() => {
     (async () => {
@@ -738,7 +765,7 @@ export default function App() {
     setProfile(null); setAnswers({}); setPlan(null); setProgress({});
     setJournal([]); setChats({}); chatsRef.current = {};
     setMemories([]); memoriesRef.current = [];
-    setVaultMeta(null); setVaultKey(null); vaultKeyRef.current = null;
+    setVaultMeta(null); setVaultKey(null); vaultKeyRef.current = null; vaultRawKeyRef.current = null;
     setUserPublicKey(null); userPublicKeyRef.current = null; setUserPrivateKey(null); userPrivateKeyRef.current = null;
     setJournalPinSet(false); setJournalUnlocked(false);
   };
@@ -959,7 +986,7 @@ export default function App() {
         ) : !consented ? (
           <Consent onAgree={() => { sset("rh_consent", { agreedAt: Date.now() }); setConsented(true); }} />
         ) : vaultStatus !== "unlocked" ? (
-          <PrivacyVaultGate status={vaultStatus} onCreate={createPrivacyVault} onUnlock={unlockPrivacyVault} />
+          <PrivacyVaultGate status={vaultStatus} onCreate={createPrivacyVault} onUnlock={unlockPrivacyVault} deviceUnlockEnabled={deviceUnlockEnabled} onSetDeviceUnlock={setDeviceUnlockPreference} />
         ) : screen === "welcome" ? (
           <Welcome
             voiceOn={voiceOn} setVoiceOn={setVoiceOn}
@@ -1102,7 +1129,7 @@ export default function App() {
             onSave={(list, on) => saveMemories(list, on)} onBack={back} />
         ) : screen === "settings" ? (
               <Settings textScale={textScale} reduceMotion={reduceMotion} responseSpeed={responseSpeed} speechLang={speechLang} autoIntroVoice={autoIntroVoiceOn} autoReplyVoice={autoReplyVoiceOn}
-            journalPinSet={journalPinSet} onSetJournalPin={setJournalPin} onClearJournalPin={clearJournalPin}
+              journalPinSet={journalPinSet} onSetJournalPin={setJournalPin} onClearJournalPin={clearJournalPin} deviceUnlockEnabled={deviceUnlockEnabled} onSetDeviceUnlock={setDeviceUnlockPreference}
             installPromptAvailable={Boolean(installPromptEvent)} isStandalone={isStandalone} onPromptInstall={promptAppInstall}
             session={session} authEnabled={showAuth} onSave={saveSettings} onRestoreDefaults={restoreDefaultSettings} onBack={back}
             onOpenBugReport={() => go("bugReport")} onOpenFeedback={() => go("userFeedback")} />
@@ -4211,7 +4238,7 @@ function MemoryManager({ memories, memoryOn, onSave, onBack }) {
 }
 
 /* ---------- accessibility settings ---------- */
-function Settings({ textScale, reduceMotion, responseSpeed, speechLang, autoIntroVoice, autoReplyVoice, journalPinSet, onSetJournalPin, onClearJournalPin, installPromptAvailable, isStandalone, onPromptInstall, session, authEnabled, onSave, onRestoreDefaults, onBack, onOpenBugReport, onOpenFeedback }) {
+function Settings({ textScale, reduceMotion, responseSpeed, speechLang, autoIntroVoice, autoReplyVoice, journalPinSet, onSetJournalPin, onClearJournalPin, deviceUnlockEnabled = false, onSetDeviceUnlock, installPromptAvailable, isStandalone, onPromptInstall, session, authEnabled, onSave, onRestoreDefaults, onBack, onOpenBugReport, onOpenFeedback }) {
   const [pushState, setPushState] = useState("checking"); // "checking" | "on" | "off" | "denied" | "unsupported" | "error"
   const [pushDetail, setPushDetail] = useState("");
   const [pushBusy, setPushBusy] = useState(false);
@@ -4481,6 +4508,15 @@ function Settings({ textScale, reduceMotion, responseSpeed, speechLang, autoIntr
         )}
       </div>
 
+      <div style={{ background: "#f7f3fc", border: `1px solid ${T.line}`, borderRadius: 18, padding: 16, boxShadow: T.soft, marginTop: 14 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ width: 40, height: 40, borderRadius: 12, background: "#eee9f8", display: "grid", placeItems: "center", flexShrink: 0 }}><Shield size={18} color="#7055a8" /></div>
+          <div style={{ flex: 1 }}><div style={{ fontWeight: 700 }}>Keep vault unlocked on this device</div><div style={{ fontSize: 12.5, color: T.sub, lineHeight: 1.4 }}>Optional convenience for a personal device. Your passphrase is never stored.</div></div>
+          <button type="button" onClick={() => onSetDeviceUnlock?.(!deviceUnlockEnabled)} aria-label="Toggle device vault unlock" style={{ width: 52, height: 30, borderRadius: 999, border: "none", cursor: "pointer", flexShrink: 0, background: deviceUnlockEnabled ? T.green : "#cfc6da", position: "relative" }}><span style={{ position: "absolute", top: 3, left: deviceUnlockEnabled ? 25 : 3, width: 24, height: 24, borderRadius: "50%", background: "#fff" }} /></button>
+        </div>
+        <p style={{ fontSize: 12, color: "#7b5c20", lineHeight: 1.45, margin: "12px 0 0" }}>When on, anyone who can open this device may be able to open your private vault. It is off by default.</p>
+      </div>
+
       <div style={{ fontSize: 15, color: T.greenDk, fontWeight: 900, letterSpacing: 0.7, textTransform: "uppercase", margin: "22px 2px 10px" }}>Help &amp; feedback</div>
       <button onClick={onOpenBugReport} style={{ width: "100%", background: T.card, borderRadius: 18, padding: 16,
         boxShadow: T.soft, border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 12,
@@ -4644,7 +4680,7 @@ function PrivacyLink({ style, variant }) {
   );
 }
 
-function PrivacyVaultGate({ status, onCreate, onUnlock }) {
+function PrivacyVaultGate({ status, onCreate, onUnlock, deviceUnlockEnabled = false, onSetDeviceUnlock }) {
   const [mode, setMode] = useState(status === "needs_setup" ? "create" : "unlock");
   const [passphrase, setPassphrase] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -4654,6 +4690,7 @@ function PrivacyVaultGate({ status, onCreate, onUnlock }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [recovery, setRecovery] = useState("");
+  const [keepDeviceUnlocked, setKeepDeviceUnlocked] = useState(deviceUnlockEnabled);
   const submit = async () => {
     setError("");
     if (mode === "create" && passphrase !== confirm) { setError("The passphrases do not match."); return; }
@@ -4661,6 +4698,7 @@ function PrivacyVaultGate({ status, onCreate, onUnlock }) {
     try {
       if (mode === "create") setRecovery(await onCreate(passphrase));
       else await onUnlock(passphrase, recoveryMode);
+      if (keepDeviceUnlocked) await onSetDeviceUnlock?.(true);
     } catch (e) { setError(e?.message || "We couldn't open your private vault."); }
     finally { setBusy(false); }
   };
@@ -4690,6 +4728,10 @@ function PrivacyVaultGate({ status, onCreate, onUnlock }) {
         </div>
         {mode === "create" && <><label style={{ display: "block", fontWeight: 800, color: T.ink, marginTop: 14 }}>Confirm passphrase</label><div style={{ position: "relative", marginTop: 7 }}><input value={confirm} onChange={(e) => setConfirm(e.target.value)} type={showConfirm ? "text" : "password"} autoComplete="new-password" style={{ width: "100%", border: `1px solid ${T.line}`, borderRadius: 14, padding: "13px 48px 13px 14px", fontSize: 16, boxSizing: "border-box" }} /><button type="button" onClick={() => setShowConfirm((v) => !v)} aria-label={showConfirm ? "Hide confirmation passphrase" : "Show confirmation passphrase"} title={showConfirm ? "Hide confirmation passphrase" : "Show confirmation passphrase"} style={{ position: "absolute", right: 6, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: T.sub, padding: 8, display: "grid", placeItems: "center" }}>{showConfirm ? <EyeOff size={18} /> : <Eye size={18} />}</button></div></>}
         {error && <div style={{ color: "#9a3d3d", background: "#fff0ef", borderRadius: 12, padding: 12, marginTop: 14, fontWeight: 700 }}>{error}</div>}
+        <label style={{ display: "flex", alignItems: "flex-start", gap: 9, marginTop: 16, color: T.ink, fontSize: 13, lineHeight: 1.4, cursor: "pointer" }}>
+          <input type="checkbox" checked={keepDeviceUnlocked} onChange={(e) => setKeepDeviceUnlocked(e.target.checked)} style={{ width: 18, height: 18, marginTop: 1, accentColor: T.green, flexShrink: 0 }} />
+          <span><strong>Keep my vault unlocked on this device</strong><br /><span style={{ color: T.sub, fontSize: 12 }}>Optional convenience. Only use this on your personal device — anyone who can open this device may be able to access your private data.</span></span>
+        </label>
         <button disabled={busy} onClick={submit} style={{ width: "100%", marginTop: 18, border: 0, borderRadius: 14, padding: "14px 16px", background: T.greenDk, color: "#fff", fontWeight: 800, opacity: busy ? .6 : 1 }}>{busy ? "Working…" : mode === "create" ? "Create private vault" : "Unlock private data"}</button>
         <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
           {mode === "create" ? <button onClick={() => { setMode("unlock"); setRecoveryMode(false); setError(""); }} style={{ border: 0, background: "transparent", color: T.blueDk, fontWeight: 800 }}>Already have a vault? Unlock it</button> : <button onClick={() => { setMode("create"); setRecoveryMode(false); setError(""); }} style={{ border: 0, background: "transparent", color: T.blueDk, fontWeight: 800 }}>Set up a new vault</button>}
