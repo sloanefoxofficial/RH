@@ -452,11 +452,17 @@ export default function App() {
 
   useEffect(() => {
     (async () => {
-      const meta = await sget("rh_vault_meta");
-      if (meta?.v === 1) { setVaultMeta(meta); setVaultStatus("locked"); }
-      else setVaultStatus("needs_setup");
+      try {
+        const meta = await sget("rh_vault_meta");
+        if (meta?.v === 1) { setVaultMeta(meta); setVaultStatus("locked"); }
+        else setVaultStatus("needs_setup");
+      } catch { setVaultStatus("needs_setup"); }
     })();
   }, []);
+
+  useEffect(() => {
+    if (authChecked && vaultStatus !== "checking") setReady(true);
+  }, [authChecked, vaultStatus]);
 
   useEffect(() => {
     (async () => {
