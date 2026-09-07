@@ -3863,6 +3863,11 @@ function useUnreadAdminMessages(isAdmin, refreshKey) {
   return count;
 }
 
+function parseSupportEnvelope(value) {
+  if (typeof value !== "string") return value;
+  try { return JSON.parse(value); } catch { return value; }
+}
+
 function CoordinatorChat({ session, userPublicKey, userPrivateKey, onBack }) {
   const [msgs, setMsgs] = useState(null);
   const [input, setInput] = useState("");
@@ -3878,7 +3883,7 @@ function CoordinatorChat({ session, userPublicKey, userPrivateKey, onBack }) {
         .order("created_at", { ascending: true });
       const decoded = [];
       for (const row of data || []) {
-        try { decoded.push({ ...row, body: await decryptTeamForUser(row.body, userPrivateKey) }); } catch { decoded.push({ ...row, body: "[This message could not be unlocked on this device.]" }); }
+        try { decoded.push({ ...row, body: await decryptTeamForUser(parseSupportEnvelope(row.body), userPrivateKey) }); } catch { decoded.push({ ...row, body: "[This message could not be unlocked on this device.]" }); }
       }
       setMsgs(decoded);
       // mark Juan's messages as read now that they're on screen
@@ -3900,7 +3905,7 @@ function CoordinatorChat({ session, userPublicKey, userPrivateKey, onBack }) {
       const encryptedBody = await encryptForTeam(text, userPublicKey, teamKey, "coordinator_messages.body");
       const userPublicKeyJwk = await crypto.subtle.exportKey("jwk", userPublicKey);
       const { error } = await supabase.from("coordinator_messages")
-        .insert({ user_id: session.user.id, sender: "user", body: encryptedBody, user_public_key_jwk: userPublicKeyJwk });
+        .insert({ user_id: session.user.id, sender: "user", body: JSON.stringify(encryptedBody), user_public_key_jwk: userPublicKeyJwk });
       if (error) throw error;
       load();
       fetch("/api/push", {
@@ -3984,7 +3989,7 @@ function AdminInbox({ onBack }) {
     if (!supabase) { setRows([]); return; }
     try {
       const { data: msgs } = await supabase.from("coordinator_messages").select("*").order("created_at", { ascending: true });
-      let decodedMsgs = msgs || [];
+      let decodedMsgs = (msgs || []).map((m) => ({ ...m, body: parseSupportEnvelope(m.body) }));
       const encryptedRows = decodedMsgs.filter((m) => m.body && m.body.__rhTeamEncrypted === true);
       if (encryptedRows.length) {
         try {
@@ -4027,7 +4032,7 @@ function AdminInbox({ onBack }) {
       const memberPublicKey = await importTeamPublicKey(memberMessage.user_public_key_jwk);
       const teamKey = await getConfiguredTeamPublicKey();
       const encryptedBody = await encryptForTeam(text, memberPublicKey, teamKey, "coordinator_messages.body");
-      await supabase.from("coordinator_messages").insert({ user_id: open, sender: "coordinator", body: encryptedBody, user_public_key_jwk: memberMessage.user_public_key_jwk });
+      await supabase.from("coordinator_messages").insert({ user_id: open, sender: "coordinator", body: JSON.stringify(encryptedBody), user_public_key_jwk: memberMessage.user_public_key_jwk });
       load();
       try {
         const r = await fetch("/api/push", {
