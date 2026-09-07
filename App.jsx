@@ -851,7 +851,7 @@ export default function App() {
             await sset(JOURNAL_PIN_STORAGE_KEY, { hash: data.journal_pin_hash, createdAt: Date.now(), accountSynced: true });
             setJournalPinSet(true); setJournalUnlocked(false);
           }
-          if (data.profile?.onboardingComplete) setScreen((s) => (s === "welcome" ? "hub" : s));
+          if (cloud.profile?.onboardingComplete) setScreen((s) => (s === "welcome" ? "hub" : s));
         } else {
           // No account row yet — either a brand-new member, or someone who used
           // the app before this was built and only has local data. If there's
@@ -3922,7 +3922,8 @@ function CoordinatorChat({ session, userPublicKey, userPrivateKey, onBack }) {
       } else if (/vault is locked|private vault/i.test(message)) {
         setErr("Please unlock your private vault before sending a message.");
       } else {
-        setErr("Couldn't send just now. Please try again in a moment.");
+        const detail = code || message;
+        setErr(detail ? `Couldn't send just now (${detail.slice(0, 120)}).` : "Couldn't send just now. Please try again in a moment.");
       }
     }
     finally { setBusy(false); }
