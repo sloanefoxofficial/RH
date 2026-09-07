@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { IMG } from "./images.js";
 import { supabase, authEnabled } from "./supabase.js";
+import { createUserVault, unlockUserVault, encryptJson, decryptJson, isEncrypted, encryptForTeam, decryptTeamForUser, getConfiguredTeamPublicKey, importTeamPublicKey } from "./securityVault.js";
 
 /* ------------------------------------------------------------------ *
  * The Resilience Hub — hosted build (React front end + /api/chat backend)
@@ -385,6 +386,59 @@ export default function App() {
   const [installPromptEvent, setInstallPromptEvent] = useState(null);
   const [isStandalone, setIsStandalone] = useState(false);
   const [guidePrompts, setGuidePrompts] = useState(PERSONALITY_DEFAULTS); // per-guide personality notes (admin-editable)
+  const [vaultStatus, setVaultStatus] = useState("checking");
+  const [vaultMeta, setVaultMeta] = useState(null);
+  const [vaultKey, setVaultKey] = useState(null);
+  const [userPublicKey, setUserPublicKey] = useState(null);
+  const [userPrivateKey, setUserPrivateKey] = useState(null);
+  const vaultKeyRef = useRef(null);
+  const userPublicKeyRef = useRef(null);
+  const userPrivateKeyRef = useRef(null);
+  vaultKeyRef.current = vaultKey;
+  userPublicKeyRef.current = userPublicKey;
+  userPrivateKeyRef.current = userPrivateKey;
+
+  const secureLocalGet = useCallback(async (name) => {
+    const raw = await sget(name);
+    if (!raw || !vaultKeyRef.current) return null;
+    try { return await decryptJson(raw, vaultKeyRef.current, name); } catch { return null; }
+  }, []);
+  const secureLocalSet = useCallback(async (name, value) => {
+    if (!vaultKeyRef.current) throw new Error("Privacy vault is locked.");
+    await sset(name, await encryptJson(value, vaultKeyRef.current, name));
+  }, []);
+  const migrateLocalPlaintext = useCallback(async () => {
+    const keys = ["rh_profile", "rh_answers", "rh_plan", "rh_progress", "rh_journal", "rh_chats", "rh_memories"];
+    for (const name of keys) {
+      const raw = await sget(name);
+      if (raw && !isEncrypted(raw)) {
+        await secureLocalSet(name, raw);
+        try { localStorage.removeItem(name); } catch {}
+      }
+    }
+  }, [secureLocalSet]);
+  const unlockPrivacyVault = useCallback(async (secret, useRecovery = false) => {
+    try {
+      const unlocked = await unlockUserVault(vaultMeta, secret, useRecovery);
+      setVaultKey(unlocked.dataKey); vaultKeyRef.current = unlocked.dataKey;
+      setUserPublicKey(unlocked.userPublicKey); userPublicKeyRef.current = unlocked.userPublicKey;
+      setUserPrivateKey(unlocked.userPrivateKey); userPrivateKeyRef.current = unlocked.userPrivateKey;
+      setVaultStatus("unlocked");
+      await sset("rh_vault_meta", vaultMeta);
+      await migrateLocalPlaintext();
+      return true;
+    } catch (e) { throw new Error("That passphrase or recovery key did not unlock your private data."); }
+  }, [vaultMeta, migrateLocalPlaintext]);
+  const createPrivacyVault = useCallback(async (passphrase) => {
+    const created = await createUserVault(passphrase);
+    setVaultMeta(created.meta); setVaultKey(created.dataKey); vaultKeyRef.current = created.dataKey;
+    setUserPublicKey(created.userPublicKey); userPublicKeyRef.current = created.userPublicKey;
+    setUserPrivateKey(created.userPrivateKey); userPrivateKeyRef.current = created.userPrivateKey;
+    setVaultStatus("unlocked");
+    await sset("rh_vault_meta", created.meta);
+    await migrateLocalPlaintext();
+    return created.recoveryKey;
+  }, [migrateLocalPlaintext]);
 
   // Every internal screen starts at the top. The second reset catches pages
   // whose content finishes mounting after the route state changes.
@@ -398,19 +452,14 @@ export default function App() {
 
   useEffect(() => {
     (async () => {
-      const [p, a, pl, pr, j, c] = await Promise.all([
-        sget("rh_profile"), sget("rh_answers"), sget("rh_plan"),
-        sget("rh_progress"), sget("rh_journal"), sget("rh_chats"),
-      ]);
-      if (p) setProfile(p);
-      if (p?.planPath === "short" || p?.planPath === "full") setOnbMode(p.planPath);
-      if (a) setAnswers(a);
-      if (pl) { if (!pl.startedAt) { pl.startedAt = Date.now(); try { sset("rh_plan", pl); } catch {} } setPlan(pl); }
-      if (pr) setProgress(pr);
-      if (j) setJournal(j);
-      if (c) setChats(c);
-      const mem = await sget("rh_memories");
-      if (Array.isArray(mem)) setMemories(mem);
+      const meta = await sget("rh_vault_meta");
+      if (meta?.v === 1) { setVaultMeta(meta); setVaultStatus("locked"); }
+      else setVaultStatus("needs_setup");
+    })();
+  }, []);
+
+  useEffect(() => {
+    (async () => {
       const memOn = await sget("rh_memory_on");
       if (typeof memOn === "boolean") setMemoryOn(memOn);
       const ts = await sget("rh_text_scale");
@@ -430,46 +479,48 @@ export default function App() {
       if (sl && SPEECH_LANGS.some((l) => l.code === sl)) { setSpeechLang(sl); __speechLang = sl; }
       const savedJournalPin = await sget(JOURNAL_PIN_STORAGE_KEY);
       if (savedJournalPin?.hash) setJournalPinSet(true);
-      // Load private game high scores
+      const consent = await sget("rh_consent");
+      if (consent) setConsented(true);
+    })();
+  }, []);
+
+  useEffect(() => {
+    if (vaultStatus !== "unlocked") return;
+    (async () => {
+      const [p, a, pl, pr, j, c, mem] = await Promise.all([
+        secureLocalGet("rh_profile"), secureLocalGet("rh_answers"), secureLocalGet("rh_plan"),
+        secureLocalGet("rh_progress"), secureLocalGet("rh_journal"), secureLocalGet("rh_chats"), secureLocalGet("rh_memories"),
+      ]);
+      if (p) { setProfile(p); if (p.planPath === "short" || p.planPath === "full") setOnbMode(p.planPath); }
+      if (a) setAnswers(a);
+      if (pl) setPlan(pl);
+      if (pr) setProgress(pr);
+      if (j) setJournal(j);
+      if (c) setChats(c);
+      if (Array.isArray(mem)) setMemories(mem);
       if (supabase) {
         try {
           const { data } = await supabase.from("game_scores").select("game,best");
-          if (data && data.length) {
-            const map = {};
-            data.forEach((r) => { map[r.game] = Number(r.best); });
-            gameScoresRef.current = map;
-            setGameScores(map);
-          }
+          const map = {}; (data || []).forEach((r) => { map[r.game] = Number(r.best); });
+          gameScoresRef.current = map; setGameScores(map);
         } catch {}
-        // Load in-progress games (resume where they left off)
         try {
           const { data: prog } = await supabase.from("game_progress").select("game,state");
-          if (prog && prog.length) {
-            const pm = {};
-            prog.forEach((r) => { pm[r.game] = r.state; });
-            gameProgressRef.current = pm;
-          }
+          const pm = {}; (prog || []).forEach((r) => { pm[r.game] = r.state; });
+          gameProgressRef.current = pm;
         } catch {}
       }
-      // Load admin-edited guide personalities (fall back to defaults for any not set)
       if (supabase) {
         try {
           const { data } = await supabase.from("guide_prompts").select("slug,notes");
-          if (data && data.length) {
-            const merged = { ...PERSONALITY_DEFAULTS };
-            data.forEach((r) => { if (r.slug && typeof r.notes === "string") merged[r.slug] = r.notes; });
-            setGuidePrompts(merged);
-          }
+          if (data?.length) { const merged = { ...PERSONALITY_DEFAULTS }; data.forEach((r) => { if (r.slug && typeof r.notes === "string") merged[r.slug] = r.notes; }); setGuidePrompts(merged); }
         } catch {}
       }
-      const consent = await sget("rh_consent");
-      if (consent) setConsented(true);
       if (p?.onboardingComplete) setScreen("hub");
       else if (p?.path === "full") setScreen("onboarding");
       else setScreen("welcome");
-      setReady(true);
     })();
-  }, []);
+  }, [vaultStatus, secureLocalGet]);
 
   // Save the local-only fields, PLUS push to the person's account when signed in,
   // so profile/plan/journal properly follow them between devices instead of only
@@ -477,24 +528,26 @@ export default function App() {
   // and plan data not surviving a device switch, and "onboarding complete" not
   // being recognised on a fresh sign-in — e.g. after a Google OAuth redirect —
   // because it was only ever checked against local storage).
-  const syncMemberData = useCallback((patch) => {
-    if (!authEnabled || !supabase || !sessionRef.current) return;
-    supabase.from("member_data").upsert({
-      user_id: sessionRef.current.user.id, ...patch, updated_at: new Date().toISOString(),
-    }).then(() => {}, () => {});
+  const syncMemberData = useCallback(async (patch) => {
+    if (!authEnabled || !supabase || !sessionRef.current || !vaultKeyRef.current) return;
+    const encryptedPatch = {};
+    for (const [field, value] of Object.entries(patch)) encryptedPatch[field] = await encryptJson(value, vaultKeyRef.current, `member_data.${field}`);
+    await supabase.from("member_data").upsert({
+      user_id: sessionRef.current.user.id, ...encryptedPatch, updated_at: new Date().toISOString(),
+    });
   }, []);
-  const saveProfile = useCallback((p) => { setProfile(p); sset("rh_profile", p); syncMemberData({ profile: p }); }, [syncMemberData]);
-  const saveAnswers = useCallback((a) => { setAnswers(a); sset("rh_answers", a); syncMemberData({ answers: a }); }, [syncMemberData]);
+  const saveProfile = useCallback((p) => { setProfile(p); void secureLocalSet("rh_profile", p); void syncMemberData({ profile: p }); }, [secureLocalSet, syncMemberData]);
+  const saveAnswers = useCallback((a) => { setAnswers(a); void secureLocalSet("rh_answers", a); void syncMemberData({ answers: a }); }, [secureLocalSet, syncMemberData]);
   const savePlan = useCallback((pl) => {
     if (pl && !pl.startedAt) pl.startedAt = Date.now();
     const cleanProgress = {};
-    setPlan(pl); sset("rh_plan", pl);
-    setProgress(cleanProgress); sset("rh_progress", cleanProgress);
-    syncMemberData({ plan: pl, progress: cleanProgress });
-  }, [syncMemberData]);
-  const saveProgress = useCallback((pr) => { setProgress(pr); sset("rh_progress", pr); syncMemberData({ progress: pr }); }, [syncMemberData]);
-  const saveJournal = useCallback((j) => { setJournal(j); sset("rh_journal", j); syncMemberData({ journal: j }); }, [syncMemberData]);
-  const saveChats = useCallback((c) => { setChats(c); sset("rh_chats", c); }, []);
+    setPlan(pl); void secureLocalSet("rh_plan", pl);
+    setProgress(cleanProgress); void secureLocalSet("rh_progress", cleanProgress);
+    void syncMemberData({ plan: pl, progress: cleanProgress });
+  }, [secureLocalSet, syncMemberData]);
+  const saveProgress = useCallback((pr) => { setProgress(pr); void secureLocalSet("rh_progress", pr); void syncMemberData({ progress: pr }); }, [secureLocalSet, syncMemberData]);
+  const saveJournal = useCallback((j) => { setJournal(j); void secureLocalSet("rh_journal", j); void syncMemberData({ journal: j }); }, [secureLocalSet, syncMemberData]);
+  const saveChats = useCallback((c) => { setChats(c); void secureLocalSet("rh_chats", c); }, [secureLocalSet]);
 
   // Keep a live ref so rapid saves build on the latest history
   const chatsRef = useRef(chats);
@@ -511,14 +564,17 @@ export default function App() {
     const clean = Array.isArray(list) ? list : memoriesRef.current;
     setMemories(clean); memoriesRef.current = clean;
     if (typeof on === "boolean") { setMemoryOn(on); memoryOnRef.current = on; }
-    sset("rh_memories", clean); sset("rh_memory_on", memoryOnRef.current);
-    if (authEnabled && supabase && sessionRef.current) {
-      supabase.from("guide_memory").upsert({
-        user_id: sessionRef.current.user.id, memories: clean, enabled: memoryOnRef.current,
-        updated_at: new Date().toISOString(),
-      }).then(() => {}, () => {});
+    void secureLocalSet("rh_memories", clean); sset("rh_memory_on", memoryOnRef.current);
+    if (authEnabled && supabase && sessionRef.current && vaultKeyRef.current) {
+      void (async () => {
+        const encrypted = await encryptJson(clean, vaultKeyRef.current, "guide_memory.memories");
+        await supabase.from("guide_memory").upsert({
+          user_id: sessionRef.current.user.id, memories: encrypted, enabled: memoryOnRef.current,
+          updated_at: new Date().toISOString(),
+        });
+      })();
     }
-  }, []);
+  }, [secureLocalSet]);
 
   // After a conversation, quietly refresh memory in the background (best-effort,
   // never blocks the chat). Skips entirely when memory is switched off.
@@ -535,14 +591,17 @@ export default function App() {
     const next = { ...chatsRef.current, [slug]: messages };
     chatsRef.current = next;
     setChats(next);
-    sset("rh_chats", next);
-    if (authEnabled && supabase && sessionRef.current) {
-      supabase.from("chat_history").upsert({
-        user_id: sessionRef.current.user.id, character: slug, messages,
-        updated_at: new Date().toISOString(),
-      }).then(() => {}, () => {});
+    void secureLocalSet("rh_chats", next);
+    if (authEnabled && supabase && sessionRef.current && vaultKeyRef.current) {
+      void (async () => {
+        const encrypted = await encryptJson(messages, vaultKeyRef.current, `chat_history.${slug}`);
+        await supabase.from("chat_history").upsert({
+          user_id: sessionRef.current.user.id, character: slug, messages: encrypted,
+          updated_at: new Date().toISOString(),
+        });
+      })();
     }
-  }, []);
+  }, [secureLocalSet]);
 
   const saveGameProgress = useCallback((game, gstate) => {
     if (!game || gstate == null) return;
@@ -659,12 +718,14 @@ export default function App() {
   // another tab) so a second person on a shared device never sees the previous
   // person's profile, journal, plan, or chats before their own data loads in.
   const clearLocalDeviceCache = () => {
-    for (const k of ["rh_profile", "rh_answers", "rh_plan", "rh_progress", "rh_journal", "rh_chats", "rh_memories", "rh_memory_on", JOURNAL_PIN_STORAGE_KEY]) {
+    for (const k of ["rh_profile", "rh_answers", "rh_plan", "rh_progress", "rh_journal", "rh_chats", "rh_memories", "rh_memory_on", "rh_vault_meta", JOURNAL_PIN_STORAGE_KEY]) {
       try { localStorage.removeItem(k); } catch {}
     }
     setProfile(null); setAnswers({}); setPlan(null); setProgress({});
     setJournal([]); setChats({}); chatsRef.current = {};
     setMemories([]); memoriesRef.current = [];
+    setVaultMeta(null); setVaultKey(null); vaultKeyRef.current = null;
+    setUserPublicKey(null); userPublicKeyRef.current = null; setUserPrivateKey(null); userPrivateKeyRef.current = null;
     setJournalPinSet(false); setJournalUnlocked(false);
   };
 
@@ -673,10 +734,20 @@ export default function App() {
     setOnbFromSignup(false); setPlanSignupLanding(false); setOnbMode("full"); setOnbReturn("hub");
     histRef.current = [];
     if (authEnabled && supabase && sessionRef.current) {
-      try { await supabase.from("chat_history").delete().eq("user_id", sessionRef.current.user.id); } catch {}
-      try { await supabase.from("guide_memory").delete().eq("user_id", sessionRef.current.user.id); } catch {}
+      const uid = sessionRef.current.user.id;
+      try { await supabase.from("chat_history").delete().eq("user_id", uid); } catch {}
+      try { await supabase.from("guide_memory").delete().eq("user_id", uid); } catch {}
+      try { await supabase.from("coordinator_messages").delete().eq("user_id", uid); } catch {}
+      try { await supabase.from("bug_reports").delete().eq("user_id", uid); } catch {}
+      try { await supabase.from("game_progress").delete().eq("user_id", uid); } catch {}
+      try { await supabase.from("push_subscriptions").delete().eq("user_id", uid); } catch {}
       try {
-        await supabase.from("member_data").update({ profile: null, answers: null, plan: null, progress: {}, journal: [], updated_at: new Date().toISOString() }).eq("user_id", sessionRef.current.user.id);
+        const { data: files } = await supabase.storage.from("bug-screenshots").list(uid, { limit: 1000 });
+        const paths = (files || []).map((f) => `${uid}/${f.name}`);
+        if (paths.length) await supabase.storage.from("bug-screenshots").remove(paths);
+      } catch {}
+      try {
+        await supabase.from("member_data").update({ profile: null, answers: null, plan: null, progress: {}, journal: [], encryption_meta: null, updated_at: new Date().toISOString() }).eq("user_id", uid);
       } catch {}
     }
     setScreen("welcome");
@@ -688,12 +759,17 @@ export default function App() {
   // on a shared device can't survive into someone else's signed-in session.
   useEffect(() => {
     (async () => {
-      if (!authEnabled || !supabase || !session) return;
+      if (!authEnabled || !supabase || !session || vaultStatus !== "unlocked" || !vaultKeyRef.current) return;
       try {
         const { data } = await supabase.from("chat_history")
           .select("character,messages").eq("user_id", session.user.id);
         const fresh = {};
-        for (const row of data || []) fresh[row.character] = Array.isArray(row.messages) ? row.messages : [];
+        const legacyChats = [];
+        for (const row of data || []) {
+          try { fresh[row.character] = await decryptJson(row.messages, vaultKeyRef.current, `chat_history.${row.character}`); }
+          catch { if (Array.isArray(row.messages)) { fresh[row.character] = row.messages; legacyChats.push([row.character, row.messages]); } else fresh[row.character] = []; }
+        }
+        for (const [character, messages] of legacyChats) void saveCharChat(character, messages);
         chatsRef.current = fresh;
         setChats(fresh);
       } catch {}
@@ -701,7 +777,11 @@ export default function App() {
       try {
         const { data } = await supabase.from("guide_memory")
           .select("memories,enabled").eq("user_id", session.user.id).single();
-        const list = Array.isArray(data?.memories) ? data.memories : [];
+        let list = []; let legacyMemory = false;
+        try { list = await decryptJson(data?.memories, vaultKeyRef.current, "guide_memory.memories"); }
+        catch { if (Array.isArray(data?.memories)) { list = data.memories; legacyMemory = true; } }
+        if (!Array.isArray(list)) list = [];
+        if (legacyMemory) void saveMemories(list);
         setMemories(list); memoriesRef.current = list;
         const on = data ? data.enabled !== false : true;
         setMemoryOn(on); memoryOnRef.current = on;
@@ -714,11 +794,18 @@ export default function App() {
           .select("profile,answers,plan,progress,journal,journal_pin_hash").eq("user_id", session.user.id).single();
         if (data) {
           // Account has real data — it wins over whatever's cached on this device.
-          if (data.profile) { setProfile(data.profile); sset("rh_profile", data.profile); }
-          if (data.answers) { setAnswers(data.answers); sset("rh_answers", data.answers); }
-          if (data.plan) { setPlan(data.plan); sset("rh_plan", data.plan); }
-          if (data.progress) { setProgress(data.progress); sset("rh_progress", data.progress); }
-          if (Array.isArray(data.journal)) { setJournal(data.journal); sset("rh_journal", data.journal); }
+          const cloud = {}; const legacyCloud = {};
+          for (const field of ["profile", "answers", "plan", "progress", "journal"]) {
+            if (data[field] == null) continue;
+            try { cloud[field] = await decryptJson(data[field], vaultKeyRef.current, `member_data.${field}`); }
+            catch { if (!isEncrypted(data[field])) { cloud[field] = data[field]; legacyCloud[field] = data[field]; } else cloud[field] = null; }
+          }
+          if (Object.keys(legacyCloud).length) void syncMemberData(legacyCloud);
+          if (cloud.profile) { setProfile(cloud.profile); await secureLocalSet("rh_profile", cloud.profile); }
+          if (cloud.answers) { setAnswers(cloud.answers); await secureLocalSet("rh_answers", cloud.answers); }
+          if (cloud.plan) { setPlan(cloud.plan); await secureLocalSet("rh_plan", cloud.plan); }
+          if (cloud.progress) { setProgress(cloud.progress); await secureLocalSet("rh_progress", cloud.progress); }
+          if (Array.isArray(cloud.journal)) { setJournal(cloud.journal); await secureLocalSet("rh_journal", cloud.journal); }
           if (data.journal_pin_hash) {
             await sset(JOURNAL_PIN_STORAGE_KEY, { hash: data.journal_pin_hash, createdAt: Date.now(), accountSynced: true });
             setJournalPinSet(true); setJournalUnlocked(false);
@@ -729,19 +816,13 @@ export default function App() {
           // the app before this was built and only has local data. If there's
           // local data sitting on this device, push it up once so it's not lost.
           const [lp, la, lpl, lpr, lj] = await Promise.all([
-            sget("rh_profile"), sget("rh_answers"), sget("rh_plan"), sget("rh_progress"), sget("rh_journal"),
+            secureLocalGet("rh_profile"), secureLocalGet("rh_answers"), secureLocalGet("rh_plan"), secureLocalGet("rh_progress"), secureLocalGet("rh_journal"),
           ]);
-          if (lp || la || lpl || lpr || (lj && lj.length)) {
-            supabase.from("member_data").upsert({
-              user_id: session.user.id, profile: lp || null, answers: la || null,
-              plan: lpl || null, progress: lpr || null, journal: lj || [],
-              updated_at: new Date().toISOString(),
-            }).then(() => {}, () => {});
-          }
+          if (lp || la || lpl || lpr || (lj && lj.length)) await syncMemberData({ profile: lp || null, answers: la || null, plan: lpl || null, progress: lpr || {}, journal: lj || [] });
         }
       } catch {}
     })();
-  }, [session]);
+  }, [session, vaultStatus, secureLocalGet, secureLocalSet, syncMemberData]);
 
   const histRef = useRef([]);
   const go = (s, ch) => {
@@ -863,6 +944,8 @@ export default function App() {
           <div style={{ paddingTop: 120, textAlign: "center", color: T.sub }}>Warming up…</div>
         ) : !consented ? (
           <Consent onAgree={() => { sset("rh_consent", { agreedAt: Date.now() }); setConsented(true); }} />
+        ) : vaultStatus !== "unlocked" ? (
+          <PrivacyVaultGate status={vaultStatus} onCreate={createPrivacyVault} onUnlock={unlockPrivacyVault} />
         ) : screen === "welcome" ? (
           <Welcome
             voiceOn={voiceOn} setVoiceOn={setVoiceOn}
@@ -985,7 +1068,7 @@ export default function App() {
         ) : screen === "notifications" ? (
           <Notifications session={session} onBack={back} />
         ) : screen === "coordinator" ? (
-          <CoordinatorChat session={session} onBack={back} />
+          <CoordinatorChat session={session} userPublicKey={userPublicKey} userPrivateKey={userPrivateKey} onBack={back} />
         ) : screen === "adminMessages" ? (
           isAdmin ? <AdminInbox onBack={back} /> : <Admin isAdmin={isAdmin} guidePrompts={guidePrompts} onSaveGuidePrompt={saveGuidePrompt} onBack={back} />
         ) : screen === "adminBugReports" ? (
@@ -1010,9 +1093,9 @@ export default function App() {
             session={session} authEnabled={showAuth} onSave={saveSettings} onRestoreDefaults={restoreDefaultSettings} onBack={back}
             onOpenBugReport={() => go("bugReport")} onOpenFeedback={() => go("userFeedback")} />
         ) : screen === "bugReport" ? (
-          <BugReport session={session} onBack={back} />
+          <BugReport session={session} userPublicKey={userPublicKey} onBack={back} />
         ) : screen === "userFeedback" ? (
-          <UserFeedback session={session} onBack={back} />
+          <UserFeedback session={session} userPublicKey={userPublicKey} onBack={back} />
         ) : null}
         <GlobalJumpToTop screen={screen} />
         <CrisisBar />
@@ -2937,13 +3020,29 @@ function AdminBugReports({ onBack }) {
     if (!supabase) { setRows([]); return; }
     try {
       const { data } = await supabase.from("bug_reports").select("*").order("created_at", { ascending: false });
-      const reports = data || [];
+      let reports = data || [];
+      const { data: auth } = await supabase.auth.getSession();
+      const token = auth?.session?.access_token || "";
+      const reportEnvelopes = reports.map((r) => { try { return { id: r.id, envelope: typeof r.description === "string" ? JSON.parse(r.description) : r.description }; } catch { return null; } }).filter((x) => x?.envelope?.__rhTeamEncrypted);
+      if (reportEnvelopes.length) {
+        try {
+          const response = await fetch("/api/decrypt-support", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ envelopes: reportEnvelopes.map((x) => x.envelope) }) });
+          const result = await response.json(); const decoded = result.data || [];
+          reports = reports.map((r) => { const idx = reportEnvelopes.findIndex((x) => x.id === r.id); const body = idx >= 0 ? decoded[idx] : null; return body ? { ...r, name: body.name || null, email: body.email || null, description: body.description || "" } : r; });
+        } catch {}
+      }
       setRows(reports);
       const withScreenshots = reports.filter((r) => r.screenshot_path);
       if (withScreenshots.length) {
         const signed = await Promise.all(withScreenshots.map(async (r) => {
           const { data: link } = await supabase.storage.from("bug-screenshots").createSignedUrl(r.screenshot_path, 3600);
-          return [r.id, link?.signedUrl || null];
+          if (!link?.signedUrl) return [r.id, null];
+          try {
+            const encrypted = await (await fetch(link.signedUrl)).json();
+            const response = await fetch("/api/decrypt-support", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ envelope: encrypted }) });
+            const result = await response.json();
+            return [r.id, result.data?.dataUrl || null];
+          } catch { return [r.id, null]; }
         }));
         setScreenshotUrls(Object.fromEntries(signed.filter(([, url]) => url)));
       }
@@ -3719,7 +3818,7 @@ function useUnreadAdminMessages(isAdmin, refreshKey) {
   return count;
 }
 
-function CoordinatorChat({ session, onBack }) {
+function CoordinatorChat({ session, userPublicKey, userPrivateKey, onBack }) {
   const [msgs, setMsgs] = useState(null);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
@@ -3732,14 +3831,18 @@ function CoordinatorChat({ session, onBack }) {
       const { data } = await supabase.from("coordinator_messages")
         .select("id,sender,body,created_at").eq("user_id", session.user.id)
         .order("created_at", { ascending: true });
-      setMsgs(data || []);
+      const decoded = [];
+      for (const row of data || []) {
+        try { decoded.push({ ...row, body: await decryptTeamForUser(row.body, userPrivateKey) }); } catch { decoded.push({ ...row, body: "[This message could not be unlocked on this device.]" }); }
+      }
+      setMsgs(decoded);
       // mark Juan's messages as read now that they're on screen
       supabase.from("coordinator_messages").update({ read_by_user: true })
         .eq("user_id", session.user.id).eq("sender", "coordinator").eq("read_by_user", false)
         .then(() => {}, () => {});
     } catch { setMsgs([]); }
   };
-  useEffect(() => { load(); }, [session]);
+  useEffect(() => { load(); }, [session, userPrivateKey]);
   useEffect(() => { scrollRef.current?.scrollTo({ top: 1e6, behavior: "smooth" }); }, [msgs, busy]);
 
   const send = async () => {
@@ -3748,13 +3851,16 @@ function CoordinatorChat({ session, onBack }) {
     setBusy(true); setErr(""); setInput("");
     setMsgs((m) => [...(m || []), { id: "tmp" + Date.now(), sender: "user", body: text, created_at: new Date().toISOString() }]);
     try {
+      const teamKey = await getConfiguredTeamPublicKey();
+      const encryptedBody = await encryptForTeam(text, userPublicKey, teamKey, "coordinator_messages.body");
+      const userPublicKeyJwk = await crypto.subtle.exportKey("jwk", userPublicKey);
       const { error } = await supabase.from("coordinator_messages")
-        .insert({ user_id: session.user.id, sender: "user", body: text });
+        .insert({ user_id: session.user.id, sender: "user", body: encryptedBody, user_public_key_jwk: userPublicKeyJwk });
       if (error) throw error;
       load();
       fetch("/api/push", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ toAdmins: true, title: `New message from ${session.user.email || "a member"}`, body: text, target: "adminMessages", url: "/?open=adminMessages" }),
+        body: JSON.stringify({ toAdmins: true, title: "New member message", body: "A new encrypted message is waiting in the staff inbox.", target: "adminMessages", url: "/?open=adminMessages" }),
       }).catch(() => {});
     } catch (e) { setErr("Couldn't send just now — have you run the messages SQL?"); }
     finally { setBusy(false); }
@@ -3821,7 +3927,17 @@ function AdminInbox({ onBack }) {
     if (!supabase) { setRows([]); return; }
     try {
       const { data: msgs } = await supabase.from("coordinator_messages").select("*").order("created_at", { ascending: true });
-      setRows(msgs || []);
+      let decodedMsgs = msgs || [];
+      const encryptedRows = decodedMsgs.filter((m) => m.body && m.body.__rhTeamEncrypted === true);
+      if (encryptedRows.length) {
+        try {
+          const { data: auth } = await supabase.auth.getSession();
+          const response = await fetch("/api/decrypt-support", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${auth?.session?.access_token || ""}` }, body: JSON.stringify({ envelopes: encryptedRows.map((m) => m.body) }) });
+          const result = await response.json(); let i = 0;
+          decodedMsgs = decodedMsgs.map((m) => m.body && m.body.__rhTeamEncrypted === true ? { ...m, body: result.data?.[i++] ?? "[Encrypted support message unavailable]" } : m);
+        } catch {}
+      }
+      setRows(decodedMsgs);
       const { data: pl } = await supabase.from("profiles").select("id,preferred_name,email");
       const map = {}; (pl || []).forEach((p) => { map[p.id] = { name: p.preferred_name, email: p.email }; });
       setProfs(map);
@@ -3849,12 +3965,17 @@ function AdminInbox({ onBack }) {
     if (!text || busy || !open || !supabase) return;
     setBusy(true); setReply(""); setPushNote("");
     try {
-      await supabase.from("coordinator_messages").insert({ user_id: open, sender: "coordinator", body: text });
+      const memberMessage = (rows || []).find((m) => m.user_id === open && m.user_public_key_jwk);
+      if (!memberMessage?.user_public_key_jwk) throw new Error("This member has not completed the private-vault setup yet.");
+      const memberPublicKey = await importTeamPublicKey(memberMessage.user_public_key_jwk);
+      const teamKey = await getConfiguredTeamPublicKey();
+      const encryptedBody = await encryptForTeam(text, memberPublicKey, teamKey, "coordinator_messages.body");
+      await supabase.from("coordinator_messages").insert({ user_id: open, sender: "coordinator", body: encryptedBody, user_public_key_jwk: memberMessage.user_public_key_jwk });
       load();
       try {
         const r = await fetch("/api/push", {
           method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userId: open, title: "Juan replied", body: text, target: "coordinator", url: "/?open=coordinator" }),
+          body: JSON.stringify({ userId: open, title: "You have a new reply", body: "A new encrypted reply is waiting in your support conversation.", target: "coordinator", url: "/?open=coordinator" }),
         });
         const d = await r.json().catch(() => null);
         setPushNote(!r.ok ? `Push failed: ${(d && d.error) || "error " + r.status}` : `Push: reached ${d.sent} of ${d.total} device${d.total === 1 ? "" : "s"}.`);
@@ -4502,6 +4623,57 @@ function PrivacyLink({ style, variant }) {
         </div>
       )}
     </>
+  );
+}
+
+function PrivacyVaultGate({ status, onCreate, onUnlock }) {
+  const [mode, setMode] = useState(status === "needs_setup" ? "create" : "unlock");
+  const [passphrase, setPassphrase] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [recoveryMode, setRecoveryMode] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [recovery, setRecovery] = useState("");
+  const submit = async () => {
+    setError("");
+    if (mode === "create" && passphrase !== confirm) { setError("The passphrases do not match."); return; }
+    setBusy(true);
+    try {
+      if (mode === "create") setRecovery(await onCreate(passphrase));
+      else await onUnlock(passphrase, recoveryMode);
+    } catch (e) { setError(e?.message || "We couldn't open your private vault."); }
+    finally { setBusy(false); }
+  };
+  if (recovery) return (
+    <div className="rh-in" style={{ paddingTop: 42 }}>
+      <div style={{ background: "linear-gradient(145deg,#fff5de,#ffffff)", border: `1px solid ${T.line}`, borderRadius: 28, padding: 24, boxShadow: T.lift }}>
+        <div style={{ width: 58, height: 58, borderRadius: 20, background: "#f4d28e", display: "grid", placeItems: "center", marginBottom: 16 }}><Shield size={28} color="#7a5a18" /></div>
+        <h1 style={{ margin: "0 0 10px", fontSize: 24, color: T.ink }}>Save your recovery key</h1>
+        <p style={{ color: T.sub, lineHeight: 1.6, marginTop: 0 }}>This is the only time we show it. Store it somewhere safe, separate from your passphrase.</p>
+        <div style={{ background: "#fff", border: "1px dashed #c7a85f", borderRadius: 16, padding: 16, fontFamily: "ui-monospace, SFMono-Regular, monospace", letterSpacing: 1, wordBreak: "break-all", color: T.ink }}>{recovery}</div>
+        <p style={{ color: "#8b4f2f", fontWeight: 800, lineHeight: 1.5 }}>If you lose your privacy passphrase and this recovery key, your encrypted personal data cannot be recovered. The Resilience Hub team cannot unlock it for you.</p>
+        <button onClick={() => { navigator.clipboard?.writeText(recovery).catch(() => {}); setRecovery(""); }} style={{ width: "100%", marginTop: 8, border: 0, borderRadius: 14, padding: "13px 16px", background: T.greenDk, color: "#fff", fontWeight: 800 }}>I have saved my recovery key</button>
+      </div>
+    </div>
+  );
+  return (
+    <div className="rh-in" style={{ paddingTop: 42 }}>
+      <div style={{ background: "linear-gradient(145deg,#eef8f2,#ffffff)", border: `1px solid ${T.line}`, borderRadius: 28, padding: 24, boxShadow: T.soft }}>
+        <div style={{ width: 58, height: 58, borderRadius: 20, background: "#d9efe3", display: "grid", placeItems: "center", marginBottom: 16 }}><Shield size={28} color={T.greenDk} /></div>
+        <h1 style={{ margin: "0 0 10px", fontSize: 24, color: T.ink }}>{mode === "create" ? "Create your private vault" : "Unlock your private vault"}</h1>
+        <p style={{ color: T.sub, lineHeight: 1.6, marginTop: 0 }}>{mode === "create" ? "Your journal, plans, profile, memories, and guide conversations will be encrypted on your device before they are saved." : "Your private data stays locked until you unlock it on this device."}</p>
+        {mode === "create" && <div style={{ background: "#fff4d6", border: "1px solid #f0d493", borderRadius: 16, padding: 14, color: "#6b5118", fontWeight: 700, lineHeight: 1.5, margin: "14px 0" }}>Important: if you lose both your privacy passphrase and recovery key, your encrypted personal data cannot be recovered. Please do not use a passphrase you cannot remember.</div>}
+        <label style={{ display: "block", fontWeight: 800, color: T.ink, marginTop: 14 }}>{recoveryMode ? "Recovery key" : "Privacy passphrase"}</label>
+        <input value={passphrase} onChange={(e) => setPassphrase(e.target.value)} type="password" autoComplete="new-password" placeholder={recoveryMode ? "Enter your recovery key" : "At least 12 characters"} style={{ width: "100%", marginTop: 7, border: `1px solid ${T.line}`, borderRadius: 14, padding: "13px 14px", fontSize: 16, boxSizing: "border-box" }} />
+        {mode === "create" && <><label style={{ display: "block", fontWeight: 800, color: T.ink, marginTop: 14 }}>Confirm passphrase</label><input value={confirm} onChange={(e) => setConfirm(e.target.value)} type="password" autoComplete="new-password" style={{ width: "100%", marginTop: 7, border: `1px solid ${T.line}`, borderRadius: 14, padding: "13px 14px", fontSize: 16, boxSizing: "border-box" }} /></>}
+        {error && <div style={{ color: "#9a3d3d", background: "#fff0ef", borderRadius: 12, padding: 12, marginTop: 14, fontWeight: 700 }}>{error}</div>}
+        <button disabled={busy} onClick={submit} style={{ width: "100%", marginTop: 18, border: 0, borderRadius: 14, padding: "14px 16px", background: T.greenDk, color: "#fff", fontWeight: 800, opacity: busy ? .6 : 1 }}>{busy ? "Working…" : mode === "create" ? "Create private vault" : "Unlock private data"}</button>
+        <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
+          {mode === "create" ? <button onClick={() => { setMode("unlock"); setRecoveryMode(false); setError(""); }} style={{ border: 0, background: "transparent", color: T.blueDk, fontWeight: 800 }}>Already have a vault? Unlock it</button> : <button onClick={() => { setMode("create"); setRecoveryMode(false); setError(""); }} style={{ border: 0, background: "transparent", color: T.blueDk, fontWeight: 800 }}>Set up a new vault</button>}
+          {mode === "unlock" && <button onClick={() => { setRecoveryMode((v) => !v); setPassphrase(""); setError(""); }} style={{ border: 0, background: "transparent", color: T.blueDk, fontWeight: 800 }}>{recoveryMode ? "Use privacy passphrase" : "Use recovery key"}</button>}
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -6361,7 +6533,7 @@ function BookAppointment({ onBack }) {
   );
 }
 
-function BugReport({ session, onBack }) {
+function BugReport({ session, userPublicKey, onBack }) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [photo, setPhoto] = useState(null);
@@ -6389,20 +6561,22 @@ function BugReport({ session, onBack }) {
     if (!supabase) { setErr("Couldn't reach the server just now — try again in a moment."); return; }
     setBusy(true); setErr("");
     try {
+      const teamKey = await getConfiguredTeamPublicKey();
       let screenshotPath = null;
       if (photo) {
         const userFolder = session?.user?.id || "anonymous";
-        const extension = (photo.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
-        screenshotPath = `${userFolder}/${Date.now()}-${Math.random().toString(36).slice(2, 9)}.${extension}`;
-        const { error: uploadError } = await supabase.storage.from("bug-screenshots").upload(screenshotPath, photo, {
-          contentType: photo.type || "image/jpeg", upsert: false,
-        });
+        screenshotPath = `${userFolder}/${Date.now()}-${Math.random().toString(36).slice(2, 9)}.rh-encrypted.json`;
+        const dataUrl = await new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.onerror = reject; reader.readAsDataURL(photo); });
+        const screenshotEnvelope = await encryptForTeam({ name: photo.name, type: photo.type, dataUrl }, userPublicKey, teamKey, "bug_reports.screenshot");
+        const encryptedFile = new Blob([JSON.stringify(screenshotEnvelope)], { type: "application/json" });
+        const { error: uploadError } = await supabase.storage.from("bug-screenshots").upload(screenshotPath, encryptedFile, { contentType: "application/json", upsert: false });
         if (uploadError) throw uploadError;
       }
+      const reportEnvelope = await encryptForTeam({ name: name.trim() || null, description: desc, email: session?.user?.email || null, user_id: session?.user?.id || null }, userPublicKey, teamKey, "bug_reports.payload");
       const { error } = await supabase.from("bug_reports").insert({
-        name: name.trim() || null,
-        description: desc,
-        email: session?.user?.email || null,
+        name: null,
+        description: JSON.stringify(reportEnvelope),
+        email: null,
         user_id: session?.user?.id || null,
         screenshot_path: screenshotPath,
       });
@@ -6410,7 +6584,7 @@ function BugReport({ session, onBack }) {
       setSent(true);
       fetch("/api/push", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ toAdmins: true, title: "New bug report", body: desc.slice(0, 120), target: "adminBugReports", url: "/?open=adminBugReports" }),
+        body: JSON.stringify({ toAdmins: true, title: "New bug report", body: "A new encrypted bug report is waiting in the staff inbox.", target: "adminBugReports", url: "/?open=adminBugReports" }),
       }).catch(() => {});
     } catch (e) { setErr("Couldn't send just now — have you run the bug reports SQL?"); }
     finally { setBusy(false); }
@@ -6480,7 +6654,7 @@ function BugReport({ session, onBack }) {
   );
 }
 
-function UserFeedback({ session, onBack }) {
+function UserFeedback({ session, userPublicKey, onBack }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [feedback, setFeedback] = useState("");
@@ -6499,17 +6673,19 @@ function UserFeedback({ session, onBack }) {
     if (!supabase) { setErr("Couldn't reach the server just now — try again in a moment."); return; }
     setBusy(true); setErr("");
     try {
+      const teamKey = await getConfiguredTeamPublicKey();
+      const feedbackEnvelope = await encryptForTeam({ name: sender, email: contactEmail || null, description: message, user_id: session?.user?.id || null }, userPublicKey, teamKey, "bug_reports.feedback");
       const { error } = await supabase.from("bug_reports").insert({
-        name: sender,
-        email: contactEmail || null,
-        description: `[User Feedback]\n\n${message}`,
+        name: null,
+        email: null,
+        description: JSON.stringify(feedbackEnvelope),
         user_id: session?.user?.id || null,
       });
       if (error) throw error;
       setSent(true);
       fetch("/api/push", {
         method: "POST", headers: { "Content-Type": "application/json" }, keepalive: true,
-        body: JSON.stringify({ toAdmins: true, title: "New user feedback", body: `${sender}: ${message.slice(0, 110)}`, target: "adminBugReports", url: "/?open=adminBugReports" }),
+        body: JSON.stringify({ toAdmins: true, title: "New user feedback", body: "A new encrypted user-feedback message is waiting in the staff inbox.", target: "adminBugReports", url: "/?open=adminBugReports" }),
       }).then(async (response) => {
         const result = await response.json().catch(() => null);
         if (!response.ok || !result?.sent) console.warn("Feedback notification was not delivered", result || response.status);
