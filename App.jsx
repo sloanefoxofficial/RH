@@ -55,7 +55,7 @@ async function sset(key, val) {
 const JOURNAL_PIN_STORAGE_KEY = "rh_journal_pin_v1";
 
 // The PIN remains device-local and only its one-way digest is stored. This is
-// a privacy screen lock for the Journal, not encryption of the journal data.
+// a  screen lock for the Journal, not encryption of the journal data.
 async function hashJournalPin(pin) {
   if (!globalThis.crypto?.subtle || typeof TextEncoder === "undefined") throw new Error("PIN locking is not supported in this browser.");
   const bytes = new TextEncoder().encode(`resilience-hub-journal-pin-v1:${pin}`);
@@ -389,7 +389,7 @@ export default function App() {
   const [rexIntroReplay, setRexIntroReplay] = useState(false); // true when Rex's intro was opened from inside chat (not first-time onboarding) — changes where "I'm ready" / close sends them back to
   const [responseSpeed, setResponseSpeed] = useState("normal"); // "chilled" | "normal" | "fast" — per-device reply pacing, set in Settings
   const [speechLang, setSpeechLang] = useState("en-AU"); // mic + fallback voice language, set in Settings
-  const [journalPinSet, setJournalPinSet] = useState(false); // privacy lock; digest is stored locally and, when signed in, on this account
+  const [journalPinSet, setJournalPinSet] = useState(false); //  lock; digest is stored locally and, when signed in, on this account
   const [journalUnlocked, setJournalUnlocked] = useState(false);
   const [installPromptEvent, setInstallPromptEvent] = useState(null);
   const [isStandalone, setIsStandalone] = useState(false);
@@ -414,7 +414,7 @@ export default function App() {
     try { return await decryptJson(raw, vaultKeyRef.current, name); } catch { return null; }
   }, []);
   const secureLocalSet = useCallback(async (name, value) => {
-    if (!vaultKeyRef.current) throw new Error("Privacy vault is locked.");
+    if (!vaultKeyRef.current) throw new Error(" vault is locked.");
     await sset(name, await encryptJson(value, vaultKeyRef.current, name));
   }, []);
   const migrateLocalPlaintext = useCallback(async () => {
@@ -427,7 +427,7 @@ export default function App() {
       }
     }
   }, [secureLocalSet]);
-  const unlockPrivacyVault = useCallback(async (secret, useRecovery = false) => {
+  const unlockVault = useCallback(async (secret, useRecovery = false) => {
     try {
       const unlocked = await unlockUserVault(vaultMeta, secret, useRecovery);
       setVaultKey(unlocked.dataKey); vaultKeyRef.current = unlocked.dataKey; vaultRawKeyRef.current = unlocked.rawDataKey;
@@ -439,7 +439,7 @@ export default function App() {
       return true;
     } catch (e) { throw new Error("That passphrase or recovery key did not unlock your private data."); }
   }, [vaultMeta, migrateLocalPlaintext]);
-  const createPrivacyVault = useCallback(async (passphrase) => {
+  const createVault = useCallback(async (passphrase) => {
     const created = await createUserVault(passphrase);
     setVaultMeta(created.meta); setVaultKey(created.dataKey); vaultKeyRef.current = created.dataKey; vaultRawKeyRef.current = created.rawDataKey;
     setUserPublicKey(created.userPublicKey); userPublicKeyRef.current = created.userPublicKey;
@@ -986,7 +986,7 @@ export default function App() {
         ) : !consented ? (
           <Consent onAgree={() => { sset("rh_consent", { agreedAt: Date.now() }); setConsented(true); }} />
         ) : vaultStatus !== "unlocked" ? (
-          <PrivacyVaultGate status={vaultStatus} onCreate={createPrivacyVault} onUnlock={unlockPrivacyVault} deviceUnlockEnabled={deviceUnlockEnabled} onSetDeviceUnlock={setDeviceUnlockPreference} />
+          <VaultGate status={vaultStatus} onCreate={createVault} onUnlock={unlockVault} deviceUnlockEnabled={deviceUnlockEnabled} onSetDeviceUnlock={setDeviceUnlockPreference} />
         ) : screen === "welcome" ? (
           <Welcome
             voiceOn={voiceOn} setVoiceOn={setVoiceOn}
@@ -4685,8 +4685,7 @@ function PrivacyLink({ style, variant }) {
             {section("Deletion and retention", <>You can clear your app data from your Profile. The app attempts to remove encrypted account rows, support rows linked to your account, game progress, push subscriptions, local encrypted data, vault metadata, and associated screenshot objects. Deleted data may remain in provider backups, point-in-time recovery, disaster-recovery systems, device backups, or third-party provider systems for a limited period. The team must confirm and publish the configured maximum backup/PITR period before release: <strong>[backup/PITR retention period to be confirmed]</strong>.</>)}
             {section("Your choices and questions", <>You can change optional profile details, manage guide memory, control voice and notification preferences, disable device vault unlock, clear app data, sign out, and contact the team about privacy or deletion requests. Never send a privacy passphrase, recovery key, private encryption key, or service secret to support. For urgent danger, call 000 or use Help Now.</>)}
             <div style={{ background: "#eef7f1", borderRadius: 15, padding: 13, marginTop: 2, fontSize: 12.5, color: T.sub, lineHeight: 1.5 }}>
-              <strong style={{ color: T.ink }}>Before public release:</strong> The Resilience Hub team should have this notice reviewed by a qualified Australian privacy lawyer and security adviser, confirm provider terms and cross-border handling, fill in the backup-retention period, and verify the final deletion and incident-response processes.
-            </div>
+             
             <div style={{ marginTop: 14 }}><Btn onClick={() => setOpen(false)}>Close</Btn></div>
           </div>
         </div>
