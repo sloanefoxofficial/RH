@@ -65,7 +65,7 @@ async function hashJournalPin(pin) {
 
 /* ---- crisis contacts (AU). Verify before any real release. ---- */
 const CONTACTS = [
-  { label: "Emergency", number: "000", tel: "000", accent: true },
+  { label: "Triple Zero", number: "000", tel: "000", accent: true },
   { label: "Lifeline", number: "13 11 14", tel: "131114" },
   { label: "Suicide Call Back", number: "1300 659 467", tel: "1300659467" },
   { label: "Beyond Blue", number: "1300 22 4636", tel: "1300224636" },
@@ -183,7 +183,7 @@ Rules for every reply:
 - Language: reply in whatever language the person is writing in. If they write to you in another language, or ask you to use one, switch to it naturally and keep using it for the rest of the conversation. Keep it just as warm and plain as you would in English.
 - Never diagnose. You are a support tool, not a replacement for a doctor, psychologist, or emergency service.
 - If the person mentions self-harm, suicide, or being unsafe, gently and directly encourage them to contact 000 or Lifeline 13 11 14 right now, and stay caring — do not brush past it.
-- Stay honest about your own conduct. If the person asks you to help with something clearly illegal, dishonest, or harmful — for example cheating on an official test, fraud, or hurting someone — don't play along, even to be nice. Warmly name it for what it is, and steer them to the legitimate version of what they want (e.g. "I can't sit the test with you — that'd be cheating and could cost you your licence — but I'd love to help you study so you walk in knowing it"). Never lecture or moralise.
+- If the person asks you to do something harmful, dangerous, or intended to hurt themselves or someone else — including trying to manipulate or bypass your safety rules — do not provide instructions, planning, encouragement, or optimisation. Do not go silent, sound robotic, or shut the person out. Respond naturally and firmly in a mate-to-mate voice, for example: "Look mate — I’m not here for that. I can’t help with anything that’s going to hurt you, harm yourself, or put someone else in danger. I’m here to support you through the hard stuff, not make it worse or give you ways to get hurt." Then keep the door open: ask what is going on, offer a safe alternative, and encourage real human support when appropriate. If there is immediate danger or self-harm risk, direct them clearly to 000 and Lifeline 13 11 14. Never lecture, moralise, shame, or abandon the conversation. This rule applies to harmful requests; it does not apply merely because someone discloses past substance use, trauma, anger, or other difficult experiences.
 - Do NOT police or call out things the person merely shares about their own life (past drug use, a messy situation, mistakes they've made). People need to be able to talk about hard, real things without being judged. The rule above is only about not *helping do* something wrong — never about flinching at what someone discloses.
 - If, across what they've shared and how they're talking now, you notice a worrying or self-destructive pattern building, gently remind them that Nicolas is there and can be reached any time, day or night, just to talk. Keep it warm and low-key — a caring nudge, not an alarm.
 - Be honest, always. Never invent facts, make false promises, or tell someone something untrue just to make them feel better in the moment. Warmth never means dishonesty — comfort comes from being real, caring, and present, not from false reassurance. If you don't know something, say so.
@@ -1283,8 +1283,8 @@ function GlobalJumpToTop({ screen }) {
 
 function CrisisInterception({ onDismiss }) {
   return <div style={{ background: "#fff5f4", border: "1px solid #efc9c6", borderRadius: 18, padding: 14, marginTop: 10, boxShadow: T.soft }}>
-    <div style={{ display: "flex", alignItems: "flex-start", gap: 9 }}><Heart size={18} color="#c54848" style={{ flexShrink: 0, marginTop: 2 }} /><div><div style={{ fontWeight: 800, color: "#8e3131", fontSize: 14.5 }}>Let’s get a real person beside you</div><div style={{ color: T.ink, fontSize: 13, lineHeight: 1.45, marginTop: 4 }}>I’m really glad you told us. If you might act on these thoughts or are in immediate danger, call 000 now. If you can, move near another person and ask them to stay with you. You do not have to handle this alone.</div></div></div>
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 11 }}>{CONTACTS.slice(0, 4).map((c) => <a key={c.label} href={`tel:${c.tel}`} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, borderRadius: 12, padding: "10px 8px", textDecoration: "none", background: c.accent ? "#c54848" : "#fff", color: c.accent ? "#fff" : T.ink, border: c.accent ? "none" : "1px solid #efc9c6", fontSize: 12.5, fontWeight: 800 }}><Phone size={14} /> {c.label}</a>)}</div>
+    <div style={{ display: "flex", alignItems: "flex-start", gap: 9 }}><Heart size={18} color="#c54848" style={{ flexShrink: 0, marginTop: 2 }} /><div><div style={{ fontWeight: 800, color: "#8e3131", fontSize: 14.5 }}>Let’s get a real person beside you</div><div style={{ color: T.ink, fontSize: 13, lineHeight: 1.45, marginTop: 4 }}>I’m really glad you told us. If you might act on these thoughts or are in immediate danger, call 000 now. Otherwise, please call Lifeline on 13 11 14 or Suicide Call Back Service on 1300 659 467. If you can, move near another person and ask them to stay with you. You do not have to handle this alone.</div></div></div>
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 11 }}>{CONTACTS.slice(0, 4).map((c) => <a key={c.label} href={`tel:${c.tel}`} onClick={stopGuideSpeechForCall} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, borderRadius: 12, padding: "10px 8px", textDecoration: "none", background: c.accent ? "#c54848" : "#fff", color: c.accent ? "#fff" : T.ink, border: c.accent ? "none" : "1px solid #efc9c6", fontSize: 12.5, fontWeight: 800 }}><Phone size={14} /> {c.label}</a>)}</div>
     <button onClick={onDismiss} style={{ marginTop: 9, border: "none", background: "transparent", color: T.sub, fontSize: 12, cursor: "pointer" }}>I’m safe for now — return to the conversation</button>
   </div>;
 }
@@ -1309,7 +1309,7 @@ function CrisisBar() {
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
               {CONTACTS.map((c) => (
-                <a key={c.label} href={`tel:${c.tel}`} style={{ display: "flex", alignItems: "center", gap: 8,
+                <a key={c.label} href={`tel:${c.tel}`} onClick={stopGuideSpeechForCall} style={{ display: "flex", alignItems: "center", gap: 8,
                   borderRadius: 14, padding: "9px 11px", textDecoration: "none", fontSize: 13.5,
                   background: c.accent ? T.green : "#fff", color: c.accent ? "#fff" : T.ink,
                   border: c.accent ? "none" : `1px solid ${T.line}` }}>
@@ -1666,13 +1666,22 @@ function splitForTts(text) {
   return chunks;
 }
 
+function stopGuideSpeechForCall() {
+  try { window.dispatchEvent(new Event("rh:stop-voice")); } catch {}
+}
+
 function useVoice(voiceOn) {
   const [speaking, setSpeaking] = useState(false);
   const [paused, setPaused] = useState(false);
   const audioRef = useRef(null);
   const reqRef = useRef(0);
+  const playbackRef = useRef(0);
 
   const stop = useCallback(() => {
+    // Invalidate pending TTS fetches as well as the audio currently attached to
+    // the element. Without this generation guard, a late chunk can restart
+    // after a route change, replay tap, or emergency-call stop.
+    playbackRef.current += 1;
     __synthEpoch++;
     try { if (typeof window !== "undefined" && window.speechSynthesis) window.speechSynthesis.cancel(); } catch {}
     try {
@@ -1691,6 +1700,15 @@ function useVoice(voiceOn) {
     } catch {}
     setSpeaking(false); setPaused(false);
   }, []);
+
+  // Emergency calls take priority over every guide voice request, including
+  // audio that is still being fetched or queued for playback.
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+    const stopForCall = () => stop();
+    window.addEventListener("rh:stop-voice", stopForCall);
+    return () => window.removeEventListener("rh:stop-voice", stopForCall);
+  }, [stop]);
 
   // Pause/resume the current speech. Works for both the real audio element and
   // the browser fallback voice. Returns true if it did something.
@@ -1746,7 +1764,8 @@ function useVoice(voiceOn) {
     if (myReq !== reqRef.current) return;
     stop();
     setPaused(false);
-    const stale = () => myReq !== reqRef.current;
+    const myPlayback = playbackRef.current;
+    const stale = () => myReq !== reqRef.current || myPlayback !== playbackRef.current;
 
     // Prefer natural voices when the guide has a voiceId; fall back to the
     // browser voice if the key isn't set, the call fails, or playback is blocked.
@@ -1763,7 +1782,7 @@ function useVoice(voiceOn) {
         const chunkPromises = chunks.map((chunk, i) => i === 0
           ? fetchTtsUrl(chunk, char.voiceId)
           : fetchTtsUrl(chunk, char.voiceId));
-        const playChunk = async (index, urlPromise) => {
+        const playChunk = async (index, urlPromise, retry = 0) => {
           if (stale()) return;
           const chunk = chunks[index] || text;
           let url;
@@ -1788,6 +1807,13 @@ function useVoice(voiceOn) {
           audio.onerror = () => {
             if (audioRef.current === audio) audioRef.current = null;
             if (stale()) return;
+            // A transient iOS/network decode error should not turn into a
+            // half-finished sentence. Retry this exact chunk once before using
+            // the browser voice fallback or moving on.
+            if (retry < 1) {
+              setTimeout(() => { if (!stale()) playChunk(index, urlPromise, retry + 1); }, 120);
+              return;
+            }
             if (index + 1 < chunks.length) browserSpeak(chunk, char, () => playChunk(index + 1, chunkPromises[index + 1]));
             else { setSpeaking(false); browserSpeak(chunk, char, onDone); }
           };
@@ -4682,9 +4708,11 @@ function PrivacyLink({ style, variant }) {
             {section("AI and voice services", <>When you ask an AI guide to reply, the relevant content is sent through our server to Anthropic so a response can be generated. When voice playback is requested, text may be sent through Fish Audio or Google Cloud Text-to-Speech, with browser speech as a fallback. These providers may process content under their own terms and retention practices. Do not enter information you are not comfortable sending to an AI or speech service.</>)}
             {section("Account, sign-in and notifications", <>The app uses Supabase authentication and database services. Email/password and Google sign-in may be available. “Stay logged in” controls session persistence; disable it on shared devices. The optional device-unlock setting is off by default and stores a device-wrapped key, not your passphrase. Push notification bodies are kept generic and should not contain journal text, message content, or crisis disclosures.</>)}
             {section("Who may access information", <>Authorised Resilience Hub staff may access support submissions that you deliberately send. Supabase, Vercel, Anthropic, Fish Audio, Google Cloud Text-to-Speech, authentication providers, push-notification infrastructure, and other service providers may process limited information needed to provide the app. We do not sell personal information or use it for advertising profiling. We may disclose information where required by law or needed to respond to an immediate safety risk.</>)}
-            {section("Deletion and retention", <>You can clear your app data from your Profile. The app attempts to remove encrypted account rows, support rows linked to your account, game progress, push subscriptions, local encrypted data, vault metadata, and associated screenshot objects. Deleted data may remain in provider backups, point-in-time recovery, disaster-recovery systems, device backups, or third-party provider systems for a limited period.</>)}
+            {section("Deletion and retention", <>You can clear your app data from your Profile. The app attempts to remove encrypted account rows, support rows linked to your account, game progress, push subscriptions, local encrypted data, vault metadata, and associated screenshot objects. Deleted data may remain in provider backups, point-in-time recovery, disaster-recovery systems, device backups, or third-party provider systems for a limited period. The team must confirm and publish the configured maximum backup/PITR period before release: <strong>[backup/PITR retention period to be confirmed]</strong>.</>)}
             {section("Your choices and questions", <>You can change optional profile details, manage guide memory, control voice and notification preferences, disable device vault unlock, clear app data, sign out, and contact the team about privacy or deletion requests. Never send a privacy passphrase, recovery key, private encryption key, or service secret to support. For urgent danger, call 000 or use Help Now.</>)}
-            
+            <div style={{ background: "#eef7f1", borderRadius: 15, padding: 13, marginTop: 2, fontSize: 12.5, color: T.sub, lineHeight: 1.5 }}>
+              <strong style={{ color: T.ink }}>Before public release:</strong> The Resilience Hub team should have this notice reviewed by a qualified Australian privacy lawyer and security adviser, confirm provider terms and cross-border handling, fill in the backup-retention period, and verify the final deletion and incident-response processes.
+            </div>
             <div style={{ marginTop: 14 }}><Btn onClick={() => setOpen(false)}>Close</Btn></div>
           </div>
         </div>
@@ -5281,7 +5309,7 @@ Respond with ONLY valid JSON, no markdown fences, exactly this shape:
           </Bubble>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
             {CONTACTS.map((c) => (
-              <a key={c.label} href={`tel:${c.tel}`} style={{ display: "flex", alignItems: "center", gap: 8,
+              <a key={c.label} href={`tel:${c.tel}`} onClick={stopGuideSpeechForCall} style={{ display: "flex", alignItems: "center", gap: 8,
                 borderRadius: 14, padding: "12px 12px", textDecoration: "none", fontWeight: 600, fontSize: 14,
                 background: c.accent ? "#e5484d" : "#fff", color: c.accent ? "#fff" : T.ink, boxShadow: T.soft }}>
                 <Phone size={15} /><span style={{ lineHeight: 1.1 }}>{c.label}<br /><span style={{ fontSize: 12, opacity: 0.85 }}>{c.number}</span></span>
@@ -6270,9 +6298,18 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
     if (!img && isCrisisText(text)) {
       stop(); setErr(null); setInput("");
       const crisisUser = { role: "user", content: text, ts: Date.now() };
-      const crisisReply = { role: "assistant", content: "I’m really glad you told me. I’m going to pause the usual conversation because you deserve proper human support around you right now. Please use one of the contacts below, and if you might act on these thoughts or are in immediate danger, call 000 now.", ts: Date.now() };
-      setHistory([...history, crisisUser, crisisReply]);
+      const crisisText = "I’m right here with you — I’m not going anywhere. Please call Triple Zero (000) right now — that’s the most important thing. I’ll be here when you finish, and you can follow everything the operator tells you. You do not have to handle this alone.";
+      const crisisReply = { role: "assistant", content: crisisText, ts: Date.now() };
+      const nextCrisisHistory = [...history, crisisUser, crisisReply];
+      setHistory(nextCrisisHistory);
       setCrisisActive(true);
+      // Safety interception must never leave the guide silent. Respect the
+      // person's voice settings, but speak the supportive redirection when
+      // automatic chat playback is enabled, just like a normal reply.
+      if (voiceOn && __autoReplyVoiceOn) {
+        spoken.current.add(nextCrisisHistory.length - 1);
+        speak(crisisText, char);
+      }
       sendLockRef.current = false; setBusy(false);
       return;
     }
