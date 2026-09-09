@@ -2874,11 +2874,6 @@ function Login({ onGuest, stayLoggedIn = true, onStayLoggedInChange }) {
 }
 
 /* ---------- admin (role-gated) ---------- */
-const ADMIN_SYSTEM = `You are the Resilience Hub Admin Assistant, helping the app's owner (an administrator) improve the app.
-You can: draft or rewrite program content and copy, suggest wording for the guides' tone or the 8-week plan, propose small feature ideas, and help diagnose bugs or deployment errors by explaining likely causes and the exact steps or code to change.
-You do NOT change the live app yourself — you produce drafts and instructions the admin reviews and applies. Never claim you have edited or deployed anything.
-For anything touching safety (crisis numbers, disclaimers, self-harm handling), do not casually rewrite it: flag that it is safety-critical, keep it conservative, and recommend careful human review and sign-off from Carlos Camacho (Registered Psychologist). Stay aligned with the lived-experience mission. Be concise, warm, and practical.`;
-
 function GuidePersonalityEditor({ guidePrompts, onSave }) {
   const order = ["juan", "carlos", "mick", "lila", "rex"];
   const [slug, setSlug] = useState("juan");
@@ -2941,7 +2936,7 @@ function GuidePersonalityEditor({ guidePrompts, onSave }) {
 }
 
 function Admin({ isAdmin, guidePrompts, onSaveGuidePrompt, onBack }) {
-  const [view, setView] = useState(null);       // null | "members" | "safety" | "welcome" | "guides" | "notify" | "assistant"
+  const [view, setView] = useState(null);       // null | "members" | "safety" | "welcome" | "guides" | "notify"
   const [member, setMember] = useState(null);   // a selected member row
   if (!isAdmin) {
     return (
@@ -2966,7 +2961,6 @@ function Admin({ isAdmin, guidePrompts, onSaveGuidePrompt, onBack }) {
     { key: "notify", Icon: Megaphone, tint: "#eee7f6", ic: "#7c5cc4", title: "Notify members", sub: "Send a broadcast, in-app and push" },
     { key: "bugreports", Icon: Flame, tint: "#fbe4e4", ic: "#c94f4f", title: "Bug reports", sub: "One-way reports from members and testers" },
     { key: "appointments", Icon: CalendarCheck, tint: "#e9f5ee", ic: "#2c7d50", title: "Appointment requests", sub: "Intake appointment requests to call people back on" },
-    { key: "assistant", Icon: Sparkles, tint: "#e7eefb", ic: "#3f6faf", title: "Claude admin assistant", sub: "Drafting help — never edits the live app itself" },
   ];
   const AdminSubPage = ({ title, Icon, children }) => (
     <>
@@ -2982,7 +2976,6 @@ function Admin({ isAdmin, guidePrompts, onSaveGuidePrompt, onBack }) {
   if (view === "welcome") return <AdminSubPage title="Welcome message" Icon={Sparkles}><AdminWelcomeEditor /></AdminSubPage>;
   if (view === "guides") return <AdminSubPage title="Guide personalities" Icon={Users}><GuidePersonalityEditor guidePrompts={guidePrompts} onSave={onSaveGuidePrompt} /></AdminSubPage>;
   if (view === "notify") return <AdminSubPage title="Notify members" Icon={Megaphone}><AdminNotify /></AdminSubPage>;
-  if (view === "assistant") return <AdminSubPage title="Claude admin assistant" Icon={Sparkles}><AdminAssistant /></AdminSubPage>;
 
   return (
     <>
@@ -3348,64 +3341,6 @@ function AdminWelcomeEditor() {
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 10 }}>
         <Btn onClick={save} style={{ width: 120, height: 44 }}>Save</Btn>
         <span style={{ fontSize: 12.5, color: T.sub }}>{status}</span>
-      </div>
-    </div>
-  );
-}
-
-function AdminAssistant() {
-  const [history, setHistory] = useState([]);
-  const [input, setInput] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState(null);
-  const scrollRef = useRef(null);
-  useEffect(() => { scrollRef.current?.scrollTo({ top: 1e6, behavior: "smooth" }); }, [history, busy]);
-
-  const send = async () => {
-    const text = input.trim();
-    if (!text || busy) return;
-    setErr(null); setInput("");
-    const next = [...history, { role: "user", content: text }];
-    setHistory(next);
-    setBusy(true);
-    try {
-      const msgs = next.slice(-16).map((m) => ({ role: m.role, content: m.content }));
-      const reply = await callModel({ system: ADMIN_SYSTEM, messages: msgs, maxTokens: 1200 });
-      setHistory([...next, { role: "assistant", content: reply }]);
-    } catch (e) { setErr(e.message || "Couldn't reach the assistant."); }
-    finally { setBusy(false); }
-  };
-
-  return (
-    <div style={{ background: T.card, borderRadius: 18, padding: 14, boxShadow: T.soft }}>
-      <div ref={scrollRef} style={{ maxHeight: 340, overflowY: "auto", display: "flex", flexDirection: "column", gap: 10, marginBottom: 12 }}>
-        {history.length === 0 && (
-          <p style={{ fontSize: 13.5, color: T.sub, lineHeight: 1.5, margin: "6px 2px" }}>
-            e.g. "Rewrite week 3 of the plan to feel gentler," or "Suggest three new affirmations in Nicolas's voice."
-          </p>
-        )}
-        {history.map((m, i) => (
-          <div key={i} style={{ display: "flex", justifyContent: m.role === "user" ? "flex-end" : "flex-start" }}>
-            <div style={{ maxWidth: "88%", padding: "10px 13px", borderRadius: 16, fontSize: 14.5, lineHeight: 1.5,
-              whiteSpace: "pre-wrap", background: m.role === "user" ? T.green : "#f3eef7", color: m.role === "user" ? "#fff" : T.ink }}>
-              {m.content}
-            </div>
-          </div>
-        ))}
-        {busy && <div style={{ fontSize: 13, color: T.sub }}>Thinking…</div>}
-        {err && <div style={{ fontSize: 13, color: "#c0392b" }}>{err}</div>}
-      </div>
-      <div style={{ display: "flex", gap: 8 }}>
-        <textarea value={input} onChange={(e) => setInput(e.target.value)} rows={1}
-          onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
-          placeholder="Ask the admin assistant…"
-          style={{ flex: 1, resize: "none", borderRadius: 14, border: `1px solid ${T.line}`, padding: "11px 13px",
-            fontSize: 14.5, maxHeight: 120, background: "#fff", color: T.ink, outline: "none", fontFamily: "inherit" }} />
-        <button onClick={send} disabled={!input.trim() || busy} aria-label="Send"
-          style={{ width: 46, height: 46, borderRadius: "50%", border: "none", background: T.green, color: "#fff",
-            display: "grid", placeItems: "center", cursor: input.trim() ? "pointer" : "default", opacity: input.trim() ? 1 : 0.5 }}>
-          <Send size={17} />
-        </button>
       </div>
     </div>
   );
