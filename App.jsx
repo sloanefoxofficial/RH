@@ -53,6 +53,7 @@ async function sset(key, val) {
 }
 
 const JOURNAL_PIN_STORAGE_KEY = "rh_journal_pin_v1";
+const vaultMetaStorageKey = (userId) => userId ? `rh_vault_meta_${userId}` : "rh_vault_meta";
 
 // The PIN remains device-local and only its one-way digest is stored. This is
 // a privacy screen lock for the Journal, not encryption of the journal data.
@@ -446,9 +447,17 @@ export default function App() {
       setVaultKey(unlocked.dataKey); vaultKeyRef.current = unlocked.dataKey; vaultRawKeyRef.current = unlocked.rawDataKey;
       setUserPublicKey(unlocked.userPublicKey); userPublicKeyRef.current = unlocked.userPublicKey;
       setUserPrivateKey(unlocked.userPrivateKey); userPrivateKeyRef.current = unlocked.userPrivateKey;
-      setVaultStatus("unlocked");
-      await sset("rh_vault_meta", vaultMeta);
+      await sset(vaultMetaStorageKey(sessionRef.current?.user?.id), vaultMeta);
+      if (authEnabled && supabase && sessionRef.current?.user?.id) {
+        const { error: metaError } = await supabase.from("member_data").upsert({
+          user_id: sessionRef.current.user.id,
+          encryption_meta: vaultMeta,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: "user_id" });
+        if (metaError) throw metaError;
+      }
       await migrateLocalPlaintext();
+      setVaultStatus("unlocked");
       return true;
     } catch (e) { throw new Error("That passphrase or recovery key did not unlock your private data."); }
   }, [vaultMeta, migrateLocalPlaintext]);
@@ -457,9 +466,17 @@ export default function App() {
     setVaultMeta(created.meta); setVaultKey(created.dataKey); vaultKeyRef.current = created.dataKey; vaultRawKeyRef.current = created.rawDataKey;
     setUserPublicKey(created.userPublicKey); userPublicKeyRef.current = created.userPublicKey;
     setUserPrivateKey(created.userPrivateKey); userPrivateKeyRef.current = created.userPrivateKey;
-    setVaultStatus("unlocked");
-    await sset("rh_vault_meta", created.meta);
+    await sset(vaultMetaStorageKey(sessionRef.current?.user?.id), created.meta);
+    if (authEnabled && supabase && sessionRef.current?.user?.id) {
+      const { error: metaError } = await supabase.from("member_data").upsert({
+        user_id: sessionRef.current.user.id,
+        encryption_meta: created.meta,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "user_id" });
+      if (metaError) throw metaError;
+    }
     await migrateLocalPlaintext();
+    setVaultStatus("unlocked");
     return created.recoveryKey;
   }, [migrateLocalPlaintext]);
 
@@ -482,14 +499,55 @@ export default function App() {
   }, [screen]);
 
   useEffect(() => {
+    let cancelled = false;
     (async () => {
+      if (authEnabled && !session) { setVaultStatus("checking"); return; }
       try {
-        const meta = await sget("rh_vault_meta");
-        if (meta?.v === 1) { setVaultMeta(meta); setVaultStatus("locked"); }
-        else setVaultStatus("needs_setup");
-      } catch { setVaultStatus("needs_setup"); }
+        const scopedKey = vaultMetaStorageKey(session?.user?.id);
+        const localMeta = await sget(scopedKey) || await sget("rh_vault_meta");
+        if (localMeta?.v === 1 && !(await sget(scopedKey))) await sset(scopedKey, localMeta);
+        if (!authEnabled || !session || !supabase) {
+          if (localMeta?.v === 1 && !cancelled) { setVaultMeta(localMeta); setVaultStatus("locked"); }
+          else if (!cancelled) setVaultStatus("needs_setup");
+          return;
+        }
+
+        const { data, error } = await supabase.from("member_data")
+          .select("encryption_meta,profile,answers,plan,progress,journal")
+          .eq("user_id", session.user.id).maybeSingle();
+        if (cancelled) return;
+        if (error) {
+          // Fail closed: do not offer new-vault setup when the account could
+          // not be checked. A temporary database error must not become a way
+          // around the established passphrase.
+          if (localMeta?.v === 1) { setVaultMeta(localMeta); setVaultStatus("locked"); }
+          else setVaultStatus("account_vault_unavailable");
+          return;
+        }
+
+        const remoteMeta = data?.encryption_meta;
+        if (remoteMeta?.v === 1) {
+          await sset(vaultMetaStorageKey(session.user.id), remoteMeta);
+          if (!cancelled) { setVaultMeta(remoteMeta); setVaultStatus("locked"); }
+          return;
+        }
+        const hasExistingData = ["profile", "answers", "plan", "progress", "journal"]
+          .some((field) => data?.[field] !== null && data?.[field] !== undefined);
+        if (localMeta?.v === 1 && hasExistingData) {
+          // Older builds may have created a local vault before metadata syncing
+          // existed. Let the original device unlock it, then repair the account
+          // metadata through unlockPrivacyVault. A brand-new account does not
+          // inherit another account's stale device metadata.
+          setVaultMeta(localMeta); setVaultStatus("locked");
+          return;
+        }
+        setVaultStatus(hasExistingData ? "account_vault_missing" : "needs_setup");
+      } catch {
+        if (!cancelled) setVaultStatus("account_vault_unavailable");
+      }
     })();
-  }, []);
+    return () => { cancelled = true; };
+  }, [session]);
 
   useEffect(() => {
     if (authChecked && vaultStatus !== "checking") setReady(true);
@@ -4654,9 +4712,11 @@ function PrivacyLink({ style, variant }) {
             {section("AI and voice services", <>When you ask an AI guide to reply, the relevant content is sent through our server to Anthropic so a response can be generated. When voice playback is requested, text may be sent through Fish Audio or Google Cloud Text-to-Speech, with browser speech as a fallback. These providers may process content under their own terms and retention practices. Do not enter information you are not comfortable sending to an AI or speech service.</>)}
             {section("Account, sign-in and notifications", <>The app uses Supabase authentication and database services. Email/password and Google sign-in may be available. “Stay logged in” controls session persistence; disable it on shared devices. The optional device-unlock setting is off by default and stores a device-wrapped key, not your passphrase. Push notification bodies are kept generic and should not contain journal text, message content, or crisis disclosures.</>)}
             {section("Who may access information", <>Authorised Resilience Hub staff may access support submissions that you deliberately send. Supabase, Vercel, Anthropic, Fish Audio, Google Cloud Text-to-Speech, authentication providers, push-notification infrastructure, and other service providers may process limited information needed to provide the app. We do not sell personal information or use it for advertising profiling. We may disclose information where required by law or needed to respond to an immediate safety risk.</>)}
-            {section("Deletion and retention", <>You can clear your app data from your Profile. The app attempts to remove encrypted account rows, support rows linked to your account, game progress, push subscriptions, local encrypted data, vault metadata, and associated screenshot objects. Deleted data may remain in provider backups, point-in-time recovery, disaster-recovery systems, device backups, or third-party provider systems for a limited period. </>)}
+            {section("Deletion and retention", <>You can clear your app data from your Profile. The app attempts to remove encrypted account rows, support rows linked to your account, game progress, push subscriptions, local encrypted data, vault metadata, and associated screenshot objects. Deleted data may remain in provider backups, point-in-time recovery, disaster-recovery systems, device backups, or third-party provider systems for a limited period. The team must confirm and publish the configured maximum backup/PITR period before release: <strong>[backup/PITR retention period to be confirmed]</strong>.</>)}
             {section("Your choices and questions", <>You can change optional profile details, manage guide memory, control voice and notification preferences, disable device vault unlock, clear app data, sign out, and contact the team about privacy or deletion requests. Never send a privacy passphrase, recovery key, private encryption key, or service secret to support. For urgent danger, call 000 or use Help Now.</>)}
-           
+            <div style={{ background: "#eef7f1", borderRadius: 15, padding: 13, marginTop: 2, fontSize: 12.5, color: T.sub, lineHeight: 1.5 }}>
+              <strong style={{ color: T.ink }}>Before public release:</strong> The Resilience Hub team should have this notice reviewed by a qualified Australian privacy lawyer and security adviser, confirm provider terms and cross-border handling, fill in the backup-retention period, and verify the final deletion and incident-response processes.
+            </div>
             <div style={{ marginTop: 14 }}><Btn onClick={() => setOpen(false)}>Close</Btn></div>
           </div>
         </div>
@@ -4687,6 +4747,23 @@ function PrivacyVaultGate({ status, onCreate, onUnlock, deviceUnlockEnabled = fa
     } catch (e) { setError(e?.message || "We couldn't open your private vault."); }
     finally { setBusy(false); }
   };
+  if (status === "account_vault_missing" || status === "account_vault_unavailable") return (
+    <div className="rh-in" style={{ paddingTop: 42 }}>
+      <div style={{ background: "linear-gradient(145deg,#fff4ea,#ffffff)", border: "1px solid #f0d2b4", borderRadius: 28, padding: 24, boxShadow: T.lift }}>
+        <div style={{ width: 58, height: 58, borderRadius: 20, background: "#f8dfc7", display: "grid", placeItems: "center", marginBottom: 16 }}><Shield size={28} color="#8b552a" /></div>
+        <h1 style={{ margin: "0 0 10px", fontSize: 24, color: T.ink }}>Your existing vault is protected</h1>
+        <p style={{ color: T.sub, lineHeight: 1.6, marginTop: 0 }}>
+          This account already has a private vault, or we could not safely verify its vault record just now. We will not create a new vault here, because that could make the existing encrypted data appear to disappear.
+        </p>
+        {status === "account_vault_missing" ? (
+          <p style={{ color: "#7d4b2a", lineHeight: 1.55, fontWeight: 700 }}>Please sign in on the device where you first created the vault and unlock it once, then return to this device. If you no longer have that device, contact the Resilience Hub team before creating or resetting anything.</p>
+        ) : (
+          <p style={{ color: "#7d4b2a", lineHeight: 1.55, fontWeight: 700 }}>Please check your connection and try again. Your passphrase has not been changed, and no new vault was created.</p>
+        )}
+        <button onClick={() => window.location.reload()} style={{ width: "100%", marginTop: 8, border: 0, borderRadius: 14, padding: "13px 16px", background: T.greenDk, color: "#fff", fontWeight: 800, cursor: "pointer" }}>Check again</button>
+      </div>
+    </div>
+  );
   if (recovery) return (
     <div className="rh-in" style={{ paddingTop: 42 }}>
       <div style={{ background: "linear-gradient(145deg,#fff5de,#ffffff)", border: `1px solid ${T.line}`, borderRadius: 28, padding: 24, boxShadow: T.lift }}>
@@ -4719,7 +4796,7 @@ function PrivacyVaultGate({ status, onCreate, onUnlock, deviceUnlockEnabled = fa
         </label>
         <button disabled={busy} onClick={submit} style={{ width: "100%", marginTop: 18, border: 0, borderRadius: 14, padding: "14px 16px", background: T.greenDk, color: "#fff", fontWeight: 800, opacity: busy ? .6 : 1 }}>{busy ? "Working…" : mode === "create" ? "Create private vault" : "Unlock private data"}</button>
         <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
-          {mode === "create" ? <button onClick={() => { setMode("unlock"); setRecoveryMode(false); setError(""); }} style={{ border: 0, background: "transparent", color: T.blueDk, fontWeight: 800 }}>Already have a vault? Unlock it</button> : <button onClick={() => { setMode("create"); setRecoveryMode(false); setError(""); }} style={{ border: 0, background: "transparent", color: T.blueDk, fontWeight: 800 }}>Set up a new vault</button>}
+          {mode === "create" ? <button onClick={() => { setMode("unlock"); setRecoveryMode(false); setError(""); }} style={{ border: 0, background: "transparent", color: T.blueDk, fontWeight: 800 }}>Already have a vault? Unlock it</button> : status === "needs_setup" ? <button onClick={() => { setMode("create"); setRecoveryMode(false); setError(""); }} style={{ border: 0, background: "transparent", color: T.blueDk, fontWeight: 800 }}>Set up a new vault</button> : null}
           {mode === "unlock" && <button onClick={() => { setRecoveryMode((v) => !v); setPassphrase(""); setError(""); }} style={{ border: 0, background: "transparent", color: T.blueDk, fontWeight: 800 }}>{recoveryMode ? "Use privacy passphrase" : "Use recovery key"}</button>}
         </div>
       </div>
