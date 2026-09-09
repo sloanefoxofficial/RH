@@ -187,6 +187,8 @@ async function pushHeaders() {
   return headers;
 }
 
+const CONVERSATION_PRIVACY_NOTICE = "Your guide chats are part of your private Resilience Hub experience. To keep support consistent, a guide may use a small set of general notes from earlier conversations, but guides must never bring up another guide or conversation unless you mention it first. Messages you send through Message Juan, bug reports, or feedback are separate and go to the human team only when you choose those options. Some chat text is processed by our AI service to generate replies. You can turn guide memory off or clear saved chats in your Profile.";
+
 const SHARED = `You are part of The Resilience Hub — a warm, plain-English wellbeing companion built by Juan Carroso (lived-experience founder) and Carlos Camacho, Registered Psychologist. Slogan: "You never have to walk it alone."
 Rules for every reply:
 - Short, warm, human. Plain, everyday language. No jargon, no lectures, no bullet-point walls. 2-5 sentences.
@@ -199,6 +201,7 @@ Rules for every reply:
 - Be honest, always. Never invent facts, make false promises, or tell someone something untrue just to make them feel better in the moment. Warmth never means dishonesty — comfort comes from being real, caring, and present, not from false reassurance. If you don't know something, say so.
 - If the person raises something that really belongs to another guide's speciality, warmly point them there by name — you can still respond with care, but suggest the better-matched guide. The roster: Nicolas for lived-experience mateship and general support; Carlos for clinical tools (stress, anxiety, low mood, coping); Mick for practical life — housing, bills, Centrelink, tenancy, daily logistics; Lila for family and relationships — partners, boundaries, friendships, family. For example, if someone brings relationship drama to Mick, he'd say something like "That sounds like a lot — Lila's our person for relationship stuff, she'd be great to talk this through with. Want to switch over to her?" Keep it natural, never a cold hand-off.
 - Use their name when you know it. Remember what they've shared.
+- PRIVACY AND SHARED CONTEXT: You may receive a small set of general memory notes from earlier conversations so support stays consistent. Treat those notes as background only. NEVER volunteer, reveal, or hint at information from another guide or another conversation on your own. Never say "Lila told me", "Nicolas mentioned", "I know from our other chat", "the other guide said", or anything similar. Do not narrate that information was shared behind the person's back. Only acknowledge shared context after the person mentions it first. If they say they spoke with another guide, you may briefly confirm that you understand, then respond to what they are asking — do not add details from that other conversation unless they explicitly ask. Keep the person in control and never make them feel watched.
 - End most replies with one small, doable next step.
 - The app has a Toolkit of self-guided exercises: breathing (box breathing, for panic or a racing heart), grounding (5-4-3-2-1, for spiralling or overwhelming thoughts), affirmations (gentle words, for harsh self-talk), and calm (small steps, when everything feels like too much). When one of these would genuinely help the person right now, warmly suggest it in your reply AND add a tag on the very last line by itself, exactly like: <tool>breathing</tool> — using one of breathing, grounding, affirmations, or calm. Only add a tag when it truly fits; never force it, and never add more than one.`;
 
@@ -4651,9 +4654,11 @@ function PrivacyLink({ style, variant }) {
             {section("AI and voice services", <>When you ask an AI guide to reply, the relevant content is sent through our server to Anthropic so a response can be generated. When voice playback is requested, text may be sent through Fish Audio or Google Cloud Text-to-Speech, with browser speech as a fallback. These providers may process content under their own terms and retention practices. Do not enter information you are not comfortable sending to an AI or speech service.</>)}
             {section("Account, sign-in and notifications", <>The app uses Supabase authentication and database services. Email/password and Google sign-in may be available. “Stay logged in” controls session persistence; disable it on shared devices. The optional device-unlock setting is off by default and stores a device-wrapped key, not your passphrase. Push notification bodies are kept generic and should not contain journal text, message content, or crisis disclosures.</>)}
             {section("Who may access information", <>Authorised Resilience Hub staff may access support submissions that you deliberately send. Supabase, Vercel, Anthropic, Fish Audio, Google Cloud Text-to-Speech, authentication providers, push-notification infrastructure, and other service providers may process limited information needed to provide the app. We do not sell personal information or use it for advertising profiling. We may disclose information where required by law or needed to respond to an immediate safety risk.</>)}
-            {section("Deletion and retention", <>You can clear your app data from your Profile. The app attempts to remove encrypted account rows, support rows linked to your account, game progress, push subscriptions, local encrypted data, vault metadata, and associated screenshot objects. Deleted data may remain in provider backups, point-in-time recovery, disaster-recovery systems, device backups, or third-party provider systems for a limited period.</>)}
+            {section("Deletion and retention", <>You can clear your app data from your Profile. The app attempts to remove encrypted account rows, support rows linked to your account, game progress, push subscriptions, local encrypted data, vault metadata, and associated screenshot objects. Deleted data may remain in provider backups, point-in-time recovery, disaster-recovery systems, device backups, or third-party provider systems for a limited period. The team must confirm and publish the configured maximum backup/PITR period before release: <strong>[backup/PITR retention period to be confirmed]</strong>.</>)}
             {section("Your choices and questions", <>You can change optional profile details, manage guide memory, control voice and notification preferences, disable device vault unlock, clear app data, sign out, and contact the team about privacy or deletion requests. Never send a privacy passphrase, recovery key, private encryption key, or service secret to support. For urgent danger, call 000 or use Help Now.</>)}
-            
+            <div style={{ background: "#eef7f1", borderRadius: 15, padding: 13, marginTop: 2, fontSize: 12.5, color: T.sub, lineHeight: 1.5 }}>
+              <strong style={{ color: T.ink }}>Before public release:</strong> The Resilience Hub team should have this notice reviewed by a qualified Australian privacy lawyer and security adviser, confirm provider terms and cross-border handling, fill in the backup-retention period, and verify the final deletion and incident-response processes.
+            </div>
             <div style={{ marginTop: 14 }}><Btn onClick={() => setOpen(false)}>Close</Btn></div>
           </div>
         </div>
@@ -6377,13 +6382,17 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
             {searchMatches.length} found</span>}
         </div>
       )}
+      <div style={{ background: "#eef6f1", border: `1px solid ${T.line}`, borderRadius: 14, padding: "11px 13px", margin: "10px 2px 2px", color: T.ink }}>
+        <div style={{ fontWeight: 700, fontSize: 13.5, marginBottom: 4 }}>How your conversations work</div>
+        <p style={{ fontSize: 12.5, lineHeight: 1.5, color: T.sub, margin: 0 }}>{CONVERSATION_PRIVACY_NOTICE}</p>
+      </div>
       <div ref={scrollRef} style={{ flex: 1, overflowY: "auto", padding: "14px 2px", display: "flex",
         flexDirection: "column", gap: 10, minHeight: 260 }}>
         {history.length === 0 && (
           <div style={{ textAlign: "center", padding: "16px 8px" }}>
             <Portrait src={char.img} name={char.name} size={140} speaking={false} tint={char.tint} />
             <p style={{ fontSize: 14, color: T.sub, margin: "12px auto", maxWidth: 280 }}>
-              Say hi to {char.name}. Nothing here is shared — this is just for you.
+              Say hi to {char.name}. Your conversation is private to your Resilience Hub experience, and you stay in control of what is shared with the human team.
             </p>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center" }}>
               {starters.map((s) => (
