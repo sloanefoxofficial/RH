@@ -32,30 +32,29 @@ export default async function handler(req, res) {
   webpush.setVapidDetails("mailto:sloanefox.official@gmail.com", VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
   const supabase = createClient(VITE_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
+  const authHeader = req.headers?.authorization || "";
+  const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
+  if (!token) { res.status(401).json({ error: "Authentication required." }); return; }
+  const { data: authData, error: authError } = await supabase.auth.getUser(token);
+  if (authError || !authData?.user) { res.status(401).json({ error: "Invalid or expired session." }); return; }
+  const callerEmail = String(authData.user.email || "").trim().toLowerCase();
+  const callerIsAdmin = ADMIN_EMAILS.some((email) => email.toLowerCase() === callerEmail);
+
   try {
     const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : req.body || {};
     const { userId, broadcast, toAdmins, title, body: message, url, target } = body;
     if (!title) { res.status(400).json({ error: "Missing title" }); return; }
+    if (broadcast && !callerIsAdmin) { res.status(403).json({ error: "Administrator access required for broadcasts." }); return; }
+    if (!broadcast && !toAdmins && !callerIsAdmin) { res.status(403).json({ error: "Administrator access required for direct member notifications." }); return; }
 
     // Every subscribed member (broadcast), one specific person (a coordinator
     // reply), or every admin account (a member's new message to Juan/coordinator)
     let query = supabase.from("push_subscriptions").select("id,endpoint,p256dh,auth,user_id");
     if (toAdmins) {
-      // Prefer profile matches, but also resolve the admin accounts through Auth.
-      // A profile row can be missing or delayed after sign-up; without this fallback
-      // the endpoint would silently find zero subscriptions and send no alert.
-      const { data: profileAdmins, error: profileErr } = await supabase
+      const { data: admins, error: adminErr } = await supabase
         .from("profiles").select("id").in("email", ADMIN_EMAILS);
-      if (profileErr) throw profileErr;
-
-      const { data: authData, error: authErr } = await supabase.auth.admin.listUsers({ page: 1, perPage: 1000 });
-      if (authErr) throw authErr;
-      const adminEmails = new Set(ADMIN_EMAILS.map((email) => String(email).trim().toLowerCase()));
-      const authAdminIds = (authData?.users || [])
-        .filter((user) => adminEmails.has(String(user.email || "").trim().toLowerCase()))
-        .map((user) => user.id);
-      const ids = [...new Set([...(profileAdmins || []).map((admin) => admin.id), ...authAdminIds])];
-
+      if (adminErr) throw adminErr;
+      const ids = (admins || []).map((a) => a.id);
       if (!ids.length) { res.status(200).json({ sent: 0, removed: 0, total: 0 }); return; }
       query = query.in("user_id", ids);
     } else if (!broadcast) {
