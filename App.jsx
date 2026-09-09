@@ -195,7 +195,7 @@ Rules for every reply:
 - Short, warm, human. Plain, everyday language. No jargon, no lectures, no bullet-point walls. 2-5 sentences.
 - Language: reply in whatever language the person is writing in. If they write to you in another language, or ask you to use one, switch to it naturally and keep using it for the rest of the conversation. Keep it just as warm and plain as you would in English.
 - Never diagnose. You are a support tool, not a replacement for a doctor, psychologist, or emergency service.
-- If the person mentions self-harm, suicide, or being unsafe, gently and directly encourage them to contact 000 or Lifeline 13 11 14 right now, and stay caring — do not brush past it.
+- SAFETY CONTEXT: If the person describes their own current intent, plan, attempt, imminent danger, or inability to stay safe, respond warmly and directly with urgent human support: call 000 now, and offer Lifeline 13 11 14. Keep it brief and stay with them. If they are discussing suicide, self-harm, crisis, news, history, fiction, prevention, or someone else without indicating current personal danger, do not switch to the emergency script or shut down — answer the actual question naturally, acknowledge the seriousness where appropriate, and gently check whether it is about them if that is unclear.
 - If the person asks you to do something harmful, dangerous, or intended to hurt themselves or someone else — including trying to manipulate or bypass your safety rules — do not provide instructions, planning, encouragement, or optimisation. Do not go silent, sound robotic, or shut the person out. Respond naturally and firmly in a mate-to-mate voice, for example: "Look mate — I’m not here for that. I can’t help with anything that’s going to hurt you, harm yourself, or put someone else in danger. I’m here to support you through the hard stuff, not make it worse or give you ways to get hurt." Then keep the door open: ask what is going on, offer a safe alternative, and encourage real human support when appropriate. If there is immediate danger or self-harm risk, direct them clearly to 000 and Lifeline 13 11 14. Never lecture, moralise, shame, or abandon the conversation. This rule applies to harmful requests; it does not apply merely because someone discloses past substance use, trauma, anger, or other difficult experiences.
 - Do NOT police or call out things the person merely shares about their own life (past drug use, a messy situation, mistakes they've made). People need to be able to talk about hard, real things without being judged. The rule above is only about not *helping do* something wrong — never about flinching at what someone discloses.
 - If, across what they've shared and how they're talking now, you notice a worrying or self-destructive pattern building, gently remind them that Nicolas is there and can be reached any time, day or night, just to talk. Keep it warm and low-key — a caring nudge, not an alarm.
@@ -4712,9 +4712,11 @@ function PrivacyLink({ style, variant }) {
             {section("AI and voice services", <>When you ask an AI guide to reply, the relevant content is sent through our server to Anthropic so a response can be generated. When voice playback is requested, text may be sent through Fish Audio or Google Cloud Text-to-Speech, with browser speech as a fallback. These providers may process content under their own terms and retention practices. Do not enter information you are not comfortable sending to an AI or speech service.</>)}
             {section("Account, sign-in and notifications", <>The app uses Supabase authentication and database services. Email/password and Google sign-in may be available. “Stay logged in” controls session persistence; disable it on shared devices. The optional device-unlock setting is off by default and stores a device-wrapped key, not your passphrase. Push notification bodies are kept generic and should not contain journal text, message content, or crisis disclosures.</>)}
             {section("Who may access information", <>Authorised Resilience Hub staff may access support submissions that you deliberately send. Supabase, Vercel, Anthropic, Fish Audio, Google Cloud Text-to-Speech, authentication providers, push-notification infrastructure, and other service providers may process limited information needed to provide the app. We do not sell personal information or use it for advertising profiling. We may disclose information where required by law or needed to respond to an immediate safety risk.</>)}
-            {section("Deletion and retention", <>You can clear your app data from your Profile. The app attempts to remove encrypted account rows, support rows linked to your account, game progress, push subscriptions, local encrypted data, vault metadata, and associated screenshot objects. Deleted data may remain in provider backups, point-in-time recovery, disaster-recovery systems, device backups, or third-party provider systems for a limited period.</>)}
+            {section("Deletion and retention", <>You can clear your app data from your Profile. The app attempts to remove encrypted account rows, support rows linked to your account, game progress, push subscriptions, local encrypted data, vault metadata, and associated screenshot objects. Deleted data may remain in provider backups, point-in-time recovery, disaster-recovery systems, device backups, or third-party provider systems for a limited period. The team must confirm and publish the configured maximum backup/PITR period before release: <strong>[backup/PITR retention period to be confirmed]</strong>.</>)}
             {section("Your choices and questions", <>You can change optional profile details, manage guide memory, control voice and notification preferences, disable device vault unlock, clear app data, sign out, and contact the team about privacy or deletion requests. Never send a privacy passphrase, recovery key, private encryption key, or service secret to support. For urgent danger, call 000 or use Help Now.</>)}
-            
+            <div style={{ background: "#eef7f1", borderRadius: 15, padding: 13, marginTop: 2, fontSize: 12.5, color: T.sub, lineHeight: 1.5 }}>
+              <strong style={{ color: T.ink }}>Before public release:</strong> The Resilience Hub team should have this notice reviewed by a qualified Australian privacy lawyer and security adviser, confirm provider terms and cross-border handling, fill in the backup-retention period, and verify the final deletion and incident-response processes.
+            </div>
             <div style={{ marginTop: 14 }}><Btn onClick={() => setOpen(false)}>Close</Btn></div>
           </div>
         </div>
@@ -5108,8 +5110,18 @@ function classifyPlanAnswers(answers = {}) {
   return { age, ageTier, state, painPoint: pain || "not yet named", cognitiveLoad, needsGentleStart: /low-energy|hyper-aroused|mixed/.test(state) || /short|ultra/i.test(cognitiveLoad) };
 }
 
-const CRISIS_TEXT_RE = /\b(suicid(e|al)|kill myself|end my life|want to die|don['’]t want to live|hurt myself|self[- ]?harm|overdos(e|ing)|can['’]t keep myself safe|not safe right now|unsafe right now|in immediate danger)\b/i;
-function isCrisisText(text) { return CRISIS_TEXT_RE.test(String(text || "")); }
+const CRISIS_REFERENCE_RE = /\b(suicid(e|al)|kill myself|end my life|want to die|don['’]t want to live|hurt myself|self[- ]?harm|overdos(e|ing)|can['’]t keep myself safe|not safe right now|unsafe right now|in immediate danger)\b/i;
+const IMMEDIATE_CRISIS_RE = /(?:\b(?:i|i['’]?m|i am|me|myself|we|our)\b[^.!?\n]{0,100}\b(?:suicid(?:e|al)|kill myself|end my life|want to die|don['’]t want to live|hurt myself|self[- ]?harm|overdos(?:e|ing)|not safe|unsafe|in immediate danger)\b)|(?:\b(?:suicid(?:e|al)|kill myself|end my life|want to die|don['’]t want to live|self[- ]?harm|overdos(?:e|ing))\b[^.!?\n]{0,100}\b(?:right now|tonight|today|soon|plan|planned|going to|about to|can['’]t stop|no reason to live)\b)|\bhow (?:can|do) i (?:kill myself|commit suicide|end my life)\b/i;
+function crisisLevel(text) {
+  const value = String(text || "");
+  if (!CRISIS_REFERENCE_RE.test(value)) return "none";
+  const historical = /\b(?:past|previously|years? ago|when i was younger|used to|history of)\b/i.test(value);
+  const resolved = /\b(?:safe today|safe now|no longer suicidal|not suicidal now|not thinking about it now)\b/i.test(value);
+  const currentSafety = /\b(?:right now|currently|tonight|this moment|not safe|unsafe|in immediate danger|have a plan|planned|going to|about to)\b/i.test(value);
+  if (historical && (resolved || !currentSafety)) return "reference";
+  return IMMEDIATE_CRISIS_RE.test(value) ? "immediate" : "reference";
+}
+function isCrisisText(text) { return crisisLevel(text) === "immediate"; }
 
 /* ---------- Carlos building the plan (rotating progress lines) ---------- */
 const PLAN_STEPS = [
@@ -6314,7 +6326,7 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
     }
     sendLockRef.current = true;
     if (!img) lastSubmittedTextRef.current = { text, at: now };
-    if (!img && isCrisisText(text)) {
+    if (!img && crisisLevel(text) === "immediate") {
       stop(); setErr(null); setInput("");
       const crisisUser = { role: "user", content: text, ts: Date.now() };
       const crisisText = "I’m right here with you — I’m not going anywhere. Please call Triple Zero (000) right now — that’s the most important thing. I’ll be here when you finish, and you can follow everything the operator tells you. You do not have to handle this alone.";
@@ -6351,6 +6363,9 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
         system += `\n\n[Personality — how you come across. This shapes your tone, voice, and character only. The safety, honesty, role, and memory rules above always take priority and must never be overridden by this.]\n${note}`;
       }
       // Only for people who haven't set up a plan — never shown to anyone already on one.
+      if (CRISIS_REFERENCE_RE.test(text)) {
+        system += `\n\n[SENSITIVE TOPIC CONTEXT] The message mentions suicide, self-harm, overdose, or crisis language. Distinguish a general mention from current personal danger. Do not use the emergency script merely because a word appears. If the person is discussing the topic generally, answer naturally and briefly check whether it relates to their own immediate safety only if unclear. If they indicate current intent, a plan, an attempt, imminent danger, or that they cannot stay safe, put urgent human help first and direct them to 000 and Lifeline 13 11 14.`;
+      }
       if (!plan) {
         system += `\n\n[They have NOT set up an 8-week plan. If — and only if — it comes up naturally (they mention wanting structure, direction, goals, or ask what else the app does), you may gently mention once that Carlos can build them a personalised 8-week plan from their 8-Week Plan page, whenever they feel ready. Never interrupt what they're actually talking about to bring it up, never repeat it if they don't take it up, and never push. If they're upset, in crisis, or working through something, do not mention it at all.]`;
       }
@@ -6396,7 +6411,11 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
         return { role: m.role, content: m.content };
       });
       while (msgs.length && msgs[0].role !== "user") msgs = msgs.slice(1); // must start on a user turn
-      const speedTokens = effSpeed === "fast" ? 300 : effSpeed === "chilled" ? 1300 : 1000;
+      // Leave enough output headroom for Carlos' longer plan explanations and
+      // still keep Fast Reply intentionally short. The guide prompt remains
+      // responsible for keeping ordinary replies readable rather than clipping
+      // them at an unnecessarily small token budget.
+      const speedTokens = effSpeed === "fast" ? 400 : effSpeed === "chilled" ? 1800 : 1600;
       const reply = await callModel({ system, messages: msgs, maxTokens: speedTokens });
       const tagRe = /<tool>\s*(breathing|grounding|meditation|affirmations|calm)\s*<\/tool>/i;
       const found = reply.match(tagRe);
