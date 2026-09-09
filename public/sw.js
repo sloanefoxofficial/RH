@@ -10,8 +10,8 @@ self.addEventListener("push", (event) => {
   } catch {}
   const options = {
     body: data.body || "",
-    icon: "/icon-192.png",
-    badge: "/icon-192.png",
+    icon: "/resilience-hub-logo.png",
+    badge: "/resilience-hub-logo.png",
     data: { url: data.url || "/", target: data.target || null },
     tag: data.tag || "rh-notification",
   };
