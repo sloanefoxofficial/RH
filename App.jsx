@@ -177,6 +177,16 @@ async function unsubscribeFromPush(userId) {
   } catch {}
 }
 
+async function pushHeaders() {
+  const headers = { "Content-Type": "application/json" };
+  try {
+    const { data } = await supabase?.auth.getSession();
+    const token = data?.session?.access_token;
+    if (token) headers.Authorization = `Bearer ${token}`;
+  } catch {}
+  return headers;
+}
+
 const SHARED = `You are part of The Resilience Hub — a warm, plain-English wellbeing companion built by Juan Carroso (lived-experience founder) and Carlos Camacho, Registered Psychologist. Slogan: "You never have to walk it alone."
 Rules for every reply:
 - Short, warm, human. Plain, everyday language. No jargon, no lectures, no bullet-point walls. 2-5 sentences.
@@ -2044,9 +2054,7 @@ function NevernSpotlightContent() {
     <div style={{ background: T.card, borderRadius: 20, padding: 16, boxShadow: T.soft }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
         <div style={{ width: 52, height: 52, borderRadius: "50%", background: "#fbe1e1", display: "grid", placeItems: "center", flexShrink: 0, overflow: "hidden" }}>
-          <img src="/nevern.png" alt="Nevern" style={{ width: "100%", height: "100%", objectFit: "cover" }}
-            onError={(e) => { e.currentTarget.style.display = "none"; e.currentTarget.nextSibling.style.display = "grid"; }} />
-          <Youtube size={24} color="#cf5147" style={{ display: "none" }} />
+          <Youtube size={24} color="#cf5147" />
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontWeight: 800, fontSize: 17 }}>Nevern | Psychologist</div>
@@ -3744,7 +3752,7 @@ function AdminNotify() {
       setStatus("Sent to all registered members. Sending push…");
       try {
         const r = await fetch("/api/push", {
-          method: "POST", headers: { "Content-Type": "application/json" },
+          method: "POST", headers: await pushHeaders(),
           body: JSON.stringify({ broadcast: true, title: t, body, target: "notifications", url: "/?open=notifications" }),
         });
         const d = await r.json().catch(() => null);
@@ -3870,7 +3878,7 @@ function CoordinatorChat({ session, userPublicKey, userPrivateKey, onBack }) {
       if (error) throw error;
       load();
       fetch("/api/push", {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST", headers: await pushHeaders(),
         body: JSON.stringify({ toAdmins: true, title: "New member message", body: "A new encrypted message is waiting in the staff inbox.", target: "adminMessages", url: "/?open=adminMessages" }),
       }).catch(() => {});
     } catch (e) {
@@ -3998,7 +4006,7 @@ function AdminInbox({ onBack }) {
       load();
       try {
         const r = await fetch("/api/push", {
-          method: "POST", headers: { "Content-Type": "application/json" },
+          method: "POST", headers: await pushHeaders(),
           body: JSON.stringify({ userId: open, title: "You have a new reply", body: "A new encrypted reply is waiting in your support conversation.", target: "coordinator", url: "/?open=coordinator" }),
         });
         const d = await r.json().catch(() => null);
@@ -6633,7 +6641,7 @@ function BugReport({ session, userPublicKey, onBack }) {
       if (error) throw error;
       setSent(true);
       fetch("/api/push", {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST", headers: await pushHeaders(),
         body: JSON.stringify({ toAdmins: true, title: "New bug report", body: "A new encrypted bug report is waiting in the staff inbox.", target: "adminBugReports", url: "/?open=adminBugReports" }),
       }).catch(() => {});
     } catch (e) { setErr("Couldn't send just now — have you run the bug reports SQL?"); }
@@ -6734,7 +6742,7 @@ function UserFeedback({ session, userPublicKey, onBack }) {
       if (error) throw error;
       setSent(true);
       fetch("/api/push", {
-        method: "POST", headers: { "Content-Type": "application/json" }, keepalive: true,
+        method: "POST", headers: await pushHeaders(), keepalive: true,
         body: JSON.stringify({ toAdmins: true, title: "New user feedback", body: "A new encrypted user-feedback message is waiting in the staff inbox.", target: "adminBugReports", url: "/?open=adminBugReports" }),
       }).then(async (response) => {
         const result = await response.json().catch(() => null);
