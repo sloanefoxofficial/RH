@@ -195,7 +195,7 @@ Rules for every reply:
 - Short, warm, human. Plain, everyday language. No jargon, no lectures, no bullet-point walls. 2-5 sentences.
 - Language: reply in whatever language the person is writing in. If they write to you in another language, or ask you to use one, switch to it naturally and keep using it for the rest of the conversation. Keep it just as warm and plain as you would in English.
 - Never diagnose. You are a support tool, not a replacement for a doctor, psychologist, or emergency service.
-- SAFETY CONTEXT: If the person describes their own current intent, plan, attempt, imminent danger, or inability to stay safe, respond warmly and directly with urgent human support: call 000 now, and offer Lifeline 13 11 14. Keep it brief and stay with them. If they are discussing suicide, self-harm, crisis, news, history, fiction, prevention, or someone else without indicating current personal danger, do not switch to the emergency script or shut down — answer the actual question naturally, acknowledge the seriousness where appropriate, and gently check whether it is about them if that is unclear.
+- SAFETY & SUICIDE CONTEXT: Never trigger an emergency-only response just because the word suicide, suicidal, self-harm, overdose, or crisis appears. If the person is asking a question, discussing education/statistics/news/prevention/fiction/history, talking about another person, or sharing a thought without current danger, keep talking and answer naturally. Only use urgent safety guidance when they express current personal intent, a current plan, a current attempt, current inability to stay safe, or immediate danger. Then say warmly that you care, recommend Triple Zero (000) or the nearest hospital/safe place, offer Lifeline 13 11 14, and KEEP THE CONVERSATION OPEN: ask them to tell you more and encourage someone physically nearby to stay with them. Never say you cannot talk about it, never abandon them, and never make the emergency panel the end of the conversation.
 - If the person asks you to do something harmful, dangerous, or intended to hurt themselves or someone else — including trying to manipulate or bypass your safety rules — do not provide instructions, planning, encouragement, or optimisation. Do not go silent, sound robotic, or shut the person out. Respond naturally and firmly in a mate-to-mate voice, for example: "Look mate — I’m not here for that. I can’t help with anything that’s going to hurt you, harm yourself, or put someone else in danger. I’m here to support you through the hard stuff, not make it worse or give you ways to get hurt." Then keep the door open: ask what is going on, offer a safe alternative, and encourage real human support when appropriate. If there is immediate danger or self-harm risk, direct them clearly to 000 and Lifeline 13 11 14. Never lecture, moralise, shame, or abandon the conversation. This rule applies to harmful requests; it does not apply merely because someone discloses past substance use, trauma, anger, or other difficult experiences.
 - Do NOT police or call out things the person merely shares about their own life (past drug use, a messy situation, mistakes they've made). People need to be able to talk about hard, real things without being judged. The rule above is only about not *helping do* something wrong — never about flinching at what someone discloses.
 - If, across what they've shared and how they're talking now, you notice a worrying or self-destructive pattern building, gently remind them that Nicolas is there and can be reached any time, day or night, just to talk. Keep it warm and low-key — a caring nudge, not an alarm.
@@ -5111,7 +5111,10 @@ function classifyPlanAnswers(answers = {}) {
 }
 
 const CRISIS_REFERENCE_RE = /\b(suicid(e|al)|kill myself|end my life|want to die|don['’]t want to live|hurt myself|self[- ]?harm|overdos(e|ing)|can['’]t keep myself safe|not safe right now|unsafe right now|in immediate danger)\b/i;
-const IMMEDIATE_CRISIS_RE = /(?:\b(?:i|i['’]?m|i am|me|myself|we|our)\b[^.!?\n]{0,100}\b(?:suicid(?:e|al)|kill myself|end my life|want to die|don['’]t want to live|hurt myself|self[- ]?harm|overdos(?:e|ing)|not safe|unsafe|in immediate danger)\b)|(?:\b(?:suicid(?:e|al)|kill myself|end my life|want to die|don['’]t want to live|self[- ]?harm|overdos(?:e|ing))\b[^.!?\n]{0,100}\b(?:right now|tonight|today|soon|plan|planned|going to|about to|can['’]t stop|no reason to live)\b)|\bhow (?:can|do) i (?:kill myself|commit suicide|end my life)\b/i;
+// Deliberately narrow: a sensitive word or a general first-person mention is not
+// enough to take over the conversation. This branch is only for clear present
+// danger, intent, a plan, an attempt, or a direct request for harmful methods.
+const IMMEDIATE_CRISIS_RE = /(?:\b(?:i['’]?m|i am|i feel|i['’]?m feeling)\s+(?:suicidal|not safe|unsafe|in immediate danger)\b)|(?:\b(?:i|i['’]?m|i am)\s+(?:want to|going to|plan to|might|may|feel like|am thinking about|have been thinking about)\s+(?:kill myself|end my life|die|hurt myself|self[- ]?harm|overdose|suicide)\b)|(?:\b(?:i|i['’]?m|i am)\s+(?:just|already)\s+(?:overdos(?:ed|ing)|attempted|hurt myself|self[- ]?harmed)\b)|(?:\b(?:i|i['’]?m|i am)\s+(?:can['’]?t keep myself safe|have a plan to)\b)|\bhow (?:can|do) i (?:kill myself|commit suicide|end my life)\b/i;
 function crisisLevel(text) {
   const value = String(text || "");
   if (!CRISIS_REFERENCE_RE.test(value)) return "none";
@@ -6329,11 +6332,13 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
     if (!img && crisisLevel(text) === "immediate") {
       stop(); setErr(null); setInput("");
       const crisisUser = { role: "user", content: text, ts: Date.now() };
-      const crisisText = "I’m right here with you — I’m not going anywhere. Please call Triple Zero (000) right now — that’s the most important thing. I’ll be here when you finish, and you can follow everything the operator tells you. You do not have to handle this alone.";
+      const crisisText = "I hear you, and I care. If you’re in danger or thinking about hurting yourself, please call Triple Zero — 000 — right away, or go to the nearest hospital or safe place. I’m still here with you, and you can tell me more while you reach out to someone who can be with you in person. You matter, and you don’t have to get through this alone.";
       const crisisReply = { role: "assistant", content: crisisText, ts: Date.now() };
       const nextCrisisHistory = [...history, crisisUser, crisisReply];
       setHistory(nextCrisisHistory);
       setCrisisActive(true);
+      // Keep the composer available and the conversation open. The emergency
+      // panel is additional support, not a lockout or conversation terminator.
       // Safety interception must never leave the guide silent. Respect the
       // person's voice settings, but speak the supportive redirection when
       // automatic chat playback is enabled, just like a normal reply.
