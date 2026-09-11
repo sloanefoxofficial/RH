@@ -31,7 +31,7 @@ const T = {
 // button without a fixed local parent uses this label, rather than a vague
 // “Previous Page” caption.
 const SCREEN_BACK_LABELS = {
-  welcome: "Welcome", hub: "Home", onboarding: "Get Started", program: "8-Week Plan",
+  welcome: "Welcome", hub: "Home", rexTutorial: "Home", onboarding: "Get Started", program: "8-Week Plan",
   guides: "Guides", chat: "Guide Chat", toolkit: "Toolkit", journal: "Private Journal",
   resources: "Hub", supportUs: "Hub", games: "Games & Puzzles", merch: "Sloane Fox Merch",
   carlosLibrary: "Carlos Library", programInfo: "Program", bookAppointment: "Program",
@@ -1076,12 +1076,16 @@ export default function App() {
           <Welcome
             voiceOn={voiceOn} setVoiceOn={setVoiceOn}
             onExplore={() => { saveProfile({ name: "friend", path: "testing", onboardingComplete: true }); go("hub"); }}
-            onStart={() => { saveProfile({ name: "", path: "full", onboardingComplete: false }); go("intro"); }}
+            onStart={() => { saveProfile({ name: "", path: "full", onboardingComplete: false }); go("planChoice"); }}
           />
         ) : screen === "intro" ? (
           <RexIntro voiceOn={voiceOn} speechLang={speechLang}
             onReady={() => { if (rexIntroReplay) { setRexIntroReplay(false); back(); } else go("planChoice"); }}
             onExit={rexIntroReplay ? () => { setRexIntroReplay(false); back(); } : null} />
+        ) : screen === "rexTutorial" ? (
+          <RexIntro voiceOn={voiceOn} speechLang={speechLang} standalone
+            onReady={() => { histRef.current = []; __backDestinationLabel = "Home"; setScreen("hub"); }}
+            onExit={() => { histRef.current = []; __backDestinationLabel = "Home"; setScreen("hub"); }} />
         ) : screen === "planChoice" ? (
           <PlanChoice voiceOn={voiceOn} speechLang={speechLang}
             onYes={() => { setOnbMode("full"); setOnbFromSignup(true); setOnbReturn("program"); saveProfile({ ...profile, planPath: "full" }); go("onboarding"); }}
@@ -1101,6 +1105,7 @@ export default function App() {
             profile={profile} plan={plan} progress={progress} saveProgress={saveProgress}
             journalCount={journal.length} voiceOn={voiceOn} setVoiceOn={setVoiceOn}
             onOpenChat={(slug) => go("chat", slug)}
+            onOpenRexTutorial={() => go("rexTutorial")}
             onOpenProgram={() => go("program")}
             onOpenJournal={() => go("journal")}
             onOpenGuides={() => go("guides")}
@@ -5011,7 +5016,7 @@ function PlanChoice({ voiceOn, speechLang, onYes, onNo }) {
   );
 }
 
-function RexIntro({ voiceOn, onReady, onExit }) {
+function RexIntro({ voiceOn, onReady, onExit, standalone = false }) {
   const { speak, stop, speaking, prefetch } = useVoice(voiceOn);
   const [idx, setIdx] = useState(0);
   const [done, setDone] = useState(false);
@@ -5096,7 +5101,7 @@ function RexIntro({ voiceOn, onReady, onExit }) {
               style={{ width: "100%", background: `linear-gradient(180deg, #3fb072, ${T.green})`, color: "#fff",
                 border: "none", borderRadius: 16, padding: "15px", fontSize: 16.5, fontWeight: 800, cursor: "pointer",
                 boxShadow: "0 10px 24px rgba(55,160,101,0.32)" }}>
-              I'm ready
+              {standalone ? "Back to Hub" : "I'm ready"}
             </button>
           ) : (
             <button onClick={skip} style={{ background: "none", border: "none", color: T.sub, cursor: "pointer", fontSize: 13 }}>
@@ -6150,7 +6155,7 @@ function ResourcesIcon({ size = 24, color = "currentColor", strokeWidth = 2.2 })
   </svg>;
 }
 
-function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, setVoiceOn, onOpenChat, onOpenProgram, onOpenJournal, onOpenGuides, onOpenMerch, onOpenCarlosLibrary, onOpenGames, onOpenToolkit, onOpenResources, onOpenSupportUs, onOpenSafety, onOpenNotifications, onOpenCoordinator, onOpenSettings, onOpenMensGroup, onOpenMensShed, onOpenAdminMessages, onOpenProgramInfo, onReset, isAdmin, authEnabled, guestMode, onExitGuest, onOpenAdmin, onOpenProfile, onSignOut, session, rexHistory, onSaveRexChat, memories, onConversation, answers, rexPersona }) {
+function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, setVoiceOn, onOpenChat, onOpenRexTutorial, onOpenProgram, onOpenJournal, onOpenGuides, onOpenMerch, onOpenCarlosLibrary, onOpenGames, onOpenToolkit, onOpenResources, onOpenSupportUs, onOpenSafety, onOpenNotifications, onOpenCoordinator, onOpenSettings, onOpenMensGroup, onOpenMensShed, onOpenAdminMessages, onOpenProgramInfo, onReset, isAdmin, authEnabled, guestMode, onExitGuest, onOpenAdmin, onOpenProfile, onSignOut, session, rexHistory, onSaveRexChat, memories, onConversation, answers, rexPersona }) {
   const { speak, stop, speaking } = useVoice(voiceOn);
   const [notifRefresh, setNotifRefresh] = useState(0);
   const [shareMsg, setShareMsg] = useState("");
@@ -6282,6 +6287,15 @@ function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, set
           <div style={{ fontSize: 13, color: T.sub, lineHeight: 1.45 }}>
             Your welcomer — he'll show you around and point you to the right guide. Tap to chat.
           </div>
+        </div>
+        <ChevronRight size={20} color={T.sub} />
+      </button>
+
+      <button onClick={onOpenRexTutorial} aria-label="Watch Rex’s Tutorial: learn how The Resilience Hub works" style={{ width: "100%", textAlign: "left", cursor: "pointer", border: "1px solid rgba(77,159,104,0.18)", background: "linear-gradient(135deg, #f0fbf2 0%, #ffffff 56%, #fff4e8 100%)", borderRadius: 20, padding: 15, boxShadow: T.soft, marginTop: 10, display: "flex", alignItems: "center", gap: 13 }}>
+        <div style={{ width: 50, height: 50, borderRadius: 16, background: "linear-gradient(145deg, #9bd2a8, #fff7ed)", display: "grid", placeItems: "center", flexShrink: 0, overflow: "hidden" }}><PlayCircle size={24} color={T.greenDk} /></div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontWeight: 800, fontSize: 16 }}>Watch Rex’s Tutorial</div>
+          <div style={{ fontSize: 13, color: T.sub, lineHeight: 1.45 }}>A gentle tour of the Hub, your guides, tools, and settings.</div>
         </div>
         <ChevronRight size={20} color={T.sub} />
       </button>
