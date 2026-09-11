@@ -937,6 +937,7 @@ export default function App() {
   }, [session, vaultStatus, secureLocalGet, secureLocalSet, syncMemberData]);
 
   const histRef = useRef([]);
+  const planOriginRef = useRef(false);
   const go = (s, ch) => {
     if (screen !== s) {
       histRef.current.push({ screen, char: activeChar });
@@ -961,10 +962,23 @@ export default function App() {
     // This is a deliberate destination change, not a normal back step:
     // discard the completed-plan/onboarding history so Toolkit cannot loop back.
     histRef.current = [];
+    planOriginRef.current = false;
     __backDestinationLabel = "Home";
     setToolkitInitial(null);
     setScreen("toolkit");
   };
+  const openPlanDestination = useCallback((screenName, toolKey = null) => {
+    planOriginRef.current = true;
+    if (toolKey) setToolkitInitial(toolKey);
+    go(screenName);
+  }, []);
+  const returnToPlan = useCallback(() => {
+    planOriginRef.current = false;
+    histRef.current = [];
+    setToolkitInitial(null);
+    __backDestinationLabel = "Home";
+    setScreen("program");
+  }, []);
   const openHubFromPlan = () => {
     histRef.current = [];
     setPlanSignupLanding(false);
@@ -1126,11 +1140,11 @@ export default function App() {
             answers={answers} journalCount={journal.length} chats={chats}
             onSaveChat={saveCharChat} memories={memoryOn ? memories : []}
             onConversation={refreshMemory} voiceOn={voiceOn} setVoiceOn={setVoiceOn}
-            responseSpeed={responseSpeed} speechLang={speechLang} onOpenTool={openTool}
+            responseSpeed={responseSpeed} speechLang={speechLang} onOpenTool={(key) => openPlanDestination("toolkit", key === "toolkit" ? null : key)} onOpenGames={() => openPlanDestination("games")}
             persona={guidePrompts.carlos ?? PERSONALITY_DEFAULTS.carlos}
             onOpenChat={(slug) => go("chat", slug)}
-            onOpenJournal={() => go("journal")}
-            onStartPlan={() => { setOnbMode("full"); setOnbFromSignup(false); setOnbReturn("program"); setPlanSignupLanding(false); go("onboarding"); }}
+            onOpenJournal={() => openPlanDestination("journal")}
+             onStartPlan={() => { setOnbMode("full"); setOnbFromSignup(false); setOnbReturn("program"); setPlanSignupLanding(false); go("onboarding"); }}
             isSignupLanding={planSignupLanding}
             onBack={openHubFromPlan}
           />
@@ -1162,15 +1176,15 @@ export default function App() {
           />
                 ) : screen === "journal" ? (
           journalPinSet && !journalUnlocked ? (
-            <JournalPinGate onUnlock={() => setJournalUnlocked(true)} onBack={back} />
+            <JournalPinGate onUnlock={() => setJournalUnlocked(true)} onBack={planOriginRef.current ? returnToPlan : back} />
           ) : (
             <Journal profile={profile} journal={journal} saveJournal={saveJournal} voiceOn={voiceOn}
-              onBack={() => { setJournalUnlocked(false); back(); }} />
+              onBack={() => { setJournalUnlocked(false); planOriginRef.current ? returnToPlan() : back(); }} />
           )
         ) : screen === "toolkit" ? (
-          <Toolkit voiceOn={voiceOn} speechLang={speechLang} initial={toolkitInitial} onUseTool={tickToolTask} onOpenJournal={() => go("journal")} onBack={back} />
+          <Toolkit voiceOn={voiceOn} speechLang={speechLang} initial={toolkitInitial} onUseTool={tickToolTask} onOpenJournal={() => { if (planOriginRef.current) openPlanDestination("journal"); else go("journal"); }} onOpenGames={() => go("games")} onBack={planOriginRef.current ? returnToPlan : back} />
         ) : screen === "resources" ? (
-          <ResourcesPage onOpenSafety={() => openTool("safety")} onOpenMensShed={() => go("mensShed")} onOpenGames={() => go("games")} onBack={back} />
+          <ResourcesPage onOpenSafety={() => openTool("safety")} onOpenMensShed={() => go("mensShed")} onBack={back} />
         ) : screen === "supportUs" ? (
           <SupportUsPage onOpenMerch={() => go("merch")} onOpenCarlosLibrary={() => go("carlosLibrary")} onBack={back} />
         ) : screen === "admin" ? (
@@ -2115,6 +2129,21 @@ const TOOL_SUGGEST = {
   calm: { label: "Open quick calm", Icon: Sparkles, tint: "#fbf1d6", ic: "#c9a227" },
 };
 
+// Map plan wording to an in-app destination. This is deliberately conservative:
+// only tasks that clearly name a Hub feature receive an action link.
+function taskToolKey(label) {
+  const text = String(label || "");
+  if (/games?\s*(?:&|and)\s*puzzles?|play one of the games/i.test(text)) return "games";
+  if (/journal|fleeting thought|write or voice/i.test(text)) return "journal";
+  if (/box breathing|breathing exercise|breath/i.test(text)) return "breathing";
+  if (/grounding|5-4-3-2-1/i.test(text)) return "grounding";
+  if (/meditation/i.test(text)) return "meditation";
+  if (/affirmation|steadying words|kinder self-talk/i.test(text)) return "affirmations";
+  if (/quick calm|calm tool/i.test(text)) return "calm";
+  if (/open the toolkit|use the toolkit/i.test(text)) return "toolkit";
+  return null;
+}
+
 // Featured creator on the Toolkit's front screen. Curated by hand (not AI-generated),
 // so this doesn't run into the "never give specific video URLs" rule — that rule is
 // about the guides making up links live in chat, not a maintainer-picked list like this.
@@ -2258,7 +2287,7 @@ function CarlosSpotlight() {
   );
 }
 
-function Toolkit({ voiceOn, speechLang, initial, onUseTool, onOpenJournal, onBack }) {
+function Toolkit({ voiceOn, speechLang, initial, onUseTool, onOpenJournal, onOpenGames, onBack }) {
   const [tool, setTool] = useState(initial || null);
   const toolkitWelcome = "Welcome to the Toolkit — a collection of things that can help, whenever you need them. Take your time, look around, pick whatever feels right for you today. No rush at all — whenever you're ready.";
   const spokenToolkitWelcome = spokenIntro("toolkit", toolkitWelcome, speechLang);
@@ -2278,6 +2307,12 @@ function Toolkit({ voiceOn, speechLang, initial, onUseTool, onOpenJournal, onBac
   if (tool === "affirmations") return <AffirmationsTool voiceOn={voiceOn} onBack={() => setTool(null)} />;
   if (tool === "calm") return <QuickCalm onBack={() => setTool(null)} />;
   if (tool === "nevern") return <NevernPage onBack={() => setTool(null)} />;
+  const openToolkitItem = (key) => {
+    if (key === "journal") { onOpenJournal && onOpenJournal(); return; }
+    if (key === "games") { onOpenGames && onOpenGames(); return; }
+    onUseTool && onUseTool(key);
+    setTool(key);
+  };
   const groups = [
     { label: "Calm down now", keys: ["breathing", "grounding", "calm"] },
     { label: "Reflect & grow", keys: ["meditation", "selfhelp", "affirmations"] },
@@ -2303,7 +2338,7 @@ function Toolkit({ voiceOn, speechLang, initial, onUseTool, onOpenJournal, onBac
               const t = TOOLS.find((x) => x.key === k);
               if (!t) return null;
               return (
-                <button key={t.key} onClick={() => { if (t.key === "journal") { onOpenJournal && onOpenJournal(); return; } onUseTool && onUseTool(t.key); setTool(t.key); }} style={{ width: "100%", display: "flex", alignItems: "center",
+                <button key={t.key} onClick={() => openToolkitItem(t.key)} style={{ width: "100%", display: "flex", alignItems: "center",
                   gap: 14, background: T.card, borderRadius: 18, padding: 14, cursor: "pointer", boxShadow: T.soft, border: "none", textAlign: "left" }}>
                   <div style={{ width: 46, height: 46, borderRadius: 14, background: t.tint, display: "grid", placeItems: "center", flexShrink: 0 }}>
                     <t.Icon size={22} color={t.ic} />
@@ -2320,6 +2355,14 @@ function Toolkit({ voiceOn, speechLang, initial, onUseTool, onOpenJournal, onBac
           {g.label === "Calm down now" && <NevernSpotlight onOpen={() => setTool("nevern")} />}
         </div>
       ))}
+      <div style={{ marginTop: 4, marginBottom: 18 }}>
+        <div style={{ fontSize: 11.5, fontWeight: 700, color: T.sub, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 2px 8px" }}>Play & reset</div>
+        <button onClick={() => openToolkitItem("games")} style={{ width: "100%", display: "flex", alignItems: "center", gap: 14, background: "linear-gradient(135deg, #f1ecf8, #fff)", borderRadius: 18, padding: 14, cursor: "pointer", boxShadow: T.soft, border: "none", textAlign: "left" }}>
+          <div style={{ width: 46, height: 46, borderRadius: 14, background: "#e8def4", display: "grid", placeItems: "center", flexShrink: 0 }}><Gamepad2 size={23} color="#6d55b0" /></div>
+          <div style={{ flex: 1 }}><div style={{ fontWeight: 700, fontSize: 16 }}>Games & Puzzles</div><div style={{ fontSize: 13, color: T.sub }}>A light, absorbing break when you need one</div></div>
+          <ChevronRight size={20} color={T.sub} />
+        </button>
+      </div>
       <Disclaimer />
     </>
   );
@@ -4765,9 +4808,11 @@ function PrivacyLink({ style, variant }) {
             {section("AI and voice services", <>When you ask an AI guide to reply, the relevant content is sent through our server to Anthropic so a response can be generated. When voice playback is requested, text may be sent through Fish Audio or Google Cloud Text-to-Speech, with browser speech as a fallback. These providers may process content under their own terms and retention practices. Do not enter information you are not comfortable sending to an AI or speech service.</>)}
             {section("Account, sign-in and notifications", <>The app uses Supabase authentication and database services. Email/password and Google sign-in may be available. “Stay logged in” controls session persistence; disable it on shared devices. The optional device-unlock setting is off by default and stores a device-wrapped key, not your passphrase. Push notification bodies are kept generic and should not contain journal text, message content, or crisis disclosures.</>)}
             {section("Who may access information", <>Authorised Resilience Hub staff may access support submissions that you deliberately send. Supabase, Vercel, Anthropic, Fish Audio, Google Cloud Text-to-Speech, authentication providers, push-notification infrastructure, and other service providers may process limited information needed to provide the app. We do not sell personal information or use it for advertising profiling. We may disclose information where required by law or needed to respond to an immediate safety risk.</>)}
-            {section("Deletion and retention", <>You can clear your app data from your Profile. The app attempts to remove encrypted account rows, support rows linked to your account, game progress, push subscriptions, local encrypted data, vault metadata, and associated screenshot objects. Deleted data may remain in provider backups, point-in-time recovery, disaster-recovery systems, device backups, or third-party provider systems for a limited period.</>)}
+            {section("Deletion and retention", <>You can clear your app data from your Profile. The app attempts to remove encrypted account rows, support rows linked to your account, game progress, push subscriptions, local encrypted data, vault metadata, and associated screenshot objects. Deleted data may remain in provider backups, point-in-time recovery, disaster-recovery systems, device backups, or third-party provider systems for a limited period. The team must confirm and publish the configured maximum backup/PITR period before release: <strong>[backup/PITR retention period to be confirmed]</strong>.</>)}
             {section("Your choices and questions", <>You can change optional profile details, manage guide memory, control voice and notification preferences, disable device vault unlock, clear app data, sign out, and contact the team about privacy or deletion requests. Never send a privacy passphrase, recovery key, private encryption key, or service secret to support. For urgent danger, call 000 or use Help Now.</>)}
-            
+            <div style={{ background: "#eef7f1", borderRadius: 15, padding: 13, marginTop: 2, fontSize: 12.5, color: T.sub, lineHeight: 1.5 }}>
+              <strong style={{ color: T.ink }}>Before public release:</strong> The Resilience Hub team should have this notice reviewed by a qualified Australian privacy lawyer and security adviser, confirm provider terms and cross-border handling, fill in the backup-retention period, and verify the final deletion and incident-response processes.
+            </div>
             <div style={{ marginTop: 14 }}><Btn onClick={() => setOpen(false)}>Close</Btn></div>
           </div>
         </div>
@@ -5760,7 +5805,7 @@ function MerchPage({ onBack }) {
 }
 
 /* ---------- Your 8-week program page ---------- */
-function ProgramPage({ profile, plan, progress, saveProgress, answers, journalCount, chats, onSaveChat, memories, onConversation, voiceOn, setVoiceOn, responseSpeed, speechLang, onOpenTool, persona, onOpenChat, onOpenJournal, onStartPlan, isSignupLanding, onBack }) {
+function ProgramPage({ profile, plan, progress, saveProgress, answers, journalCount, chats, onSaveChat, memories, onConversation, voiceOn, setVoiceOn, responseSpeed, speechLang, onOpenTool, onOpenGames, persona, onOpenChat, onOpenJournal, onStartPlan, isSignupLanding, onBack }) {
   const [coachOpen, setCoachOpen] = useState(false);
   const programWelcome = PROGRAM_WELCOME_TEXT;
   const spokenProgramWelcome = spokenIntro("plan", programWelcome, speechLang);
@@ -5861,14 +5906,23 @@ function ProgramPage({ profile, plan, progress, saveProgress, answers, journalCo
 
   const TaskRow = ({ label, k }) => {
     const on = progress[k];
+    const toolKey = taskToolKey(label);
+    const actionLabel = toolKey === "journal" ? "Open Journal" : toolKey === "games" ? "Open Games" : toolKey === "toolkit" ? "Open Toolkit" : toolKey ? `Open ${TOOLS.find((item) => item.key === toolKey)?.title || "tool"}` : null;
+    const openTaskTool = () => {
+      if (toolKey === "journal") { onOpenJournal && onOpenJournal(); return; }
+      if (toolKey === "games") { onOpenGames && onOpenGames(); return; }
+      if (toolKey === "toolkit") { onOpenTool && onOpenTool("toolkit"); return; }
+      if (toolKey) onOpenTool && onOpenTool(toolKey);
+    };
     return (
-      <button onClick={() => toggle(k)} style={{ display: "flex", gap: 10, alignItems: "flex-start",
-        width: "100%", textAlign: "left", background: "none", border: "none", cursor: "pointer", padding: "8px 0",
-        fontSize: 14.5, color: on ? T.sub : T.ink }}>
-        {on ? <CheckCircle2 size={20} color={T.green} style={{ flexShrink: 0, marginTop: 1 }} />
-          : <Circle size={20} color="#cfc6da" style={{ flexShrink: 0, marginTop: 1 }} />}
-        <span style={{ textDecoration: on ? "line-through" : "none" }}>{label}</span>
-      </button>
+      <div style={{ display: "flex", gap: 9, alignItems: "flex-start", width: "100%", padding: "8px 0", fontSize: 14.5, color: on ? T.sub : T.ink }}>
+        <button onClick={() => toggle(k)} aria-label={on ? `Mark incomplete: ${label}` : `Mark complete: ${label}`} style={{ display: "flex", gap: 10, alignItems: "flex-start", flex: 1, minWidth: 0, textAlign: "left", background: "none", border: "none", cursor: "pointer", padding: 0, color: "inherit", font: "inherit" }}>
+          {on ? <CheckCircle2 size={20} color={T.green} style={{ flexShrink: 0, marginTop: 1 }} />
+            : <Circle size={20} color="#cfc6da" style={{ flexShrink: 0, marginTop: 1 }} />}
+          <span style={{ textDecoration: on ? "line-through" : "none" }}>{label}</span>
+        </button>
+        {actionLabel && <button onClick={openTaskTool} aria-label={`${actionLabel}: ${label}`} style={{ flexShrink: 0, border: `1px solid ${T.line}`, borderRadius: 999, background: "#fff", color: T.greenDk, padding: "5px 8px", fontSize: 11, fontWeight: 800, cursor: "pointer", whiteSpace: "nowrap" }}>{actionLabel}</button>}
+      </div>
     );
   };
 
@@ -7308,7 +7362,7 @@ function SupportUsPage({ onOpenMerch, onOpenCarlosLibrary, onBack }) {
   );
 }
 
-function ResourcesPage({ onOpenSafety, onOpenMensShed, onOpenGames, onBack }) {
+function ResourcesPage({ onOpenSafety, onOpenMensShed, onBack }) {
   useEffect(() => {
     // Each visit should begin at the Resources hero and table of contents,
     // rather than inheriting the scroll position from the previous screen.
@@ -7386,11 +7440,6 @@ function ResourcesPage({ onOpenSafety, onOpenMensShed, onOpenGames, onBack }) {
         {resourceCard({ Icon: Users, tint: "#e8f5ec", color: T.greenDk, eyebrow: "Community connection · Bonnyrigg", title: "South West Sydney Men’s Shed", onClick: onOpenMensShed, children: "Mateship, practical skills, and a welcoming place to connect. Open the listing for location and current fees.", actionLabel: "Open Men’s Shed information" })}
         {resourceCard({ Icon: MessageCircle, tint: "#fffaf0", color: "#336f52", eyebrow: "Safe conversation", title: "The Men’s Table", href: "https://www.themenstable.org", children: "A place for men to share honestly, listen, and build meaningful connection." })}
         {resourceCard({ Icon: Heart, image: "/community/fairfield-city-leisure-centres-logo.png", imageAlt: "Fairfield City Leisure Centres logo", tint: "#e8f0fb", color: "#197aa8", eyebrow: "Local health and wellbeing", title: "Fairfield Leisure Centre", href: "https://www.fairfieldcityleisurecentres.com.au/", children: "Affordable local options including gym, group fitness, pools, Learn to Swim, and Aquatopia across Fairfield City." })}
-      </div>
-
-      {sectionLabel("resources-wellbeing", Gamepad2, "Wellbeing and activities", "Small enjoyable things can help create breathing space, movement, and a bit of light relief.", "#6d55b0")}
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {resourceCard({ Icon: Gamepad2, tint: "#efeaf5", color: "#6d55b0", eyebrow: "In-app wellbeing break", title: "Games & puzzles", onClick: onOpenGames, children: "A little light relief whenever you need something easy, absorbing, or just enjoyable." })}
       </div>
 
       {sectionLabel("resources-family", Users, "Family, children and youth", "Support for family safety, young people, carers, and children.", "#b56739")}
