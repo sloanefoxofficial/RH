@@ -6292,7 +6292,7 @@ function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, set
       </button>
 
       <button onClick={onOpenRexTutorial} aria-label="Watch Rex’s Tutorial: learn how The Resilience Hub works" style={{ width: "100%", textAlign: "left", cursor: "pointer", border: "1px solid rgba(77,159,104,0.18)", background: "linear-gradient(135deg, #f0fbf2 0%, #ffffff 56%, #fff4e8 100%)", borderRadius: 20, padding: 15, boxShadow: T.soft, marginTop: 10, display: "flex", alignItems: "center", gap: 13 }}>
-        <div style={{ width: 50, height: 50, borderRadius: 16, background: "linear-gradient(145deg, #9bd2a8, #fff7ed)", display: "grid", placeItems: "center", flexShrink: 0, overflow: "hidden" }}><PlayCircle size={24} color={T.greenDk} /></div>
+        <div style={{ width: 50, height: 50, borderRadius: 16, background: "linear-gradient(145deg, #9bd2a8, #fff7ed)", display: "grid", placeItems: "center", flexShrink: 0, overflow: "hidden" }}><Play size={24} color={T.greenDk} /></div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontWeight: 800, fontSize: 16 }}>Watch Rex’s Tutorial</div>
           <div style={{ fontSize: 13, color: T.sub, lineHeight: 1.45 }}>A gentle tour of the Hub, your guides, tools, and settings.</div>
