@@ -309,7 +309,7 @@ function contextBlock(profile, answers) {
   return s;
 }
 
-async function callModel({ system, messages, maxTokens = 1000, timeoutMs = 45000 }) {
+async function callModel({ system, messages, maxTokens = 1000, timeoutMs = 90000 }) {
   let res;
   let timer;
   try {
@@ -1726,11 +1726,27 @@ function splitForTts(text) {
   const clean = String(text || "").replace(/\s+/g, " ").trim();
   if (!clean) return [];
   const sentences = clean.match(/[^.!?…]+[.!?…]+(?:["')\]]+)?|\S[^.!?…]*$/g) || [clean];
-  const chunks = []; let cur = "";
+  const chunks = [];
+  let cur = "";
+  const pushWords = (value) => {
+    const words = String(value || "").trim().split(/\s+/).filter(Boolean);
+    for (const word of words) {
+      const candidate = (cur ? cur + " " : "") + word;
+      if (candidate.length > 260 && cur.trim()) {
+        chunks.push(cur.trim());
+        cur = word;
+      } else cur = candidate;
+    }
+  };
   for (const s0 of sentences) {
-    const s = s0.trim(); if (!s) continue;
-    if (chunks.length === 0 && cur) { chunks.push(cur.trim()); cur = s; continue; }
-    if ((cur + " " + s).trim().length > 260) { if (cur) chunks.push(cur.trim()); cur = s; }
+    const s = s0.trim();
+    if (!s) continue;
+    if (((cur ? cur + " " : "") + s).length > 260 && cur.trim()) {
+      chunks.push(cur.trim()); cur = "";
+    }
+    // A single long sentence is split safely at word boundaries rather than
+    // sent as an oversized TTS request that can be truncated by a provider.
+    if (s.length > 260) pushWords(s);
     else cur = (cur ? cur + " " : "") + s;
   }
   if (cur.trim()) chunks.push(cur.trim());
@@ -6487,7 +6503,10 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
       // still keep Fast Reply intentionally short. The guide prompt remains
       // responsible for keeping ordinary replies readable rather than clipping
       // them at an unnecessarily small token budget.
-      const speedTokens = effSpeed === "fast" ? 400 : effSpeed === "chilled" ? 1800 : 1600;
+      // Input history and output budget are separate. Keep the recent history
+      // available for continuity, but give normal/chilled replies enough output
+      // headroom for long plan or document explanations.
+      const speedTokens = effSpeed === "fast" ? 400 : effSpeed === "chilled" ? 2800 : 2400;
       const reply = await callModel({ system, messages: msgs, maxTokens: speedTokens });
       const tagRe = /<tool>\s*(breathing|grounding|meditation|affirmations|calm)\s*<\/tool>/i;
       const found = reply.match(tagRe);
