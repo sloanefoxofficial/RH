@@ -967,18 +967,18 @@ export default function App() {
     setToolkitInitial(null);
     setScreen("toolkit");
   };
-  const openPlanDestination = useCallback((screenName, toolKey = null) => {
+  const openPlanDestination = (screenName, toolKey = null) => {
     planOriginRef.current = true;
     if (toolKey) setToolkitInitial(toolKey);
     go(screenName);
-  }, []);
-  const returnToPlan = useCallback(() => {
+  };
+  const returnToPlan = () => {
     planOriginRef.current = false;
     histRef.current = [];
     setToolkitInitial(null);
-    __backDestinationLabel = "Home";
+    __backDestinationLabel = "Your 8-Week Plan";
     setScreen("program");
-  }, []);
+  };
   const openHubFromPlan = () => {
     histRef.current = [];
     setPlanSignupLanding(false);
@@ -4808,9 +4808,11 @@ function PrivacyLink({ style, variant }) {
             {section("AI and voice services", <>When you ask an AI guide to reply, the relevant content is sent through our server to Anthropic so a response can be generated. When voice playback is requested, text may be sent through Fish Audio or Google Cloud Text-to-Speech, with browser speech as a fallback. These providers may process content under their own terms and retention practices. Do not enter information you are not comfortable sending to an AI or speech service.</>)}
             {section("Account, sign-in and notifications", <>The app uses Supabase authentication and database services. Email/password and Google sign-in may be available. “Stay logged in” controls session persistence; disable it on shared devices. The optional device-unlock setting is off by default and stores a device-wrapped key, not your passphrase. Push notification bodies are kept generic and should not contain journal text, message content, or crisis disclosures.</>)}
             {section("Who may access information", <>Authorised Resilience Hub staff may access support submissions that you deliberately send. Supabase, Vercel, Anthropic, Fish Audio, Google Cloud Text-to-Speech, authentication providers, push-notification infrastructure, and other service providers may process limited information needed to provide the app. We do not sell personal information or use it for advertising profiling. We may disclose information where required by law or needed to respond to an immediate safety risk.</>)}
-            {section("Deletion and retention", <>You can clear your app data from your Profile. The app attempts to remove encrypted account rows, support rows linked to your account, game progress, push subscriptions, local encrypted data, vault metadata, and associated screenshot objects. Deleted data may remain in provider backups, point-in-time recovery, disaster-recovery systems, device backups, or third-party provider systems for a limited period.</>)}
+            {section("Deletion and retention", <>You can clear your app data from your Profile. The app attempts to remove encrypted account rows, support rows linked to your account, game progress, push subscriptions, local encrypted data, vault metadata, and associated screenshot objects. Deleted data may remain in provider backups, point-in-time recovery, disaster-recovery systems, device backups, or third-party provider systems for a limited period. The team must confirm and publish the configured maximum backup/PITR period before release: <strong>[backup/PITR retention period to be confirmed]</strong>.</>)}
             {section("Your choices and questions", <>You can change optional profile details, manage guide memory, control voice and notification preferences, disable device vault unlock, clear app data, sign out, and contact the team about privacy or deletion requests. Never send a privacy passphrase, recovery key, private encryption key, or service secret to support. For urgent danger, call 000 or use Help Now.</>)}
-            
+            <div style={{ background: "#eef7f1", borderRadius: 15, padding: 13, marginTop: 2, fontSize: 12.5, color: T.sub, lineHeight: 1.5 }}>
+              <strong style={{ color: T.ink }}>Before public release:</strong> The Resilience Hub team should have this notice reviewed by a qualified Australian privacy lawyer and security adviser, confirm provider terms and cross-border handling, fill in the backup-retention period, and verify the final deletion and incident-response processes.
+            </div>
             <div style={{ marginTop: 14 }}><Btn onClick={() => setOpen(false)}>Close</Btn></div>
           </div>
         </div>
@@ -5870,13 +5872,30 @@ function ProgramPage({ profile, plan, progress, saveProgress, answers, journalCo
   const overallPct = totalSteps ? Math.round((doneCount / totalSteps) * 100) : 0;
   const weekPct = currentWeekKeys.length ? Math.round((currentWeekDone / currentWeekKeys.length) * 100) : 0;
   const [wk, setWk] = useState(currentWeek);
-  const [expandedPastDays, setExpandedPastDays] = useState({});
+  const [expandedDays, setExpandedDays] = useState({});
   const [dayCheckIns, setDayCheckIns] = useState({});
+  const [calendarTick, setCalendarTick] = useState(0);
   const week = weeks.find((w) => w.n === wk);
-  const activeDayNumber = week?.days?.length ? (week.days.find((day) => (day.tasks || []).some((_, ti) => !progress[`w${week.n}d${day.d}t${ti}`]))?.d || week.days[week.days.length - 1].d) : 1;
-  const pastDayKey = (weekNumber, dayNumber) => `w${weekNumber}d${dayNumber}`;
-  const isPastDayExpanded = (weekNumber, dayNumber) => Boolean(expandedPastDays[pastDayKey(weekNumber, dayNumber)]);
-  const togglePastDay = (weekNumber, dayNumber) => setExpandedPastDays((old) => ({ ...old, [pastDayKey(weekNumber, dayNumber)]: !old[pastDayKey(weekNumber, dayNumber)] }));
+  const planStart = plan?.startedAt ? new Date(plan.startedAt) : null;
+  const elapsedPlanDay = planStart && !Number.isNaN(planStart.getTime())
+    ? Math.min(weeks.length * 7, Math.max(1, Math.floor((Date.now() - planStart.getTime()) / 86400000) + 1))
+    : null;
+  const calendarWeekNumber = elapsedPlanDay ? Math.ceil(elapsedPlanDay / 7) : currentWeek;
+  const calendarDayNumber = elapsedPlanDay ? ((elapsedPlanDay - 1) % 7) + 1 : 1;
+  const activeDayNumber = week?.days?.length
+    ? (week.n === calendarWeekNumber ? calendarDayNumber : week.n < calendarWeekNumber ? week.days[week.days.length - 1].d : week.days[0].d)
+    : 1;
+  const dayKey = (weekNumber, dayNumber) => `w${weekNumber}d${dayNumber}`;
+  const isDayExpanded = (weekNumber, dayNumber) => dayNumber === activeDayNumber ? true : Boolean(expandedDays[dayKey(weekNumber, dayNumber)]);
+  const toggleDay = (weekNumber, dayNumber) => setExpandedDays((old) => ({ ...old, [dayKey(weekNumber, dayNumber)]: !old[dayKey(weekNumber, dayNumber)] }));
+  useEffect(() => {
+    if (!planStart || !plan) return undefined;
+    const now = new Date();
+    const nextMidnight = new Date(now);
+    nextMidnight.setHours(24, 0, 0, 50);
+    const timer = setTimeout(() => { setCalendarTick((value) => value + 1); setExpandedDays({}); }, Math.max(1000, nextMidnight.getTime() - now.getTime()));
+    return () => clearTimeout(timer);
+  }, [plan?.startedAt, calendarTick]);
   const walkTaskKeys = week ? weekTaskKeys(week).filter((k) => {
     const match = k.match(/^w(\d+)d(\d+)t(\d+)$/); if (!match) return false;
     const day = week.days?.find((d) => String(d.d) === match[2]);
@@ -5968,7 +5987,7 @@ function ProgramPage({ profile, plan, progress, saveProgress, answers, journalCo
         </div>
         <div style={{ position: "relative", marginTop: 13, height: 10, borderRadius: 999, background: "rgba(255,255,255,0.22)", overflow: "hidden" }}><div style={{ height: "100%", width: `${overallPct}%`, borderRadius: 999, background: "linear-gradient(90deg, #fff, #dff6d9)", transition: "width .4s" }} /></div>
         <div style={{ position: "relative", display: "flex", justifyContent: "space-between", marginTop: 12, fontSize: 11.5, opacity: 0.9 }}><span>Week {currentWeek} focus: {currentWeekData?.focus || "Getting started"}</span><span>{currentWeekDone}/{currentWeekKeys.length || 0} this week</span></div>
-        <div style={{ position: "relative", display: "flex", gap: 5, marginTop: 14 }}>{weeks.map((w) => { const complete = weekTaskKeys(w).every((k) => progress[k]); const active = w.n === currentWeek; return <button key={w.n} onClick={() => { setWk(w.n); setExpandedPastDays({}); }} aria-label={`Open week ${w.n}`} style={{ flex: 1, height: 8, border: "none", borderRadius: 999, background: complete ? "#fff" : active ? "rgba(255,255,255,0.72)" : "rgba(255,255,255,0.2)", cursor: "pointer", padding: 0 }} />; })}</div>
+        <div style={{ position: "relative", display: "flex", gap: 5, marginTop: 14 }}>{weeks.map((w) => { const complete = weekTaskKeys(w).every((k) => progress[k]); const active = w.n === currentWeek; return <button key={w.n} onClick={() => { setWk(w.n); setExpandedDays({}); }} aria-label={`Open week ${w.n}`} style={{ flex: 1, height: 8, border: "none", borderRadius: 999, background: complete ? "#fff" : active ? "rgba(255,255,255,0.72)" : "rgba(255,255,255,0.2)", cursor: "pointer", padding: 0 }} />; })}</div>
         <div style={{ position: "relative", display: "flex", gap: 14, marginTop: 15, fontSize: 12 }}><span><strong style={{ fontSize: 16 }}>{journalCount}</strong><br /><span style={{ opacity: 0.78 }}>journal entries</span></span><span><strong style={{ fontSize: 16 }}>{currentWeekDone}</strong><br /><span style={{ opacity: 0.78 }}>this week</span></span><span><strong style={{ fontSize: 16 }}>{weekPct}%</strong><br /><span style={{ opacity: 0.78 }}>week progress</span></span></div>
         {started && <div style={{ position: "relative", fontSize: 11.5, opacity: 0.78, marginTop: 12, paddingTop: 10, borderTop: "1px solid rgba(255,255,255,0.2)" }}>Started {fmtD(started)} · Finishes around {fmtD(planEnd)}</div>}
       </div>
@@ -5995,13 +6014,13 @@ function ProgramPage({ profile, plan, progress, saveProgress, answers, journalCo
           </div>
           <div style={{ background: T.card, borderRadius: 20, padding: 16, boxShadow: T.soft }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-              <button onClick={() => { setWk(Math.max(1, wk - 1)); setExpandedPastDays({}); }} disabled={wk <= 1} style={navBtn(wk <= 1)}><ChevronLeft size={18} /></button>
+              <button onClick={() => { setWk(Math.max(1, wk - 1)); setExpandedDays({}); }} disabled={wk <= 1} style={navBtn(wk <= 1)}><ChevronLeft size={18} /></button>
               <div style={{ textAlign: "center" }}>
                 <div style={{ fontSize: 12, color: T.sub }}>Week {week?.n}</div>
                 <div style={{ fontWeight: 700 }}>{week?.focus}</div>
                 {started && week && <div style={{ fontSize: 11, color: T.sub, marginTop: 2 }}>{fmtD(weekStart(week.n))} – {fmtD(addDays(weekStart(week.n), 6))}</div>}
               </div>
-              <button onClick={() => { setWk(Math.min(weeks.length, wk + 1)); setExpandedPastDays({}); }} disabled={wk >= weeks.length} style={navBtn(wk >= weeks.length)}><ChevronRight size={18} /></button>
+              <button onClick={() => { setWk(Math.min(weeks.length, wk + 1)); setExpandedDays({}); }} disabled={wk >= weeks.length} style={navBtn(wk >= weeks.length)}><ChevronRight size={18} /></button>
             </div>
 
             {week && Array.isArray(week.days) ? (
@@ -6013,13 +6032,13 @@ function ProgramPage({ profile, plan, progress, saveProgress, answers, journalCo
                   {firstDayCheckIn && <div style={{ color: T.greenDk, fontSize: 12, marginTop: 8 }}>{checkInOptions.find((x) => x.key === firstDayCheckIn)?.note}</div>}
                 </div>
                 {week.days.map((day) => {
-                  const isPast = day.d < activeDayNumber;
-                  const expanded = !isPast || isPastDayExpanded(week.n, day.d);
+                  const isCurrent = day.d === activeDayNumber;
+                  const expanded = isDayExpanded(week.n, day.d);
                   const taskCount = (day.tasks || []).length;
                   const completedCount = (day.tasks || []).filter((_, ti) => progress[`w${week.n}d${day.d}t${ti}`]).length;
-                  if (isPast && !expanded) {
+                  if (!expanded) {
                     return (
-                      <button key={day.d} onClick={() => togglePastDay(week.n, day.d)} aria-expanded="false" style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, background: "#f7faf7", border: `1px solid ${T.line}`, borderRadius: 14, padding: "10px 12px", marginTop: 9, textAlign: "left", cursor: "pointer", color: T.ink }}>
+                      <button key={day.d} onClick={() => toggleDay(week.n, day.d)} aria-expanded={false} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, background: "#f7faf7", border: `1px solid ${T.line}`, borderRadius: 14, padding: "10px 12px", marginTop: 9, textAlign: "left", cursor: "pointer", color: T.ink }}>
                         <div style={{ width: 28, height: 28, borderRadius: 10, background: "#e4f1e7", display: "grid", placeItems: "center", flexShrink: 0 }}><CheckCircle2 size={15} color={completedCount === taskCount && taskCount ? T.green : T.sub} /></div>
                         <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontWeight: 800, fontSize: 13 }}>Day {day.d}{started ? ` · ${fmtD(dayDate(week.n, day.d))}` : ""}</div><div style={{ fontSize: 11.5, color: T.sub }}>{completedCount}/{taskCount} tasks complete</div></div>
                         <ChevronDown size={17} color={T.sub} />
@@ -6028,7 +6047,7 @@ function ProgramPage({ profile, plan, progress, saveProgress, answers, journalCo
                   }
                   return (
                     <div key={day.d} style={{ background: day.d % 2 ? "linear-gradient(135deg, #ffffff, #f8fbf8)" : "linear-gradient(135deg, #fffdf9, #ffffff)", border: `1px solid ${T.line}`, borderRadius: 17, padding: "12px 13px", marginTop: 12, boxShadow: "0 5px 14px rgba(47,97,72,0.045)" }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 4 }}><div style={{ display: "flex", alignItems: "center", gap: 7 }}><div style={{ fontSize: 11, fontWeight: 900, color: T.greenDk, textTransform: "uppercase", letterSpacing: 0.8 }}>Day {day.d}</div>{isPast && <button onClick={() => togglePastDay(week.n, day.d)} aria-label={`Collapse day ${day.d}`} style={{ border: "none", background: "none", padding: 2, cursor: "pointer", color: T.sub }}><ChevronUp size={15} /></button>}</div>{started && <div style={{ fontSize: 11, color: T.sub }}>{fmtD(dayDate(week.n, day.d))}</div>}</div>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 4 }}><div style={{ display: "flex", alignItems: "center", gap: 7 }}><div style={{ fontSize: 11, fontWeight: 900, color: T.greenDk, textTransform: "uppercase", letterSpacing: 0.8 }}>Day {day.d}</div>{!isCurrent && <button onClick={() => toggleDay(week.n, day.d)} aria-label={`Collapse day ${day.d}`} style={{ border: "none", background: "none", padding: 2, cursor: "pointer", color: T.sub }}><ChevronUp size={15} /></button>}</div>{started && <div style={{ fontSize: 11, color: T.sub }}>{fmtD(dayDate(week.n, day.d))}</div>}</div>
                       <div style={{ height: 2, width: 34, borderRadius: 999, background: day.d % 2 ? T.green : "#d99b67", marginBottom: 4 }} />
                       {day.d === week.days[0].d && !firstDayCheckIn ? <div style={{ fontSize: 13, color: T.sub, padding: "10px 0 3px", lineHeight: 1.45 }}>Choose a quick check-in above and we’ll show the right-sized version of today’s tasks.</div> : day.d === week.days[0].d && firstDayCheckIn === "overwhelmed" ? <TaskRow label="Bare minimum for today: put both feet on the floor, take three slow breaths, and let the rest wait." k={`w${week.n}d${day.d}t0`} /> : (day.tasks || []).map((t, ti) => <TaskRow key={ti} label={t} k={`w${week.n}d${day.d}t${ti}`} />)}
                     </div>
