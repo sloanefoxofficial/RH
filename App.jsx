@@ -363,6 +363,7 @@ const CARLOS_BOOKS = [
 /* ================================================================== */
 export default function App() {
   const [ready, setReady] = useState(false);
+  const [dataHydrated, setDataHydrated] = useState(false);
   const [screen, setScreen] = useState("welcome"); // welcome | onboarding | hub | chat | journal
   const [profile, setProfile] = useState(null);
   const [answers, setAnswers] = useState({});
@@ -631,6 +632,7 @@ export default function App() {
       if (p?.onboardingComplete) setScreen("hub");
       else if (p?.path === "full") setScreen("onboarding");
       else setScreen("welcome");
+      setDataHydrated(true);
     })();
   }, [vaultStatus, secureLocalGet]);
 
@@ -1066,7 +1068,7 @@ export default function App() {
           <div style={{ paddingTop: 120, textAlign: "center", color: T.sub }}>Loading…</div>
         ) : showAuth && !session ? (
           <Login onGuest={() => setGuestMode(true)} stayLoggedIn={stayLoggedIn} onStayLoggedInChange={changeStayLoggedIn} />
-        ) : !ready ? (
+        ) : !ready || !dataHydrated ? (
           <div style={{ paddingTop: 120, textAlign: "center", color: T.sub }}>Warming up…</div>
         ) : !consented ? (
           <Consent onAgree={() => { sset("rh_consent", { agreedAt: Date.now() }); setConsented(true); }} />
