@@ -6157,6 +6157,52 @@ function ResourcesIcon({ size = 24, color = "currentColor", strokeWidth = 2.2 })
   </svg>;
 }
 
+function RexHubTour({ voiceOn, onOpenJournal, onOpenProgram, onOpenSafety, onOpenResources, onOpenProfile }) {
+  const steps = [
+    { title: "Welcome to your Hub", text: "Hey, mate — I’m Rex. I’ll give you a quick, calm look around. You can skip this any time.", icon: Heart, tint: "#e6f6ea", color: T.greenDk },
+    { title: "Your Private Journal", text: "This is your PIN-protected space to write, reflect, or capture a fleeting thought. Take your time — there’s no right or wrong way to use it.", icon: BookOpen, tint: "#fff5d9", color: "#947019", action: onOpenJournal, actionLabel: "Open Journal" },
+    { title: "Your 8-Week Plan", text: "Your plan gives you gentle daily steps with Carlos, building at your pace. You can start it whenever you feel ready.", icon: CalendarCheck, tint: "#e8efff", color: "#345c8d", action: onOpenProgram, actionLabel: "Open plan" },
+    { title: "Need Help Now", text: "Crisis support is always close by. If you or someone else is in immediate danger, call Triple Zero — 000.", icon: LifeBuoy, tint: "#ffe9e8", color: "#b64949", action: onOpenSafety, actionLabel: "Open help" },
+    { title: "Support Directory", text: "Food, housing, recovery, local services, activities, and people to connect with — all gathered in one place.", icon: ResourcesIcon, tint: "#e7f3fa", color: "#3f7e9e", action: onOpenResources, actionLabel: "Open directory" },
+    { title: "Set yourself up", text: "Tap your profile to set your PIN, update your details, adjust preferences, and install the Hub on your home screen. You’re always in control.", icon: User, tint: "#f1e8ff", color: "#7652a6", action: onOpenProfile, actionLabel: "Go to Profile" },
+  ];
+  const [step, setStep] = useState(0);
+  const [loaded, setLoaded] = useState(false);
+  const current = step >= 0 ? steps[step] : null;
+  useEffect(() => {
+    let active = true;
+    sget("rh_rex_tour_seen_v1").then((seen) => { if (active) { setStep(seen ? -1 : 0); setLoaded(true); } });
+    return () => { active = false; };
+  }, []);
+  useEffect(() => {
+    if (!loaded || step < 0 || !voiceOn || !__autoIntroVoiceOn || !current) return undefined;
+    speak(`${current.title}. ${current.text}`, CHARS.rex);
+    return () => stop();
+  }, [loaded, step, voiceOn]);
+  const finish = () => { void sset("rh_rex_tour_seen_v1", true); setStep(-1); stop(); };
+  if (!loaded || step < 0 || !current) return null;
+  const Icon = current.icon;
+  const next = () => { if (step >= steps.length - 1) finish(); else setStep((n) => n + 1); };
+  return (
+    <div style={{ marginTop: 12, borderRadius: 22, padding: 14, background: "linear-gradient(135deg, #effaf1 0%, #ffffff 58%, #fff4e8 100%)", border: "1px solid rgba(77,159,104,0.22)", boxShadow: T.soft, position: "relative", overflow: "hidden" }}>
+      <style>{`@keyframes rh-rex-breathe { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-3px)} }`}</style>
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <div style={{ width: 62, height: 62, borderRadius: 20, background: "linear-gradient(145deg, #dff5e4, #fff7ed)", display: "grid", placeItems: "center", flexShrink: 0, animation: "rh-rex-breathe 3s ease-in-out infinite" }}><img src={CHARS.rex.img} alt="Rex" style={{ width: 56, height: 56, objectFit: "contain", borderRadius: 18 }} /></div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 3 }}><div style={{ width: 28, height: 28, borderRadius: 10, background: current.tint, display: "grid", placeItems: "center" }}><Icon size={15} color={current.color} /></div><div style={{ fontWeight: 850, fontSize: 15.5 }}>{current.title}</div></div>
+          <div style={{ color: T.sub, fontSize: 12.8, lineHeight: 1.45 }}>{current.text}</div>
+        </div>
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12 }}>
+        <div style={{ display: "flex", gap: 4, flex: 1 }} aria-label={`Tour step ${step + 1} of ${steps.length}`}>{steps.map((_, i) => <span key={i} style={{ width: 7, height: 7, borderRadius: 99, background: i === step ? T.green : "#cfe3d4" }} />)}</div>
+        {current.action && <button onClick={() => { current.action(); finish(); }} style={{ border: `1px solid ${current.color}44`, background: current.tint, color: current.color, borderRadius: 999, padding: "8px 11px", fontWeight: 800, fontSize: 11.5, cursor: "pointer" }}>{current.actionLabel}</button>}
+        <button onClick={finish} style={{ border: "none", background: "transparent", color: T.sub, padding: "7px 5px", fontSize: 11.5, cursor: "pointer" }}>Skip tour</button>
+        <button onClick={next} style={{ border: "none", background: T.green, color: "#fff", borderRadius: 999, padding: "8px 13px", fontWeight: 800, fontSize: 11.5, cursor: "pointer" }}>{step === steps.length - 1 ? "Done" : "Next"}</button>
+      </div>
+    </div>
+  );
+}
+
 function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, setVoiceOn, onOpenChat, onOpenRexTutorial, onOpenProgram, onOpenJournal, onOpenGuides, onOpenMerch, onOpenCarlosLibrary, onOpenGames, onOpenToolkit, onOpenResources, onOpenSupportUs, onOpenSafety, onOpenNotifications, onOpenCoordinator, onOpenSettings, onOpenMensGroup, onOpenMensShed, onOpenAdminMessages, onOpenProgramInfo, onReset, isAdmin, authEnabled, guestMode, onExitGuest, onOpenAdmin, onOpenProfile, onSignOut, session, rexHistory, onSaveRexChat, memories, onConversation, answers, rexPersona }) {
   const { speak, stop, speaking } = useVoice(voiceOn);
   const [notifRefresh, setNotifRefresh] = useState(0);
@@ -6292,6 +6338,8 @@ function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, set
         </div>
         <ChevronRight size={20} color={T.sub} />
       </button>
+
+      <RexHubTour voiceOn={voiceOn} onOpenJournal={onOpenJournal} onOpenProgram={onOpenProgram} onOpenSafety={onOpenSafety} onOpenResources={onOpenResources} onOpenProfile={onOpenProfile} />
 
       <button onClick={onOpenRexTutorial} aria-label="Watch Rex’s Tutorial: learn how The Resilience Hub works" style={{ width: "100%", textAlign: "left", cursor: "pointer", border: "1px solid rgba(77,159,104,0.18)", background: "linear-gradient(135deg, #f0fbf2 0%, #ffffff 56%, #fff4e8 100%)", borderRadius: 20, padding: 15, boxShadow: T.soft, marginTop: 10, display: "flex", alignItems: "center", gap: 13 }}>
         <div style={{ width: 50, height: 50, borderRadius: 16, background: "linear-gradient(145deg, #9bd2a8, #fff7ed)", display: "grid", placeItems: "center", flexShrink: 0, overflow: "hidden" }}><Play size={24} color={T.greenDk} /></div>
