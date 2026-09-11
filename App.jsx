@@ -498,6 +498,25 @@ export default function App() {
     if (!next) await disableDeviceUnlock();
   }, []);
 
+  const exportVaultRecoveryPackage = useCallback(() => {
+    if (!vaultMeta || vaultMeta.v !== 1) throw new Error("Unlock your private vault before creating a recovery package.");
+    const payload = {
+      format: "resilience-hub-vault-recovery",
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      userId: sessionRef.current?.user?.id || null,
+      // This is wrapped metadata only. It does not contain the passphrase or raw data key.
+      encryption_meta: vaultMeta,
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `resilience-hub-vault-recovery-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(anchor); anchor.click(); anchor.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }, [vaultMeta]);
+
   // Every internal screen starts at the top. The second reset catches pages
   // whose content finishes mounting after the route state changes.
   useEffect(() => {
@@ -1256,8 +1275,8 @@ export default function App() {
               <Settings textScale={textScale} reduceMotion={reduceMotion} responseSpeed={responseSpeed} speechLang={speechLang} autoIntroVoice={autoIntroVoiceOn} autoReplyVoice={autoReplyVoiceOn}
               journalPinSet={journalPinSet} onSetJournalPin={setJournalPin} onClearJournalPin={clearJournalPin} deviceUnlockEnabled={deviceUnlockEnabled} onSetDeviceUnlock={setDeviceUnlockPreference}
             installPromptAvailable={Boolean(installPromptEvent)} isStandalone={isStandalone} onPromptInstall={promptAppInstall}
-            session={session} authEnabled={showAuth} onSave={saveSettings} onRestoreDefaults={restoreDefaultSettings} onBack={back}
-            onOpenBugReport={() => go("bugReport")} onOpenFeedback={() => go("userFeedback")} />
+            session={session} authEnabled={showAuth} onSave={saveSettings} onRestoreDefaults={restoreDefaultSettings} onExportVaultRecovery={exportVaultRecoveryPackage} onBack={back}
+             onOpenBugReport={() => go("bugReport")} onOpenFeedback={() => go("userFeedback")} />
         ) : screen === "bugReport" ? (
           <BugReport session={session} userPublicKey={userPublicKey} onBack={back} />
         ) : screen === "userFeedback" ? (
@@ -4422,7 +4441,7 @@ function MemoryManager({ memories, memoryOn, onSave, onBack }) {
 }
 
 /* ---------- accessibility settings ---------- */
-function Settings({ textScale, reduceMotion, responseSpeed, speechLang, autoIntroVoice, autoReplyVoice, journalPinSet, onSetJournalPin, onClearJournalPin, deviceUnlockEnabled = false, onSetDeviceUnlock, installPromptAvailable, isStandalone, onPromptInstall, session, authEnabled, onSave, onRestoreDefaults, onBack, onOpenBugReport, onOpenFeedback }) {
+function Settings({ textScale, reduceMotion, responseSpeed, speechLang, autoIntroVoice, autoReplyVoice, journalPinSet, onSetJournalPin, onClearJournalPin, deviceUnlockEnabled = false, onSetDeviceUnlock, installPromptAvailable, isStandalone, onPromptInstall, session, authEnabled, onSave, onRestoreDefaults, onExportVaultRecovery, onBack, onOpenBugReport, onOpenFeedback }) {
   const [pushState, setPushState] = useState("checking"); // "checking" | "on" | "off" | "denied" | "unsupported" | "error"
   const [pushDetail, setPushDetail] = useState("");
   const [pushBusy, setPushBusy] = useState(false);
@@ -4434,6 +4453,7 @@ function Settings({ textScale, reduceMotion, responseSpeed, speechLang, autoIntr
   const [showRemoveJournalPin, setShowRemoveJournalPin] = useState(false);
   const [showInstallSteps, setShowInstallSteps] = useState(false);
   const [installMessage, setInstallMessage] = useState("");
+  const [recoveryMessage, setRecoveryMessage] = useState("");
   const isIOS = typeof navigator !== "undefined" && /iPad|iPhone|iPod/.test(navigator.userAgent);
   const startInstall = async () => {
     if (isStandalone) return;
@@ -4699,6 +4719,16 @@ function Settings({ textScale, reduceMotion, responseSpeed, speechLang, autoIntr
           <button type="button" onClick={() => onSetDeviceUnlock?.(!deviceUnlockEnabled)} aria-label="Toggle device vault unlock" style={{ width: 52, height: 30, borderRadius: 999, border: "none", cursor: "pointer", flexShrink: 0, background: deviceUnlockEnabled ? T.green : "#cfc6da", position: "relative" }}><span style={{ position: "absolute", top: 3, left: deviceUnlockEnabled ? 25 : 3, width: 24, height: 24, borderRadius: "50%", background: "#fff" }} /></button>
         </div>
         <p style={{ fontSize: 12, color: "#7b5c20", lineHeight: 1.45, margin: "12px 0 0" }}>When on, anyone who can open this device may be able to open your private vault. It is off by default.</p>
+      </div>
+
+      <div style={{ background: "#f7f3fc", border: `1px solid ${T.line}`, borderRadius: 18, padding: 16, boxShadow: T.soft, marginTop: 14 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ width: 40, height: 40, borderRadius: 12, background: "#eee9f8", display: "grid", placeItems: "center", flexShrink: 0 }}><Download size={18} color="#7055a8" /></div>
+          <div><div style={{ fontWeight: 700 }}>Save a vault recovery package</div><div style={{ fontSize: 12.5, color: T.sub, lineHeight: 1.4 }}>Keep this file somewhere private and separate from your phone.</div></div>
+        </div>
+        <p style={{ fontSize: 12, color: T.sub, lineHeight: 1.45, margin: "12px 0" }}>This file contains wrapped encryption metadata, not your passphrase or raw data key. It cannot unlock anything by itself, but it can help recover your vault if account metadata is ever lost. Protect it like a key.</p>
+        <Btn kind="outline" onClick={() => { try { onExportVaultRecovery?.(); setRecoveryMessage("Recovery package downloaded. Store it somewhere private."); } catch (e) { setRecoveryMessage(e?.message || "Unlock your vault before creating a recovery package."); } }} style={{ width: "100%" }}>Download recovery package</Btn>
+        {recoveryMessage && <p style={{ fontSize: 12.5, color: T.greenDk, margin: "10px 0 0", lineHeight: 1.4 }}>{recoveryMessage}</p>}
       </div>
 
       <div style={{ fontSize: 15, color: T.greenDk, fontWeight: 900, letterSpacing: 0.7, textTransform: "uppercase", margin: "22px 2px 10px" }}>Help &amp; feedback</div>
