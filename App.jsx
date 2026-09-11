@@ -505,8 +505,10 @@ export default function App() {
       if (authEnabled && !session) { setVaultStatus("checking"); return; }
       try {
         const scopedKey = vaultMetaStorageKey(session?.user?.id);
-        const localMeta = await sget(scopedKey) || await sget("rh_vault_meta");
-        if (localMeta?.v === 1 && !(await sget(scopedKey))) await sset(scopedKey, localMeta);
+        const scopedLocalMeta = await sget(scopedKey);
+        const legacyLocalMeta = await sget("rh_vault_meta");
+        const localMeta = scopedLocalMeta || legacyLocalMeta;
+        if (!scopedLocalMeta && legacyLocalMeta?.v === 1) await sset(scopedKey, legacyLocalMeta);
         if (!authEnabled || !session || !supabase) {
           if (localMeta?.v === 1 && !cancelled) { setVaultMeta(localMeta); setVaultStatus("locked"); }
           else if (!cancelled) setVaultStatus("needs_setup");
@@ -527,9 +529,14 @@ export default function App() {
         }
 
         const remoteMeta = data?.encryption_meta;
-        if (remoteMeta?.v === 1) {
-          await sset(vaultMetaStorageKey(session.user.id), remoteMeta);
-          if (!cancelled) { setVaultMeta(remoteMeta); setVaultStatus("locked"); }
+        // On the device where this vault was originally created, prefer its
+        // account-scoped local metadata. It is the metadata that matches the
+        // encrypted local cache. On a new device there is no local copy, so the
+        // account record remains the source of truth.
+        const preferredMeta = localMeta?.v === 1 ? localMeta : remoteMeta;
+        if (preferredMeta?.v === 1) {
+          await sset(vaultMetaStorageKey(session.user.id), preferredMeta);
+          if (!cancelled) { setVaultMeta(preferredMeta); setVaultStatus("locked"); }
           return;
         }
         const hasExistingData = ["profile", "answers", "plan", "progress", "journal"]
