@@ -851,8 +851,16 @@ export default function App() {
   // server. Runs on every sign-out (including session expiry / signing out in
   // another tab) so a second person on a shared device never sees the previous
   // person's profile, journal, plan, or chats before their own data loads in.
-  const clearLocalDeviceCache = () => {
-    for (const k of ["rh_profile", "rh_answers", "rh_plan", "rh_progress", "rh_journal", "rh_chats", "rh_memories", "rh_memory_on", "rh_vault_meta", JOURNAL_PIN_STORAGE_KEY]) {
+  const clearLocalDeviceCache = (accountId = sessionRef.current?.user?.id) => {
+    // Preserve the wrapped vault metadata. It contains no plaintext and is
+    // required to unlock encrypted data after the next login. Migrate the old
+    // unscoped key before clearing it, so legacy accounts are not stranded.
+    try {
+      const legacyMeta = localStorage.getItem("rh_vault_meta");
+      if (accountId && legacyMeta) localStorage.setItem(vaultMetaStorageKey(accountId), legacyMeta);
+      if (accountId) localStorage.removeItem("rh_vault_meta");
+    } catch {}
+    for (const k of ["rh_profile", "rh_answers", "rh_plan", "rh_progress", "rh_journal", "rh_chats", "rh_memories", "rh_memory_on", JOURNAL_PIN_STORAGE_KEY]) {
       try { localStorage.removeItem(k); } catch {}
     }
     setProfile(null); setAnswers({}); setPlan(null); setProgress({});
@@ -864,7 +872,8 @@ export default function App() {
   };
 
   const resetAll = async () => {
-    clearLocalDeviceCache();
+    const accountId = sessionRef.current?.user?.id;
+    clearLocalDeviceCache(accountId);
     setOnbFromSignup(false); setPlanSignupLanding(false); setOnbMode("full"); setOnbReturn("hub");
     histRef.current = [];
     if (authEnabled && supabase && sessionRef.current) {
@@ -881,7 +890,9 @@ export default function App() {
         if (paths.length) await supabase.storage.from("bug-screenshots").remove(paths);
       } catch {}
       try {
-        await supabase.from("member_data").update({ profile: null, answers: null, plan: null, progress: {}, journal: [], encryption_meta: null, updated_at: new Date().toISOString() }).eq("user_id", uid);
+        // Reset the user's encrypted content, but retain encryption_meta so the
+        // same privacy vault remains unlockable after the reset.
+        await supabase.from("member_data").update({ profile: null, answers: null, plan: null, progress: {}, journal: [], updated_at: new Date().toISOString() }).eq("user_id", uid);
       } catch {}
     }
     setScreen("welcome");
@@ -1074,7 +1085,7 @@ export default function App() {
     return () => { try { sub && sub.unsubscribe(); } catch {} };
   }, []);
 
-  const signOut = async () => { try { await supabase.auth.signOut(); } catch {} clearLocalDeviceCache(); setIsAdmin(false); setScreen("hub"); };
+  const signOut = async () => { const accountId = sessionRef.current?.user?.id; try { await supabase.auth.signOut(); } catch {} clearLocalDeviceCache(accountId); setIsAdmin(false); setScreen("hub"); };
 
   return (
     <div style={{ minHeight: "100vh", color: T.ink,
