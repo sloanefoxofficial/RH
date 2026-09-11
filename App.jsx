@@ -443,24 +443,33 @@ export default function App() {
     }
   }, [secureLocalSet]);
   const unlockPrivacyVault = useCallback(async (secret, useRecovery = false) => {
+    // Keep the cryptographic step separate from account synchronisation. A
+    // missing migration, offline Supabase request, or legacy local-data issue
+    // must not turn a valid passphrase into a misleading "wrong passphrase"
+    // error or trap the user on the locked screen.
+    let unlocked;
     try {
-      const unlocked = await unlockUserVault(vaultMeta, secret, useRecovery);
-      setVaultKey(unlocked.dataKey); vaultKeyRef.current = unlocked.dataKey; vaultRawKeyRef.current = unlocked.rawDataKey;
-      setUserPublicKey(unlocked.userPublicKey); userPublicKeyRef.current = unlocked.userPublicKey;
-      setUserPrivateKey(unlocked.userPrivateKey); userPrivateKeyRef.current = unlocked.userPrivateKey;
-      await sset(vaultMetaStorageKey(sessionRef.current?.user?.id), vaultMeta);
-      if (authEnabled && supabase && sessionRef.current?.user?.id) {
+      unlocked = await unlockUserVault(vaultMeta, secret, useRecovery);
+    } catch {
+      throw new Error("That passphrase or recovery key did not unlock your private data.");
+    }
+    setVaultKey(unlocked.dataKey); vaultKeyRef.current = unlocked.dataKey; vaultRawKeyRef.current = unlocked.rawDataKey;
+    setUserPublicKey(unlocked.userPublicKey); userPublicKeyRef.current = unlocked.userPublicKey;
+    setUserPrivateKey(unlocked.userPrivateKey); userPrivateKeyRef.current = unlocked.userPrivateKey;
+    await sset(vaultMetaStorageKey(sessionRef.current?.user?.id), vaultMeta);
+    if (authEnabled && supabase && sessionRef.current?.user?.id) {
+      try {
         const { error: metaError } = await supabase.from("member_data").upsert({
           user_id: sessionRef.current.user.id,
           encryption_meta: vaultMeta,
           updated_at: new Date().toISOString(),
         }, { onConflict: "user_id" });
-        if (metaError) throw metaError;
-      }
-      await migrateLocalPlaintext();
-      setVaultStatus("unlocked");
-      return true;
-    } catch (e) { throw new Error("That passphrase or recovery key did not unlock your private data."); }
+        if (metaError) console.warn("Vault unlocked locally; account metadata sync needs attention.", metaError);
+      } catch (e) { console.warn("Vault unlocked locally; account metadata sync needs attention.", e); }
+    }
+    try { await migrateLocalPlaintext(); } catch (e) { console.warn("Vault unlocked; local data migration will retry later.", e); }
+    setVaultStatus("unlocked");
+    return true;
   }, [vaultMeta, migrateLocalPlaintext]);
   const createPrivacyVault = useCallback(async (passphrase) => {
     const created = await createUserVault(passphrase);
