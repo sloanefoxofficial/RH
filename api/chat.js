@@ -19,6 +19,10 @@ export default async function handler(req, res) {
     const body =
       typeof req.body === "string" ? JSON.parse(req.body || "{}") : req.body || {};
     const { system, max_tokens } = body;
+    const MAX_IMAGES = 10;
+    const MAX_IMAGE_DATA_CHARS = 5_600_000; // approximately 4 MB decoded, before JSON overhead
+    let imageCount = 0;
+    let imageDataChars = 0;
 
     // Normalise messages so a malformed history can never cause an error for
     // one guide while another works: keep only valid turns, merge consecutive
@@ -31,7 +35,19 @@ export default async function handler(req, res) {
       let content;
       if (Array.isArray(m.content)) {
         if (!m.content.length) continue;
-        content = m.content;
+        content = m.content.map((block) => {
+          if (!block || block.type !== "image") return block;
+          const source = block.source || {};
+          const mediaType = source.media_type;
+          const data = typeof source.data === "string" ? source.data : "";
+          if (source.type !== "base64" || !/^image\/(jpeg|png|webp|gif)$/i.test(mediaType || "") || !data) {
+            throw new Error("invalid_image_block");
+          }
+          imageCount += 1;
+          imageDataChars += data.length;
+          if (imageCount > MAX_IMAGES || imageDataChars > MAX_IMAGE_DATA_CHARS) throw new Error("image_payload_too_large");
+          return { type: "image", source: { type: "base64", media_type: mediaType, data } };
+        });
       } else {
         const t = typeof m.content === "string" ? m.content.trim() : "";
         if (!t) continue;
@@ -80,6 +96,10 @@ export default async function handler(req, res) {
 
     res.status(200).json({ text });
   } catch (e) {
+    if (e && (e.message === "invalid_image_block" || e.message === "image_payload_too_large")) {
+      res.status(413).json({ error: e.message });
+      return;
+    }
     res.status(500).json({ error: "Failed to reach the model." });
   }
 }
