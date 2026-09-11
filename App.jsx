@@ -3416,6 +3416,43 @@ function AdminWelcomeEditor() {
 }
 
 /* ---------- user profile / control panel ---------- */
+const GUIDE_MAX_IMAGES = 10;
+const GUIDE_MAX_ORIGINAL_FILE_BYTES = 12 * 1024 * 1024;
+const GUIDE_MAX_TOTAL_DATA_BYTES = 4 * 1024 * 1024;
+const GUIDE_MAX_IMAGE_DIMENSION = 1400;
+
+function dataUrlByteLength(dataUrl) {
+  const comma = String(dataUrl || "").indexOf(",");
+  const raw = comma >= 0 ? String(dataUrl).slice(comma + 1) : String(dataUrl || "");
+  return Math.floor(raw.length * 0.75);
+}
+
+function resizeImageForGuide(file, max = GUIDE_MAX_IMAGE_DIMENSION, quality = 0.78) {
+  return new Promise((resolve, reject) => {
+    try {
+      const reader = new FileReader();
+      reader.onerror = () => reject(new Error("read_failed"));
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onerror = () => reject(new Error("image_failed"));
+        img.onload = () => {
+          const scale = Math.min(1, max / Math.max(img.width, img.height));
+          const w = Math.max(1, Math.round(img.width * scale));
+          const h = Math.max(1, Math.round(img.height * scale));
+          const canvas = document.createElement("canvas");
+          canvas.width = w; canvas.height = h;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) { reject(new Error("canvas_failed")); return; }
+          ctx.drawImage(img, 0, 0, w, h);
+          resolve(canvas.toDataURL("image/jpeg", quality));
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    } catch { reject(new Error("read_failed")); }
+  });
+}
+
 function resizeImage(file, max, cb) {
   try {
     const reader = new FileReader();
@@ -4712,9 +4749,11 @@ function PrivacyLink({ style, variant }) {
             {section("AI and voice services", <>When you ask an AI guide to reply, the relevant content is sent through our server to Anthropic so a response can be generated. When voice playback is requested, text may be sent through Fish Audio or Google Cloud Text-to-Speech, with browser speech as a fallback. These providers may process content under their own terms and retention practices. Do not enter information you are not comfortable sending to an AI or speech service.</>)}
             {section("Account, sign-in and notifications", <>The app uses Supabase authentication and database services. Email/password and Google sign-in may be available. “Stay logged in” controls session persistence; disable it on shared devices. The optional device-unlock setting is off by default and stores a device-wrapped key, not your passphrase. Push notification bodies are kept generic and should not contain journal text, message content, or crisis disclosures.</>)}
             {section("Who may access information", <>Authorised Resilience Hub staff may access support submissions that you deliberately send. Supabase, Vercel, Anthropic, Fish Audio, Google Cloud Text-to-Speech, authentication providers, push-notification infrastructure, and other service providers may process limited information needed to provide the app. We do not sell personal information or use it for advertising profiling. We may disclose information where required by law or needed to respond to an immediate safety risk.</>)}
-            {section("Deletion and retention", <>You can clear your app data from your Profile. The app attempts to remove encrypted account rows, support rows linked to your account, game progress, push subscriptions, local encrypted data, vault metadata, and associated screenshot objects. Deleted data may remain in provider backups, point-in-time recovery, disaster-recovery systems, device backups, or third-party provider systems for a limited period.</>)}
+            {section("Deletion and retention", <>You can clear your app data from your Profile. The app attempts to remove encrypted account rows, support rows linked to your account, game progress, push subscriptions, local encrypted data, vault metadata, and associated screenshot objects. Deleted data may remain in provider backups, point-in-time recovery, disaster-recovery systems, device backups, or third-party provider systems for a limited period. The team must confirm and publish the configured maximum backup/PITR period before release: <strong>[backup/PITR retention period to be confirmed]</strong>.</>)}
             {section("Your choices and questions", <>You can change optional profile details, manage guide memory, control voice and notification preferences, disable device vault unlock, clear app data, sign out, and contact the team about privacy or deletion requests. Never send a privacy passphrase, recovery key, private encryption key, or service secret to support. For urgent danger, call 000 or use Help Now.</>)}
-            
+            <div style={{ background: "#eef7f1", borderRadius: 15, padding: 13, marginTop: 2, fontSize: 12.5, color: T.sub, lineHeight: 1.5 }}>
+              <strong style={{ color: T.ink }}>Before public release:</strong> The Resilience Hub team should have this notice reviewed by a qualified Australian privacy lawyer and security adviser, confirm provider terms and cross-border handling, fill in the backup-retention period, and verify the final deletion and incident-response processes.
+            </div>
             <div style={{ marginTop: 14 }}><Btn onClick={() => setOpen(false)}>Close</Btn></div>
           </div>
         </div>
@@ -6273,7 +6312,7 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
   const [crisisActive, setCrisisActive] = useState(false);
   const scrollRef = useRef(null);
   const spoken = useRef(new Set());
-  const [pendingImage, setPendingImage] = useState(null); // { dataUrl, mediaType }
+  const [pendingImages, setPendingImages] = useState([]); // [{ dataUrl, mediaType, name, page }]
   const imgFileRef = useRef(null);
   const composerRef = useRef(null);
   const tapRef = useRef(null); // tracks pointer-down so a scroll drag isn't treated as a tap
@@ -6294,13 +6333,32 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
   const hiddenCount = Math.max(0, history.length - VISIBLE_TAIL);
   const visibleHistory = searchMatches ? searchMatches : (showAllHistory ? history : history.slice(-VISIBLE_TAIL));
 
-  const pickPhoto = (e) => {
-    const f = e.target.files && e.target.files[0];
-    if (!f) return;
-    if (!f.type || !f.type.startsWith("image/")) { setErr("Only photos are supported right now — not video or other files."); return; }
-    setErr(null);
-    resizeImage(f, 1280, (dataUrl) => setPendingImage({ dataUrl, mediaType: "image/jpeg" }));
+  const pickPhoto = async (e) => {
+    const files = Array.from(e.target.files || []);
     e.target.value = "";
+    if (!files.length) return;
+    const remaining = GUIDE_MAX_IMAGES - pendingImages.length;
+    if (remaining <= 0) { setErr(`You can attach up to ${GUIDE_MAX_IMAGES} pages at a time.`); return; }
+    const selected = files.slice(0, remaining);
+    if (files.length > remaining) setErr(`Only the first ${remaining} page${remaining === 1 ? "" : "s"} were added — the limit is ${GUIDE_MAX_IMAGES}.`);
+    else setErr(null);
+    const added = [];
+    let totalBytes = pendingImages.reduce((sum, item) => sum + dataUrlByteLength(item.dataUrl), 0);
+    for (const file of selected) {
+      if (!file.type || !file.type.startsWith("image/")) { setErr("Only image files are supported. Please choose photos or scanned pages."); continue; }
+      if (file.size > GUIDE_MAX_ORIGINAL_FILE_BYTES) { setErr(`${file.name || "That file"} is too large. Each original file must be 12 MB or smaller.`); continue; }
+      try {
+        const dataUrl = await resizeImageForGuide(file);
+        const bytes = dataUrlByteLength(dataUrl);
+        if (totalBytes + bytes > GUIDE_MAX_TOTAL_DATA_BYTES) {
+          setErr("Those pages are too large together. Please send fewer pages or choose lower-resolution images (4 MB combined after resizing). ");
+          break;
+        }
+        totalBytes += bytes;
+        added.push({ dataUrl, mediaType: "image/jpeg", name: file.name || `Page ${pendingImages.length + added.length + 1}` });
+      } catch { setErr(`I couldn't read ${file.name || "that image"}. Please try another photo.`); }
+    }
+    if (added.length) setPendingImages((prev) => [...prev, ...added]);
   };
 
   useEffect(() => { scrollRef.current?.scrollTo({ top: 1e6, behavior: 'smooth' }); }, [history, busy, showAllHistory]);
@@ -6318,16 +6376,16 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
 
   const send = async (raw, opts) => {
     const text = (raw ?? input).trim();
-    const img = pendingImage;
-    if ((!text && !img) || busy || sendLockRef.current) return;
+    const imgs = pendingImages;
+    if ((!text && !imgs.length) || busy || sendLockRef.current) return;
     const now = Date.now();
-    if (!img && text === lastSubmittedTextRef.current.text && now - lastSubmittedTextRef.current.at < 2500) {
+    if (!imgs.length && text === lastSubmittedTextRef.current.text && now - lastSubmittedTextRef.current.at < 2500) {
       voiceDebug("duplicate AI request ignored", text);
       return;
     }
     sendLockRef.current = true;
-    if (!img) lastSubmittedTextRef.current = { text, at: now };
-    if (!img && crisisLevel(text) === "immediate") {
+    if (!imgs.length) lastSubmittedTextRef.current = { text, at: now };
+    if (!imgs.length && crisisLevel(text) === "immediate") {
       stop(); setErr(null); setInput("");
       const crisisUser = { role: "user", content: text, ts: Date.now() };
       const crisisText = "I hear you, and I care. If you’re in danger or thinking about hurting yourself, please call Triple Zero — 000 — right away, or go to the nearest hospital or safe place. I’m still here with you, and you can tell me more while you reach out to someone who can be with you in person. You matter, and you don’t have to get through this alone.";
@@ -6352,9 +6410,14 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
     const effSpeed = (opts && opts.forceFast) ? "fast" : (responseSpeed || "normal");
     if (voiceOn && __autoReplyVoiceOn) { try { primeAudio(); } catch {} } // unlock audio inside the send tap so the reply can auto-speak
     stop(); // interrupt: a new message from the person always cuts the guide off
-    setErr(null); setInput(""); setPendingImage(null);
-    const userMsg = { role: "user", content: text || "(sent a photo)", ts: Date.now() };
-    if (img) { userMsg.image = img.dataUrl; userMsg.mediaType = img.mediaType; }
+    setErr(null); setInput(""); setPendingImages([]);
+    const userMsg = { role: "user", content: text || `(sent ${imgs.length} page${imgs.length === 1 ? "" : "s"})`, ts: Date.now() };
+    if (imgs.length) {
+      userMsg.images = imgs.map((item, i) => ({ ...item, page: i + 1 }));
+      // Keep the first image field for compatibility with older saved messages.
+      userMsg.image = imgs[0].dataUrl;
+      userMsg.mediaType = imgs[0].mediaType;
+    }
     const newHist = [...history, userMsg];
     setHistory(newHist);
     setBusy(true);
@@ -6404,12 +6467,18 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
         if (next) saveProgress({ ...progress, [next]: true });
       }
       let msgs = newHist.slice(-20).map((m) => {
-        if (m.role === "user" && m.image) {
-          const base64 = (m.image.split(",")[1] || "");
-          return { role: "user", content: [
-            { type: "image", source: { type: "base64", media_type: m.mediaType || "image/jpeg", data: base64 } },
-            { type: "text", text: m.content || "Here's a photo — what do you notice?" },
-          ] };
+        if (m.role === "user" && (Array.isArray(m.images) ? m.images.length : m.image)) {
+          const pages = Array.isArray(m.images) && m.images.length ? m.images : [{ dataUrl: m.image, mediaType: m.mediaType, page: 1 }];
+          const blocks = [];
+          pages.forEach((page, pageIndex) => {
+            const base64 = (String(page.dataUrl || "").split(",")[1] || "");
+            if (base64) {
+              blocks.push({ type: "text", text: `Document page ${page.page || pageIndex + 1} of ${pages.length}:` });
+              blocks.push({ type: "image", source: { type: "base64", media_type: page.mediaType || "image/jpeg", data: base64 } });
+            }
+          });
+          blocks.push({ type: "text", text: m.content || "Please review these document pages in upload order." });
+          return { role: "user", content: blocks };
         }
         return { role: m.role, content: m.content };
       });
@@ -6515,9 +6584,12 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
           const meta = m.role === "assistant" && m.tool ? TOOL_SUGGEST[m.tool] : null;
           return (
             <div key={idx} style={{ display: "flex", flexDirection: "column", alignItems: m.role === "user" ? "flex-end" : "flex-start" }}>
-              {m.image && (
-                <img src={m.image} alt="" style={{ maxWidth: "60%", borderRadius: 14, marginBottom: 6, boxShadow: T.soft, display: "block" }} />
-              )}
+              {(Array.isArray(m.images) ? m.images : (m.image ? [{ dataUrl: m.image, page: 1 }] : [])).map((page, pageIndex) => (
+                <div key={page.page || pageIndex} style={{ display: "flex", flexDirection: "column", alignItems: m.role === "user" ? "flex-end" : "flex-start" }}>
+                  <img src={page.dataUrl} alt={`Document page ${page.page || pageIndex + 1}`} style={{ maxWidth: "60%", maxHeight: 220, borderRadius: 14, marginBottom: 3, boxShadow: T.soft, display: "block", objectFit: "contain" }} />
+                  {((m.images && m.images.length > 1) || page.page) && <span style={{ fontSize: 10.5, color: T.sub, marginBottom: 5 }}>Page {page.page || pageIndex + 1}</span>}
+                </div>
+              ))}
               <div
                 onPointerDown={m.role === "assistant" ? (e) => { tapRef.current = { x: e.clientX, y: e.clientY, t: Date.now(), moved: false }; } : undefined}
                 onPointerMove={m.role === "assistant" ? (e) => { const s = tapRef.current; if (s && Math.abs(e.clientX - s.x) + Math.abs(e.clientY - s.y) > 8) s.moved = true; } : undefined}
@@ -6561,43 +6633,50 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
 
       {crisisActive && <CrisisInterception onDismiss={() => setCrisisActive(false)} />}
 
-      {pendingImage && (
-        <div style={{ display: "flex", alignItems: "center", gap: 10, background: T.card, borderRadius: 14,
-          padding: 8, boxShadow: T.soft, marginBottom: 8 }}>
-          <img src={pendingImage.dataUrl} alt="" style={{ width: 44, height: 44, borderRadius: 10, objectFit: "cover" }} />
-          <span style={{ flex: 1, fontSize: 13, color: T.sub }}>Photo ready to send</span>
-          <button onClick={() => setPendingImage(null)} aria-label="Remove photo"
-            style={{ background: "none", border: "none", color: T.sub, cursor: "pointer", padding: 6 }}>
-            <X size={16} />
-          </button>
+      {pendingImages.length > 0 && (
+        <div style={{ background: T.card, borderRadius: 14, padding: 10, boxShadow: T.soft, marginBottom: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+            <span style={{ flex: 1, fontSize: 13, color: T.sub, fontWeight: 700 }}>{pendingImages.length} page{pendingImages.length === 1 ? "" : "s"} ready to send</span>
+            <span style={{ fontSize: 10.5, color: T.sub }}>Up to {GUIDE_MAX_IMAGES}</span>
+            <button onClick={() => setPendingImages([])} aria-label="Remove all pages" style={{ background: "none", border: "none", color: T.sub, cursor: "pointer", padding: 4, fontSize: 11 }}>Clear</button>
+          </div>
+          <div style={{ display: "flex", gap: 7, overflowX: "auto", paddingBottom: 2 }}>
+            {pendingImages.map((page, pageIndex) => (
+              <div key={`${page.name}-${pageIndex}`} style={{ position: "relative", flex: "0 0 auto" }}>
+                <img src={page.dataUrl} alt={`Page ${pageIndex + 1}`} style={{ width: 54, height: 54, borderRadius: 9, objectFit: "cover", border: `1px solid ${T.line}` }} />
+                <span style={{ position: "absolute", left: 3, bottom: 3, background: "rgba(36,66,56,.82)", color: "#fff", borderRadius: 5, padding: "1px 4px", fontSize: 9 }}>{pageIndex + 1}</span>
+                <button onClick={() => setPendingImages((prev) => prev.filter((_, i) => i !== pageIndex))} aria-label={`Remove page ${pageIndex + 1}`} style={{ position: "absolute", right: -5, top: -5, width: 19, height: 19, borderRadius: "50%", border: "1px solid #fff", background: "#c54848", color: "#fff", display: "grid", placeItems: "center", cursor: "pointer", padding: 0 }}><X size={11} /></button>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
       <div style={{ display: "flex", alignItems: "flex-end", gap: 8, paddingTop: 6 }}>
         <HoldToTalk onText={(t) => send(t)} onStart={stop} size={48} />
-        <button onClick={() => imgFileRef.current && imgFileRef.current.click()} aria-label="Attach a photo" title="Attach a photo"
+        <button onClick={() => imgFileRef.current && imgFileRef.current.click()} aria-label={`Attach up to ${GUIDE_MAX_IMAGES} document pages`} title={`Attach up to ${GUIDE_MAX_IMAGES} document pages`}
           style={{ width: 44, height: 44, borderRadius: "50%", border: `1px solid ${T.line}`, background: "#fff",
             display: "grid", placeItems: "center", cursor: "pointer", color: T.ink, flexShrink: 0 }}>
           <Paperclip size={18} />
         </button>
-        <input ref={imgFileRef} type="file" accept="image/*" onChange={pickPhoto} style={{ display: "none" }} />
+        <input ref={imgFileRef} type="file" accept="image/*" multiple onChange={pickPhoto} style={{ display: "none" }} />
         <textarea ref={composerRef} value={input} onChange={(e) => setInput(e.target.value)} rows={1}
           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
-          placeholder={pendingImage ? "Say something about the photo (optional)…" : `Message ${char.name}…`}
+          placeholder={pendingImages.length ? "Say something about these pages (optional)…" : `Message ${char.name}…`}
           style={{ flex: 1, resize: "none", borderRadius: 16, border: `1px solid ${T.line}`, padding: "12px 14px",
             fontSize: 15, lineHeight: 1.45, minHeight: 48, maxHeight: 260, overflowY: "auto", background: "#fff", color: T.ink,
             outline: "none", fontFamily: "inherit" }} />
-        <button onClick={() => send(undefined, { forceFast: true })} disabled={(!input.trim() && !pendingImage) || busy}
+        <button onClick={() => send(undefined, { forceFast: true })} disabled={(!input.trim() && !pendingImages.length) || busy}
           aria-label="Fast Reply — send this message and get a quick, direct answer" title="Fast Reply — quick, direct answer just for this message"
           style={{ height: 48, borderRadius: "50%", width: 48, border: `1px solid ${T.line}`, background: "#fff", color: T.blueDk,
-            display: "grid", placeItems: "center", cursor: (input.trim() || pendingImage) ? "pointer" : "default",
-            opacity: (input.trim() || pendingImage) ? 1 : 0.5, boxShadow: T.soft, flexShrink: 0 }}>
+            display: "grid", placeItems: "center", cursor: (input.trim() || pendingImages.length) ? "pointer" : "default",
+            opacity: (input.trim() || pendingImages.length) ? 1 : 0.5, boxShadow: T.soft, flexShrink: 0 }}>
           <Zap size={18} />
         </button>
-        <button onClick={() => send()} disabled={(!input.trim() && !pendingImage) || busy} aria-label="Send"
+        <button onClick={() => send()} disabled={(!input.trim() && !pendingImages.length) || busy} aria-label="Send"
           style={{ width: 48, height: 48, borderRadius: "50%", border: "none", background: T.green, color: "#fff",
-            display: "grid", placeItems: "center", cursor: (input.trim() || pendingImage) ? "pointer" : "default",
-            opacity: (input.trim() || pendingImage) ? 1 : 0.5, boxShadow: T.soft, flexShrink: 0 }}>
+            display: "grid", placeItems: "center", cursor: (input.trim() || pendingImages.length) ? "pointer" : "default",
+            opacity: (input.trim() || pendingImages.length) ? 1 : 0.5, boxShadow: T.soft, flexShrink: 0 }}>
           <Send size={18} />
         </button>
       </div>
