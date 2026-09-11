@@ -555,6 +555,10 @@ export default function App() {
   }, [authChecked, vaultStatus]);
 
   useEffect(() => {
+    if (vaultStatus !== "unlocked") setDataHydrated(false);
+  }, [vaultStatus, session]);
+
+  useEffect(() => {
     let cancelled = false;
     (async () => {
       const enabled = (await sget("rh_device_unlock_enabled")) === true;
@@ -1068,12 +1072,14 @@ export default function App() {
           <div style={{ paddingTop: 120, textAlign: "center", color: T.sub }}>Loading…</div>
         ) : showAuth && !session ? (
           <Login onGuest={() => setGuestMode(true)} stayLoggedIn={stayLoggedIn} onStayLoggedInChange={changeStayLoggedIn} />
-        ) : !ready || !dataHydrated ? (
+        ) : !ready ? (
           <div style={{ paddingTop: 120, textAlign: "center", color: T.sub }}>Warming up…</div>
         ) : !consented ? (
           <Consent onAgree={() => { sset("rh_consent", { agreedAt: Date.now() }); setConsented(true); }} />
         ) : vaultStatus !== "unlocked" ? (
           <PrivacyVaultGate status={vaultStatus} onCreate={createPrivacyVault} onUnlock={unlockPrivacyVault} deviceUnlockEnabled={deviceUnlockEnabled} onSetDeviceUnlock={setDeviceUnlockPreference} />
+        ) : !dataHydrated ? (
+          <div style={{ paddingTop: 120, textAlign: "center", color: T.sub }}>Warming up…</div>
         ) : screen === "welcome" ? (
           <Welcome
             voiceOn={voiceOn} setVoiceOn={setVoiceOn}
