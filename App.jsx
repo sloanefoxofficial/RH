@@ -498,6 +498,22 @@ export default function App() {
     if (!next) await disableDeviceUnlock();
   }, []);
 
+  const startFreshVaultAfterLossConfirmation = useCallback(async () => {
+    const uid = sessionRef.current?.user?.id;
+    // This path is only exposed after the missing-metadata warning and an
+    // explicit typed confirmation. It intentionally discards ciphertext that
+    // cannot be decrypted, then starts a genuinely new empty vault.
+    try {
+      if (authEnabled && supabase && uid) {
+        await supabase.from("member_data").update({ profile: null, answers: null, plan: null, progress: {}, journal: [], encryption_meta: null, updated_at: new Date().toISOString() }).eq("user_id", uid);
+      }
+    } catch (e) { throw new Error("We couldn't reset the unrecoverable vault just now. Nothing was changed."); }
+    try { localStorage.removeItem(vaultMetaStorageKey(uid)); localStorage.removeItem("rh_vault_meta"); } catch {}
+    setVaultMeta(null); setVaultKey(null); vaultKeyRef.current = null; vaultRawKeyRef.current = null;
+    setUserPublicKey(null); userPublicKeyRef.current = null; setUserPrivateKey(null); userPrivateKeyRef.current = null;
+    setVaultStatus("needs_setup");
+  }, []);
+
   const exportVaultRecoveryPackage = useCallback(() => {
     if (!vaultMeta || vaultMeta.v !== 1) throw new Error("Unlock your private vault before creating a recovery package.");
     const payload = {
@@ -1123,7 +1139,7 @@ export default function App() {
         ) : !consented ? (
           <Consent onAgree={() => { sset("rh_consent", { agreedAt: Date.now() }); setConsented(true); }} />
         ) : vaultStatus !== "unlocked" ? (
-          <PrivacyVaultGate status={vaultStatus} onCreate={createPrivacyVault} onUnlock={unlockPrivacyVault} deviceUnlockEnabled={deviceUnlockEnabled} onSetDeviceUnlock={setDeviceUnlockPreference} />
+          <PrivacyVaultGate status={vaultStatus} onCreate={createPrivacyVault} onUnlock={unlockPrivacyVault} onStartFreshVault={startFreshVaultAfterLossConfirmation} deviceUnlockEnabled={deviceUnlockEnabled} onSetDeviceUnlock={setDeviceUnlockPreference} />
         ) : !dataHydrated ? (
           <div style={{ paddingTop: 120, textAlign: "center", color: T.sub }}>Warming up…</div>
         ) : screen === "welcome" ? (
@@ -4888,7 +4904,7 @@ function PrivacyLink({ style, variant }) {
   );
 }
 
-function PrivacyVaultGate({ status, onCreate, onUnlock, deviceUnlockEnabled = false, onSetDeviceUnlock }) {
+function PrivacyVaultGate({ status, onCreate, onUnlock, onStartFreshVault, deviceUnlockEnabled = false, onSetDeviceUnlock }) {
   const [mode, setMode] = useState(status === "needs_setup" ? "create" : "unlock");
   const [passphrase, setPassphrase] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -4899,6 +4915,10 @@ function PrivacyVaultGate({ status, onCreate, onUnlock, deviceUnlockEnabled = fa
   const [error, setError] = useState("");
   const [recovery, setRecovery] = useState("");
   const [keepDeviceUnlocked, setKeepDeviceUnlocked] = useState(deviceUnlockEnabled);
+  const [confirmFreshVault, setConfirmFreshVault] = useState(false);
+  const [freshVaultText, setFreshVaultText] = useState("");
+  const [freshVaultBusy, setFreshVaultBusy] = useState(false);
+  useEffect(() => { if (status === "needs_setup") setMode("create"); }, [status]);
   const submit = async () => {
     setError("");
     if (mode === "create" && passphrase !== confirm) { setError("The passphrases do not match."); return; }
@@ -4919,11 +4939,19 @@ function PrivacyVaultGate({ status, onCreate, onUnlock, deviceUnlockEnabled = fa
           This account already has a private vault, or we could not safely verify its vault record just now. We will not create a new vault here, because that could make the existing encrypted data appear to disappear.
         </p>
         {status === "account_vault_missing" ? (
-          <p style={{ color: "#7d4b2a", lineHeight: 1.55, fontWeight: 700 }}>Please sign in on the device where you first created the vault and unlock it once, then return to this device. If you no longer have that device, contact the Resilience Hub team before creating or resetting anything.</p>
+          <>
+            <p style={{ color: "#7d4b2a", lineHeight: 1.55, fontWeight: 700 }}>The account has encrypted data but no usable vault metadata. We will not create a replacement silently.</p>
+            <button onClick={() => setConfirmFreshVault((v) => !v)} style={{ width: "100%", marginTop: 10, border: 0, borderRadius: 14, padding: "13px 16px", background: T.greenDk, color: "#fff", fontWeight: 800, cursor: "pointer" }}>{confirmFreshVault ? "Hide fresh-vault option" : "I have checked recovery options"}</button>
+            {confirmFreshVault && <div style={{ marginTop: 12, background: "#fff0ef", border: "1px solid #e5b8b3", borderRadius: 14, padding: 13 }}>
+              <p style={{ color: "#8d3f38", lineHeight: 1.5, fontWeight: 700, margin: "0 0 10px" }}>Starting a new vault permanently abandons the existing encrypted data. This cannot be undone. Only continue if the old data is not needed or all recovery options have been checked.</p>
+              <input value={freshVaultText} onChange={(e) => setFreshVaultText(e.target.value)} placeholder="Type START NEW VAULT" aria-label="Type START NEW VAULT to confirm" style={{ ...inputStyle, width: "100%", boxSizing: "border-box", marginBottom: 9 }} />
+              <button disabled={freshVaultBusy || freshVaultText !== "START NEW VAULT"} onClick={async () => { setFreshVaultBusy(true); setError(""); try { await onStartFreshVault?.(); } catch (e) { setError(e?.message || "We couldn't start a new vault."); } finally { setFreshVaultBusy(false); } }} style={{ width: "100%", border: 0, borderRadius: 14, padding: "13px 16px", background: "#8d3f38", color: "#fff", fontWeight: 800, cursor: freshVaultBusy ? "default" : "pointer", opacity: freshVaultBusy || freshVaultText !== "START NEW VAULT" ? .55 : 1 }}>{freshVaultBusy ? "Resetting…" : "Start a new empty vault"}</button>
+            </div>}
+          </>
         ) : (
           <p style={{ color: "#7d4b2a", lineHeight: 1.55, fontWeight: 700 }}>Please check your connection and try again. Your passphrase has not been changed, and no new vault was created.</p>
         )}
-        <button onClick={() => window.location.reload()} style={{ width: "100%", marginTop: 8, border: 0, borderRadius: 14, padding: "13px 16px", background: T.greenDk, color: "#fff", fontWeight: 800, cursor: "pointer" }}>Check again</button>
+        {status !== "account_vault_missing" && <button onClick={() => window.location.reload()} style={{ width: "100%", marginTop: 8, border: 0, borderRadius: 14, padding: "13px 16px", background: T.greenDk, color: "#fff", fontWeight: 800, cursor: "pointer" }}>Check again</button>}
       </div>
     </div>
   );
