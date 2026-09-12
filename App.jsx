@@ -3068,7 +3068,11 @@ function Login({ onGuest, stayLoggedIn = true, onStayLoggedInChange }) {
             tools whenever you need them. It's a support tool — not a replacement for a doctor,
             psychologist, or emergency service.
           </p>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <div style={{ marginTop: 14, padding: "12px 13px", borderRadius: 15, background: "linear-gradient(135deg, #f2faf4, #fffaf0)", border: "1px solid rgba(77,159,104,0.18)" }}>
+            <div style={{ fontWeight: 800, fontSize: 13.5, color: T.ink, marginBottom: 4 }}>A quick update from The Resilience Hub</div>
+            <div style={{ fontSize: 12.5, color: T.sub, lineHeight: 1.45 }}>We’ve made privacy, account-access, and reliability improvements. If anything seems unusual, please contact us rather than repeatedly resetting your account or clearing browser data.</div>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 14 }}>
             {[
               { Icon: MessageCircle, label: "AI guides, any time" },
               { Icon: CalendarCheck, label: "An optional 8-week plan" },
@@ -3127,6 +3131,15 @@ function Login({ onGuest, stayLoggedIn = true, onStayLoggedInChange }) {
               </button>
             </div>
           )}
+          <div style={{ marginTop: 16, padding: "13px 14px", borderRadius: 16, background: "#fff", border: `1px solid ${T.line}` }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 800, fontSize: 13.5, color: T.ink }}><LifeBuoy size={17} color={T.greenDk} /> Having trouble signing in?</div>
+            <div style={{ fontSize: 12.5, color: T.sub, lineHeight: 1.45, margin: "5px 0 9px" }}>Please contact us straight away. Never send your password, Journal PIN, or recovery answer.</div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              <a href="mailto:resiliencehubnsw@gmail.com?subject=Help%20signing%20in%20to%20The%20Resilience%20Hub" style={{ flex: "1 1 150px", textAlign: "center", textDecoration: "none", borderRadius: 999, padding: "9px 11px", background: "#eaf5ef", color: T.greenDk, fontWeight: 800, fontSize: 12.5 }}>Email us</a>
+              <a href="sms:0416862289?body=Hi%20Resilience%20Hub%20team%2C%20I%27m%20having%20trouble%20signing%20in." style={{ flex: "1 1 150px", textAlign: "center", textDecoration: "none", borderRadius: 999, padding: "9px 11px", background: "#fff5d9", color: "#765b1c", fontWeight: 800, fontSize: 12.5 }}>Text 0416 862 289</a>
+            </div>
+            <div style={{ textAlign: "center", color: T.sub, fontSize: 11, marginTop: 7 }}>Text only — no calls</div>
+          </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "2px 0 14px", color: T.sub, fontSize: 12 }}>
           <div style={{ flex: 1, height: 1, background: T.line }} /> or <div style={{ flex: 1, height: 1, background: T.line }} />
