@@ -573,18 +573,23 @@ export default function App() {
           return;
         }
 
-        const { data, error } = await supabase.from("member_data")
-          .select("encryption_meta,profile,answers,plan,progress,journal,journal_pin_hash,journal_pin_question,journal_pin_answer_hash")
+        const { data: baseData, error } = await supabase.from("member_data")
+          .select("encryption_meta,profile,answers,plan,progress,journal")
           .eq("user_id", session.user.id).maybeSingle();
         if (cancelled) return;
         if (error) {
-          // Fail closed: do not offer new-vault setup when the account could
-          // not be checked. A temporary database error must not become a way
-          // around the established passphrase.
+          // Fail closed only when the account itself cannot be read. Optional
+          // Journal PIN columns must not turn a clean account into a vault
+          // lockout when the migration has not yet been run.
           if (localMeta?.v === 1) { setVaultMeta(localMeta); setVaultStatus("locked"); }
           else setVaultStatus("account_vault_unavailable");
           return;
         }
+        let data = baseData || null;
+        const { data: pinData } = await supabase.from("member_data")
+          .select("journal_pin_hash,journal_pin_question,journal_pin_answer_hash")
+          .eq("user_id", session.user.id).maybeSingle();
+        if (pinData) data = { ...(data || {}), ...pinData };
 
         if (data?.journal_pin_hash) { setJournalPinHash(data.journal_pin_hash); setJournalPinQuestion(data.journal_pin_question || ""); setJournalPinAnswerHash(data.journal_pin_answer_hash || null); setJournalPinSet(true); }
         setAccountData(data || null);
