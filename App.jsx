@@ -367,6 +367,33 @@ const CARLOS_BOOKS = [
 ];
 
 /* ================================================================== */
+class ScreenErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { error };
+  }
+  componentDidCatch(error) {
+    try { console.error("Resilience Hub screen error", error); } catch {}
+  }
+  render() {
+    if (!this.state.error) return this.props.children;
+    const onHome = this.props.onHome;
+    return (
+      <div style={{ minHeight: "70vh", display: "grid", placeItems: "center", padding: 24 }}>
+        <div style={{ maxWidth: 420, width: "100%", background: "#fff", border: `1px solid ${T.line}`, borderRadius: 22, padding: 22, boxShadow: T.lift, textAlign: "center" }}>
+          <div style={{ fontSize: 38, marginBottom: 10 }}>Rex is helping us reset</div>
+          <h2 style={{ margin: "0 0 8px", color: T.ink }}>That page hit a snag</h2>
+          <p style={{ color: T.sub, lineHeight: 1.5, fontSize: 14 }}>Nothing has been deleted. Try the Hub again, or reload the app if this continues.</p>
+          <button onClick={() => { this.setState({ error: null }); onHome?.(); }} style={{ background: T.green, color: "#fff", border: "none", borderRadius: 999, padding: "11px 18px", fontWeight: 800, cursor: "pointer" }}>Back to Home</button>
+        </div>
+      </div>
+    );
+  }
+}
+
 export default function App() {
   const [ready, setReady] = useState(false);
   const [dataHydrated, setDataHydrated] = useState(false);
@@ -1209,6 +1236,7 @@ export default function App() {
             onDone={(result) => { const landing = Boolean(result?.createdPlan && onbFromSignup); setPlanSignupLanding(landing); setOnbFromSignup(false); go(result?.createdPlan ? "program" : onbReturn); }}
           />
         ) : screen === "hub" ? (
+          <ScreenErrorBoundary onHome={() => setScreen("hub")}>
           <Hub
             profile={profile} plan={plan} progress={progress} saveProgress={saveProgress}
             journalCount={journal.length} voiceOn={voiceOn} setVoiceOn={setVoiceOn}
@@ -1247,6 +1275,7 @@ export default function App() {
             answers={answers}
             rexPersona={guidePrompts.rex ?? PERSONALITY_DEFAULTS.rex}
           />
+          </ScreenErrorBoundary>
         ) : screen === "program" ? (
           <ProgramPage
             profile={profile} plan={plan} progress={progress} saveProgress={saveProgress}
