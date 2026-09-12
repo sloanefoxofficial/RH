@@ -747,7 +747,13 @@ export default function App() {
           if (data?.length) { const merged = { ...PERSONALITY_DEFAULTS }; data.forEach((r) => { if (r.slug && typeof r.notes === "string") merged[r.slug] = r.notes; }); setGuidePrompts(merged); }
         } catch {}
       }
-      if (resolvedProfile?.onboardingComplete) setScreen("hub");
+      let returnToChaptly = false;
+      try {
+        returnToChaptly = sessionStorage.getItem("rh_return_to_chaptly") === "1";
+        if (returnToChaptly) sessionStorage.removeItem("rh_return_to_chaptly");
+      } catch {}
+      if (returnToChaptly) setScreen("chaptly");
+      else if (resolvedProfile?.onboardingComplete) setScreen("hub");
       else if (resolvedProfile?.path === "full") setScreen("onboarding");
       else setScreen("welcome");
       setDataHydrated(true);
@@ -7600,6 +7606,7 @@ function CarlosLibraryPage({ onBack }) {
 function ChaptlyPage({ onBack }) {
   const openExternal = (event, href) => {
     event.preventDefault();
+    try { sessionStorage.setItem("rh_return_to_chaptly", "1"); } catch {}
     window.open(href, "_blank", "noopener,noreferrer");
   };
   const storeButton = (href, label, icon, accent) => (
