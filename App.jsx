@@ -626,13 +626,13 @@ export default function App() {
         // account-scoped local metadata. It is the metadata that matches the
         // encrypted local cache. On a new device there is no local copy, so the
         // account record remains the source of truth.
-        const localFields = await Promise.all(["rh_profile", "rh_answers", "rh_plan", "rh_progress", "rh_journal"].map((key) => sget(key)));
-        const hasLocalEncryptedData = localFields.some((value) => isEncrypted(value));
-        const hasExistingData = ["profile", "answers", "plan", "progress", "journal"]
-          .some((field) => data?.[field] !== null && data?.[field] !== undefined);
-        const hasLegacyEncryptedData = ["profile", "answers", "plan", "progress", "journal"]
-          .some((field) => isEncrypted(data?.[field])) || hasLocalEncryptedData;
-        const preferredMeta = remoteMeta?.v === 1 ? remoteMeta : (hasLocalEncryptedData && localMeta?.v === 1 ? localMeta : null);
+        // For authenticated accounts, Supabase is authoritative. Old encrypted
+        // values left in this browser must not turn a clean/plain account back
+        // into a vault lockout after migration or browser restoration.
+        const hasServerEncryptedData = ["profile", "answers", "plan", "progress", "journal"]
+          .some((field) => isEncrypted(data?.[field]));
+        const hasLegacyEncryptedData = hasServerEncryptedData;
+        const preferredMeta = remoteMeta?.v === 1 ? remoteMeta : (hasServerEncryptedData && localMeta?.v === 1 ? localMeta : null);
         if (preferredMeta?.v === 1) {
           await sset(vaultMetaStorageKey(session.user.id), preferredMeta);
           if (!cancelled) { setVaultMeta(preferredMeta); setVaultStatus("locked"); }
