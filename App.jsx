@@ -6320,6 +6320,7 @@ function ResourcesIcon({ size = 24, color = "currentColor", strokeWidth = 2.2 })
 }
 
 function RexHubTour({ voiceOn, onOpenJournal, onOpenProgram, onOpenSafety, onOpenResources, onOpenProfile }) {
+  const { speak, stop } = useVoice(voiceOn);
   const steps = [
     { title: "Welcome to your Hub", text: "Hey, mate — I’m Rex. I’ll give you a quick, calm look around. You can skip this any time.", icon: Heart, tint: "#e6f6ea", color: T.greenDk },
     { title: "Your Private Journal", text: "This is your PIN-protected space to write, reflect, or capture a fleeting thought. Take your time — there’s no right or wrong way to use it.", icon: BookOpen, tint: "#fff5d9", color: "#947019", action: onOpenJournal, actionLabel: "Open Journal" },
@@ -6501,7 +6502,9 @@ function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, set
         <ChevronRight size={20} color={T.sub} />
       </button>
 
-      <RexHubTour voiceOn={voiceOn} onOpenJournal={onOpenJournal} onOpenProgram={onOpenProgram} onOpenSafety={onOpenSafety} onOpenResources={onOpenResources} onOpenProfile={onOpenProfile} />
+      {/* The optional inline tour is intentionally not mounted here. The full
+          Watch Rex’s Tutorial page remains available, while the essential Hub
+          must never depend on tour voice/runtime code. */}
 
       <button onClick={onOpenRexTutorial} aria-label="Watch Rex’s Tutorial: learn how The Resilience Hub works" style={{ width: "100%", textAlign: "left", cursor: "pointer", border: "1px solid rgba(77,159,104,0.18)", background: "linear-gradient(135deg, #f0fbf2 0%, #ffffff 56%, #fff4e8 100%)", borderRadius: 20, padding: 15, boxShadow: T.soft, marginTop: 10, display: "flex", alignItems: "center", gap: 13 }}>
         <div style={{ width: 50, height: 50, borderRadius: 16, background: "linear-gradient(145deg, #9bd2a8, #fff7ed)", display: "grid", placeItems: "center", flexShrink: 0, overflow: "hidden" }}><Play size={24} color={T.greenDk} /></div>
