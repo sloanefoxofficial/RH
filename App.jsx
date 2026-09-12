@@ -387,6 +387,7 @@ class ScreenErrorBoundary extends React.Component {
           <div style={{ fontSize: 38, marginBottom: 10 }}>Rex is helping us reset</div>
           <h2 style={{ margin: "0 0 8px", color: T.ink }}>That page hit a snag</h2>
           <p style={{ color: T.sub, lineHeight: 1.5, fontSize: 14 }}>Nothing has been deleted. Try the Hub again, or reload the app if this continues.</p>
+          {this.state.error?.message && <div style={{ margin: "10px 0 14px", padding: "8px 10px", borderRadius: 10, background: "#fff5f4", color: "#8a3d38", fontSize: 11.5, textAlign: "left", overflowWrap: "anywhere" }}>Technical detail: {this.state.error.message}</div>}
           <button onClick={() => { this.setState({ error: null }); onHome?.(); }} style={{ background: T.green, color: "#fff", border: "none", borderRadius: 999, padding: "11px 18px", fontWeight: 800, cursor: "pointer" }}>Back to Home</button>
         </div>
       </div>
