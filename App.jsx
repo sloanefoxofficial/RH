@@ -593,16 +593,18 @@ export default function App() {
         // account-scoped local metadata. It is the metadata that matches the
         // encrypted local cache. On a new device there is no local copy, so the
         // account record remains the source of truth.
-        const preferredMeta = localMeta?.v === 1 ? localMeta : remoteMeta;
+        const localFields = await Promise.all(["rh_profile", "rh_answers", "rh_plan", "rh_progress", "rh_journal"].map((key) => sget(key)));
+        const hasLocalEncryptedData = localFields.some((value) => isEncrypted(value));
+        const hasExistingData = ["profile", "answers", "plan", "progress", "journal"]
+          .some((field) => data?.[field] !== null && data?.[field] !== undefined);
+        const hasLegacyEncryptedData = ["profile", "answers", "plan", "progress", "journal"]
+          .some((field) => isEncrypted(data?.[field])) || hasLocalEncryptedData;
+        const preferredMeta = remoteMeta?.v === 1 ? remoteMeta : (hasLocalEncryptedData && localMeta?.v === 1 ? localMeta : null);
         if (preferredMeta?.v === 1) {
           await sset(vaultMetaStorageKey(session.user.id), preferredMeta);
           if (!cancelled) { setVaultMeta(preferredMeta); setVaultStatus("locked"); }
           return;
         }
-        const hasExistingData = ["profile", "answers", "plan", "progress", "journal"]
-          .some((field) => data?.[field] !== null && data?.[field] !== undefined);
-        const hasLegacyEncryptedData = ["profile", "answers", "plan", "progress", "journal"]
-          .some((field) => isEncrypted(data?.[field]));
         if (localMeta?.v === 1 && hasLegacyEncryptedData) {
           // Older builds may have created a local vault before metadata syncing
           // existed. Let the original device unlock it, then repair the account
