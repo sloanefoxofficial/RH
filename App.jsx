@@ -33,7 +33,7 @@ const T = {
 const SCREEN_BACK_LABELS = {
   welcome: "Welcome", hub: "Home", rexTutorial: "Home", onboarding: "Get Started", program: "8-Week Plan",
   guides: "Guides", chat: "Guide Chat", toolkit: "Toolkit", journal: "Private Journal",
-  resources: "Hub", supportUs: "Hub", games: "Games & Puzzles", merch: "Sloane Fox Merch",
+  resources: "Hub", supportUs: "Hub", chaptly: "Hub", games: "Games & Puzzles", merch: "Sloane Fox Merch",
   carlosLibrary: "Carlos Library", programInfo: "Program", bookAppointment: "Program",
   mensShed: "Men’s Shed", mensGroup: "Men’s Group", settings: "Settings", profile: "Profile",
   memory: "Profile", notifications: "Home", coordinator: "Message Juan", admin: "Admin",
@@ -1251,6 +1251,7 @@ export default function App() {
             onOpenGames={() => go("games")}
             onOpenToolkit={() => { setToolkitInitial(null); go("toolkit"); }}
             onOpenResources={() => go("resources")}
+            onOpenChaptly={() => go("chaptly")}
             onOpenSupportUs={() => go("supportUs")}
             onOpenSafety={() => openTool("safety")}
             onOpenNotifications={() => go("notifications")}
@@ -1328,6 +1329,8 @@ export default function App() {
           <Toolkit voiceOn={voiceOn} speechLang={speechLang} initial={toolkitInitial} onUseTool={tickToolTask} onOpenJournal={() => { if (planOriginRef.current) openPlanDestination("journal"); else go("journal"); }} onOpenGames={() => go("games")} onBack={planOriginRef.current ? returnToPlan : back} />
         ) : screen === "resources" ? (
           <ResourcesPage onOpenSafety={() => openTool("safety")} onOpenMensShed={() => go("mensShed")} onBack={back} />
+        ) : screen === "chaptly" ? (
+          <ChaptlyPage onBack={() => { histRef.current = []; __backDestinationLabel = "Home"; setScreen("hub"); }} />
         ) : screen === "supportUs" ? (
           <SupportUsPage onOpenMerch={() => go("merch")} onOpenCarlosLibrary={() => go("carlosLibrary")} onBack={back} />
         ) : screen === "admin" ? (
@@ -6379,7 +6382,7 @@ function RexHubTour({ voiceOn, onOpenJournal, onOpenProgram, onOpenSafety, onOpe
   );
 }
 
-function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, setVoiceOn, onOpenChat, onOpenRexTutorial, onOpenProgram, onOpenJournal, onOpenGuides, onOpenMerch, onOpenCarlosLibrary, onOpenGames, onOpenToolkit, onOpenResources, onOpenSupportUs, onOpenSafety, onOpenNotifications, onOpenCoordinator, onOpenSettings, onOpenMensGroup, onOpenMensShed, onOpenAdminMessages, onOpenProgramInfo, onReset, isAdmin, authEnabled, guestMode, onExitGuest, onOpenAdmin, onOpenProfile, onSignOut, session, rexHistory, onSaveRexChat, memories, onConversation, answers, rexPersona }) {
+function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, setVoiceOn, onOpenChat, onOpenRexTutorial, onOpenProgram, onOpenJournal, onOpenGuides, onOpenMerch, onOpenCarlosLibrary, onOpenGames, onOpenToolkit, onOpenResources, onOpenChaptly, onOpenSupportUs, onOpenSafety, onOpenNotifications, onOpenCoordinator, onOpenSettings, onOpenMensGroup, onOpenMensShed, onOpenAdminMessages, onOpenProgramInfo, onReset, isAdmin, authEnabled, guestMode, onExitGuest, onOpenAdmin, onOpenProfile, onSignOut, session, rexHistory, onSaveRexChat, memories, onConversation, answers, rexPersona }) {
   const { speak, stop, speaking } = useVoice(voiceOn);
   const [notifRefresh, setNotifRefresh] = useState(0);
   const [shareMsg, setShareMsg] = useState("");
@@ -6556,6 +6559,12 @@ function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, set
       </div>
 
       <div className="rh-hub-card-stack" style={{ display: "flex", flexDirection: "column", gap: 11, marginTop: 11 }}>
+        <button onClick={onOpenChaptly} aria-label="Open Chaptly partner information" style={{ width: "100%", background: "linear-gradient(135deg, #fff1f1 0%, #fff8f6 55%, #fff3df 100%)", border: "1px solid rgba(238,62,66,0.22)", borderRadius: 24, padding: 14, boxShadow: "0 10px 24px rgba(205,55,58,0.12)", cursor: "pointer", display: "flex", alignItems: "center", gap: 13, textAlign: "left", position: "relative", overflow: "hidden" }}>
+          <div style={{ position: "absolute", width: 170, height: 170, borderRadius: "50%", right: -65, top: -80, background: "rgba(255,255,255,0.6)" }} />
+          <div style={{ width: 76, height: 60, borderRadius: 17, overflow: "hidden", flexShrink: 0, background: "#ff3341", boxShadow: "0 8px 16px rgba(205,55,58,0.18)", position: "relative" }}><img src="/partners/chaptly-main-logo.jpg" alt="Chaptly" style={{ width: "100%", height: "100%", objectFit: "cover" }} /></div>
+          <div style={{ flex: 1, minWidth: 0, position: "relative" }}><div style={{ color: "#c33238", fontSize: 10, fontWeight: 900, letterSpacing: 1, marginBottom: 3 }}>NEW PARTNER</div><div style={{ fontWeight: 850, fontSize: 18, color: "#3f2528" }}>Chaptly</div><div style={{ fontSize: 13, color: "#78585a", lineHeight: 1.42, marginTop: 3 }}>Trauma-informed recovery support, made into gentle daily quests</div></div>
+          <ChevronRight size={24} color="#d33d42" style={{ position: "relative", flexShrink: 0 }} />
+        </button>
         <button onClick={onOpenResources} aria-label="Open Support Directory" style={{ width: "100%", background: "linear-gradient(135deg, #e8f2fb 0%, #f8fbff 52%, #e5f6f1 100%)", border: "1px solid rgba(63,126,158,0.22)", borderRadius: 24, padding: 18, boxShadow: "0 10px 24px rgba(63,126,158,0.12)", cursor: "pointer", display: "flex", alignItems: "center", gap: 14, textAlign: "left", position: "relative", overflow: "hidden" }}>
           <div style={{ position: "absolute", width: 150, height: 150, borderRadius: "50%", right: -55, top: -70, background: "rgba(255,255,255,0.48)" }} />
           <div style={{ width: 62, height: 62, borderRadius: 20, background: "linear-gradient(145deg, #3f7e9e, #65bca7)", display: "grid", placeItems: "center", flexShrink: 0, boxShadow: "0 8px 16px rgba(63,126,158,0.2)", position: "relative" }}><ResourcesIcon size={32} color="#fff" /></div>
@@ -7586,6 +7595,40 @@ function CarlosLibraryPage({ onBack }) {
     {bookGrid(spanish)}
     <div style={{ margin: "18px 2px 28px", padding: 13, background: "#f6f4fa", border: `1px solid ${T.line}`, borderRadius: 16, color: T.sub, fontSize: 11.5, lineHeight: 1.5 }}>Book titles and cover images are shown from the supplied Amazon listings. Product details and availability may change on Amazon.</div>
   </>;
+}
+
+function ChaptlyPage({ onBack }) {
+  const storeButton = (href, label, icon, accent) => (
+    <a href={href} target="_blank" rel="noreferrer" aria-label={`Open Chaptly on ${label}`} style={{ flex: "1 1 190px", minWidth: 0, display: "flex", alignItems: "center", gap: 11, padding: "13px 15px", borderRadius: 16, background: accent, color: "#fff", textDecoration: "none", boxShadow: "0 8px 16px rgba(62,36,38,0.14)" }}>
+      {icon}<span style={{ minWidth: 0 }}><span style={{ display: "block", fontSize: 10, fontWeight: 800, letterSpacing: 0.7, opacity: 0.82 }}>DOWNLOAD ON</span><strong style={{ display: "block", fontSize: 16, lineHeight: 1.15 }}>{label}</strong></span><ExternalLink size={16} style={{ marginLeft: "auto", opacity: 0.82 }} />
+    </a>
+  );
+  const features = [
+    ["Identify and break toxic cycles", "Guided exercises help you spot manipulative behaviours, interrupt reactive cycles, and step out of unhealthy dynamics."],
+    ["Emotional regulation with CBT and DBT", "Practise actionable skills for anxiety, the tug-of-war between emotions and logic, and negative self-talk."],
+    ["Boundaries and self-worth", "Daily prompts help you recognise your needs, set clear boundaries without guilt, and build emotional independence."],
+    ["Gentle gamified accountability", "Soft wins, progress tracking, and workbook reflection help you stay engaged with recovery between other supports."],
+  ];
+  return (
+    <>
+      <Brand right={<BackBtn onBack={onBack} label="Hub" />} />
+      <main style={{ marginTop: 8, paddingBottom: 30 }}>
+        <section style={{ background: "linear-gradient(145deg, #fff0f0 0%, #fff9f6 55%, #fff2dc 100%)", border: "1px solid rgba(221,60,65,0.18)", borderRadius: 26, padding: "22px 18px 20px", boxShadow: T.soft, position: "relative", overflow: "hidden" }}>
+          <div style={{ position: "absolute", width: 220, height: 220, borderRadius: "50%", right: -96, top: -104, background: "rgba(255,255,255,0.58)" }} />
+          <img src="/partners/chaptly-character.png" alt="Chaptly" style={{ width: 108, height: 108, objectFit: "contain", display: "block", margin: "0 auto 8px", position: "relative" }} />
+          <div style={{ textAlign: "center", position: "relative" }}><div style={{ color: "#c33138", fontSize: 11, fontWeight: 900, letterSpacing: 1.2, textTransform: "uppercase" }}>A Resilience Hub partner</div><h1 style={{ margin: "7px 0 8px", color: "#42282b", fontSize: 30, lineHeight: 1.05 }}>Chaptly</h1><p style={{ margin: 0, color: "#6e5052", lineHeight: 1.55, fontSize: 14 }}>An AI-guided, trauma-informed recovery app built around evidence-based therapeutic frameworks and self-paced daily progress.</p></div>
+        </section>
+        <section style={{ background: "#fff", border: `1px solid ${T.line}`, borderRadius: 22, padding: "20px 18px", marginTop: 14, boxShadow: T.soft }}>
+          <h2 style={{ margin: 0, color: T.ink, fontSize: 22 }}>How Chaptly can support you</h2>
+          <p style={{ margin: "10px 0 0", color: T.sub, lineHeight: 1.62, fontSize: 14 }}>Chaptly is a trauma-informed, story-driven mobile application designed to support people recovering from toxic dynamics, abusive relationships, and severe emotional burnout. Built on evidence-based frameworks including Cognitive Behavioral Therapy (CBT) and Dialectical Behavior Therapy (DBT), and informed by Harvard research, it translates recovery principles into an accessible, self-paced 90-day experience.</p>
+          <p style={{ margin: "11px 0 0", color: T.sub, lineHeight: 1.62, fontSize: 14 }}>Rather than feeling heavy or clinical, Chaptly turns healing into structured 8-minute daily quests with interactive tools, micro-journaling, daily quizzes, and character-led Hero chapters that reflect real-world recovery milestones.</p>
+        </section>
+        <section style={{ marginTop: 14 }}><h2 style={{ margin: "0 0 10px 3px", color: T.ink, fontSize: 21 }}>What you can explore</h2><div style={{ display: "grid", gap: 10 }}>{features.map(([title, text], i) => <article key={title} style={{ background: i % 2 ? "#fffaf7" : "#f8fbf8", border: `1px solid ${T.line}`, borderRadius: 18, padding: "14px 15px" }}><h3 style={{ margin: 0, color: "#a43b43", fontSize: 15 }}>{title}</h3><p style={{ margin: "6px 0 0", color: T.sub, lineHeight: 1.5, fontSize: 13 }}>{text}</p></article>)}</div></section>
+        <section style={{ background: "linear-gradient(135deg, #f4f8ff, #f5fbf5)", border: `1px solid ${T.line}`, borderRadius: 22, padding: "18px", marginTop: 14 }}><h2 style={{ margin: 0, color: T.ink, fontSize: 20 }}>Ready to take a look?</h2><p style={{ margin: "8px 0 14px", color: T.sub, lineHeight: 1.5, fontSize: 14 }}>If Chaptly feels like it could support you, you can learn more or download it directly from your app store.</p><div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>{storeButton("https://apps.apple.com/us/app/chaptly/id6752330051", "App Store", <span style={{ fontSize: 25, lineHeight: 1 }}></span>, "#222")}{storeButton("https://play.google.com/store/apps/details?id=com.chaptly.app&pcampaignid=web_share", "Google Play", <Play size={22} fill="currentColor" />, "#3478c5")}</div><a href="https://chaptly.app/" target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 6, marginTop: 14, color: "#2e8578", fontWeight: 800, fontSize: 13 }}>Visit chaptly.app <ExternalLink size={15} /></a></section>
+        <p style={{ margin: "15px 4px 0", color: T.sub, fontSize: 12, lineHeight: 1.5 }}>Chaptly is an external partner service. Please review its own information, terms, and privacy practices before deciding whether it is right for you.</p>
+      </main>
+    </>
+  );
 }
 
 function SupportUsPage({ onOpenMerch, onOpenCarlosLibrary, onBack }) {
