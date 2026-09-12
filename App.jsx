@@ -63,6 +63,12 @@ async function hashJournalPin(pin) {
   const digest = await globalThis.crypto.subtle.digest("SHA-256", bytes);
   return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
+async function hashJournalPinAnswer(question, answer) {
+  const normalized = `${String(question || "").trim().toLowerCase()}\\n${String(answer || "").trim().toLowerCase()}`;
+  const bytes = new TextEncoder().encode(`resilience-hub-journal-recovery-v1:${normalized}`);
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
 
 /* ---- crisis contacts (AU). Verify before any real release. ---- */
 const CONTACTS = [
@@ -404,12 +410,16 @@ export default function App() {
   const [rexIntroReplay, setRexIntroReplay] = useState(false); // true when Rex's intro was opened from inside chat (not first-time onboarding) — changes where "I'm ready" / close sends them back to
   const [responseSpeed, setResponseSpeed] = useState("normal"); // "chilled" | "normal" | "fast" — per-device reply pacing, set in Settings
   const [speechLang, setSpeechLang] = useState("en-AU"); // mic + fallback voice language, set in Settings
-  const [journalPinSet, setJournalPinSet] = useState(false); // privacy lock; digest is stored locally and, when signed in, on this account
+  const [journalPinSet, setJournalPinSet] = useState(false);
+  const [journalPinHash, setJournalPinHash] = useState(null);
+  const [journalPinQuestion, setJournalPinQuestion] = useState("");
+  const [journalPinAnswerHash, setJournalPinAnswerHash] = useState(null);
   const [journalUnlocked, setJournalUnlocked] = useState(false);
   const [installPromptEvent, setInstallPromptEvent] = useState(null);
   const [isStandalone, setIsStandalone] = useState(false);
   const [guidePrompts, setGuidePrompts] = useState(PERSONALITY_DEFAULTS); // per-guide personality notes (admin-editable)
   const [vaultStatus, setVaultStatus] = useState("checking");
+  const [accountData, setAccountData] = useState(null);
   const [vaultMeta, setVaultMeta] = useState(null);
   const [vaultKey, setVaultKey] = useState(null);
   const [deviceUnlockEnabled, setDeviceUnlockEnabled] = useState(false);
@@ -423,14 +433,18 @@ export default function App() {
   userPublicKeyRef.current = userPublicKey;
   userPrivateKeyRef.current = userPrivateKey;
 
+  // New accounts use authenticated account storage instead of the retired
+  // client-side vault. Legacy encrypted accounts still use the old key until
+  // they are explicitly migrated or reset.
   const secureLocalGet = useCallback(async (name) => {
     const raw = await sget(name);
-    if (!raw || !vaultKeyRef.current) return null;
+    if (raw == null) return null;
+    if (!isEncrypted(raw)) return raw;
+    if (!vaultKeyRef.current) return null;
     try { return await decryptJson(raw, vaultKeyRef.current, name); } catch { return null; }
   }, []);
   const secureLocalSet = useCallback(async (name, value) => {
-    if (!vaultKeyRef.current) throw new Error("Privacy vault is locked.");
-    await sset(name, await encryptJson(value, vaultKeyRef.current, name));
+    await sset(name, value);
   }, []);
   const migrateLocalPlaintext = useCallback(async () => {
     const keys = ["rh_profile", "rh_answers", "rh_plan", "rh_progress", "rh_journal", "rh_chats", "rh_memories"];
@@ -560,7 +574,7 @@ export default function App() {
         }
 
         const { data, error } = await supabase.from("member_data")
-          .select("encryption_meta,profile,answers,plan,progress,journal")
+          .select("encryption_meta,profile,answers,plan,progress,journal,journal_pin_hash,journal_pin_question,journal_pin_answer_hash")
           .eq("user_id", session.user.id).maybeSingle();
         if (cancelled) return;
         if (error) {
@@ -572,6 +586,8 @@ export default function App() {
           return;
         }
 
+        if (data?.journal_pin_hash) { setJournalPinHash(data.journal_pin_hash); setJournalPinQuestion(data.journal_pin_question || ""); setJournalPinAnswerHash(data.journal_pin_answer_hash || null); setJournalPinSet(true); }
+        setAccountData(data || null);
         const remoteMeta = data?.encryption_meta;
         // On the device where this vault was originally created, prefer its
         // account-scoped local metadata. It is the metadata that matches the
@@ -585,7 +601,9 @@ export default function App() {
         }
         const hasExistingData = ["profile", "answers", "plan", "progress", "journal"]
           .some((field) => data?.[field] !== null && data?.[field] !== undefined);
-        if (localMeta?.v === 1 && hasExistingData) {
+        const hasLegacyEncryptedData = ["profile", "answers", "plan", "progress", "journal"]
+          .some((field) => isEncrypted(data?.[field]));
+        if (localMeta?.v === 1 && hasLegacyEncryptedData) {
           // Older builds may have created a local vault before metadata syncing
           // existed. Let the original device unlock it, then repair the account
           // metadata through unlockPrivacyVault. A brand-new account does not
@@ -593,7 +611,9 @@ export default function App() {
           setVaultMeta(localMeta); setVaultStatus("locked");
           return;
         }
-        setVaultStatus(hasExistingData ? "account_vault_missing" : "needs_setup");
+        // No encrypted account data means this is a new/plain-mode account.
+        // Do not show the old vault setup gate.
+        setVaultStatus(hasLegacyEncryptedData ? "account_vault_missing" : "plain");
       } catch {
         if (!cancelled) setVaultStatus("account_vault_unavailable");
       }
@@ -606,7 +626,7 @@ export default function App() {
   }, [authChecked, vaultStatus]);
 
   useEffect(() => {
-    if (vaultStatus !== "unlocked") setDataHydrated(false);
+    if (vaultStatus !== "unlocked" && vaultStatus !== "plain") setDataHydrated(false);
   }, [vaultStatus, session]);
 
   useEffect(() => {
@@ -653,19 +673,27 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (vaultStatus !== "unlocked") return;
+    if (vaultStatus !== "unlocked" && vaultStatus !== "plain") return;
     (async () => {
       const [p, a, pl, pr, j, c, mem] = await Promise.all([
         secureLocalGet("rh_profile"), secureLocalGet("rh_answers"), secureLocalGet("rh_plan"),
         secureLocalGet("rh_progress"), secureLocalGet("rh_journal"), secureLocalGet("rh_chats"), secureLocalGet("rh_memories"),
       ]);
-      if (p) { setProfile(p); if (p.planPath === "short" || p.planPath === "full") setOnbMode(p.planPath); }
-      if (a) setAnswers(a);
-      if (pl) setPlan(pl);
-      if (pr) setProgress(pr);
-      if (j) setJournal(j);
-      if (c) setChats(c);
-      if (Array.isArray(mem)) setMemories(mem);
+      const plain = vaultStatus === "plain" ? accountData : null;
+      const resolvedProfile = p || plain?.profile;
+      const resolvedAnswers = a || plain?.answers;
+      const resolvedPlan = pl || plain?.plan;
+      const resolvedProgress = pr || plain?.progress;
+      const resolvedJournal = j || plain?.journal;
+      const resolvedChats = c || plain?.chats;
+      const resolvedMemories = mem || plain?.memories;
+      if (resolvedProfile) { setProfile(resolvedProfile); if (resolvedProfile.planPath === "short" || resolvedProfile.planPath === "full") setOnbMode(resolvedProfile.planPath); }
+      if (resolvedAnswers) setAnswers(resolvedAnswers);
+      if (resolvedPlan) setPlan(resolvedPlan);
+      if (resolvedProgress) setProgress(resolvedProgress);
+      if (resolvedJournal) setJournal(resolvedJournal);
+      if (resolvedChats) setChats(resolvedChats);
+      if (Array.isArray(resolvedMemories)) setMemories(resolvedMemories);
       if (supabase) {
         try {
           const { data } = await supabase.from("game_scores").select("game,best");
@@ -684,12 +712,12 @@ export default function App() {
           if (data?.length) { const merged = { ...PERSONALITY_DEFAULTS }; data.forEach((r) => { if (r.slug && typeof r.notes === "string") merged[r.slug] = r.notes; }); setGuidePrompts(merged); }
         } catch {}
       }
-      if (p?.onboardingComplete) setScreen("hub");
-      else if (p?.path === "full") setScreen("onboarding");
+      if (resolvedProfile?.onboardingComplete) setScreen("hub");
+      else if (resolvedProfile?.path === "full") setScreen("onboarding");
       else setScreen("welcome");
       setDataHydrated(true);
     })();
-  }, [vaultStatus, secureLocalGet]);
+  }, [vaultStatus, secureLocalGet, accountData]);
 
   // Save the local-only fields, PLUS push to the person's account when signed in,
   // so profile/plan/journal properly follow them between devices instead of only
@@ -698,13 +726,15 @@ export default function App() {
   // being recognised on a fresh sign-in — e.g. after a Google OAuth redirect —
   // because it was only ever checked against local storage).
   const syncMemberData = useCallback(async (patch) => {
-    if (!authEnabled || !supabase || !sessionRef.current || !vaultKeyRef.current) return;
-    const encryptedPatch = {};
-    for (const [field, value] of Object.entries(patch)) encryptedPatch[field] = await encryptJson(value, vaultKeyRef.current, `member_data.${field}`);
-    await supabase.from("member_data").upsert({
-      user_id: sessionRef.current.user.id, ...encryptedPatch, updated_at: new Date().toISOString(),
-    });
-  }, []);
+    if (!authEnabled || !supabase || !sessionRef.current) return;
+    if (vaultStatus === "unlocked" && vaultKeyRef.current) {
+      const encryptedPatch = {};
+      for (const [field, value] of Object.entries(patch)) encryptedPatch[field] = await encryptJson(value, vaultKeyRef.current, `member_data.${field}`);
+      await supabase.from("member_data").upsert({ user_id: sessionRef.current.user.id, ...encryptedPatch, updated_at: new Date().toISOString() });
+    } else {
+      await supabase.from("member_data").upsert({ user_id: sessionRef.current.user.id, ...patch, encryption_meta: null, updated_at: new Date().toISOString() });
+    }
+  }, [vaultStatus]);
   const saveProfile = useCallback((p) => { setProfile(p); void secureLocalSet("rh_profile", p); void syncMemberData({ profile: p }); }, [secureLocalSet, syncMemberData]);
   const saveAnswers = useCallback((a) => { setAnswers(a); void secureLocalSet("rh_answers", a); void syncMemberData({ answers: a }); }, [secureLocalSet, syncMemberData]);
   const savePlan = useCallback((pl) => {
@@ -828,19 +858,20 @@ export default function App() {
     if (typeof ar === "boolean") { setAutoReplyVoiceOn(ar); __autoReplyVoiceOn = ar; sset("rh_auto_reply_voice", ar); }
   }, []);
 
-  const setJournalPin = useCallback(async (pin) => {
+  const setJournalPin = useCallback(async (pin, question, answer) => {
     const hash = await hashJournalPin(pin);
-    await sset(JOURNAL_PIN_STORAGE_KEY, { hash, createdAt: Date.now(), accountSynced: Boolean(authEnabled && supabase && sessionRef.current) });
-    setJournalPinSet(true);
-    setJournalUnlocked(true);
-    syncMemberData({ journal_pin_hash: hash });
+    const answerHash = await hashJournalPinAnswer(question, answer);
+    const record = { hash, question: String(question).trim(), answerHash, createdAt: Date.now() };
+    await sset(JOURNAL_PIN_STORAGE_KEY, record);
+    setJournalPinHash(hash); setJournalPinQuestion(record.question); setJournalPinAnswerHash(answerHash);
+    setJournalPinSet(true); setJournalUnlocked(true);
+    await syncMemberData({ journal_pin_hash: hash, journal_pin_question: record.question, journal_pin_answer_hash: answerHash });
   }, [syncMemberData]);
 
-  const clearJournalPin = useCallback(() => {
+  const clearJournalPin = useCallback(async () => {
     try { localStorage.removeItem(JOURNAL_PIN_STORAGE_KEY); } catch {}
-    setJournalPinSet(false);
-    setJournalUnlocked(false);
-    syncMemberData({ journal_pin_hash: null });
+    setJournalPinSet(false); setJournalPinHash(null); setJournalPinQuestion(""); setJournalPinAnswerHash(null); setJournalUnlocked(false);
+    await syncMemberData({ journal_pin_hash: null, journal_pin_question: null, journal_pin_answer_hash: null });
   }, [syncMemberData]);
 
   const restoreDefaultSettings = useCallback(() => {
@@ -1138,7 +1169,7 @@ export default function App() {
           <div style={{ paddingTop: 120, textAlign: "center", color: T.sub }}>Warming up…</div>
         ) : !consented ? (
           <Consent onAgree={() => { sset("rh_consent", { agreedAt: Date.now() }); setConsented(true); }} />
-        ) : vaultStatus !== "unlocked" ? (
+        ) : vaultStatus !== "unlocked" && vaultStatus !== "plain" ? (
           <PrivacyVaultGate status={vaultStatus} onCreate={createPrivacyVault} onUnlock={unlockPrivacyVault} onStartFreshVault={startFreshVaultAfterLossConfirmation} deviceUnlockEnabled={deviceUnlockEnabled} onSetDeviceUnlock={setDeviceUnlockPreference} />
         ) : !dataHydrated ? (
           <div style={{ paddingTop: 120, textAlign: "center", color: T.sub }}>Warming up…</div>
@@ -1251,7 +1282,7 @@ export default function App() {
           />
                 ) : screen === "journal" ? (
           journalPinSet && !journalUnlocked ? (
-            <JournalPinGate onUnlock={() => setJournalUnlocked(true)} onBack={planOriginRef.current ? returnToPlan : back} />
+            <JournalPinGate journalPinHash={journalPinHash} onUnlock={() => setJournalUnlocked(true)} onBack={planOriginRef.current ? returnToPlan : back} />
           ) : (
             <Journal profile={profile} journal={journal} saveJournal={saveJournal} voiceOn={voiceOn}
               onBack={() => { setJournalUnlocked(false); planOriginRef.current ? returnToPlan() : back(); }} />
@@ -1289,7 +1320,7 @@ export default function App() {
             onSave={(list, on) => saveMemories(list, on)} onBack={back} />
         ) : screen === "settings" ? (
               <Settings textScale={textScale} reduceMotion={reduceMotion} responseSpeed={responseSpeed} speechLang={speechLang} autoIntroVoice={autoIntroVoiceOn} autoReplyVoice={autoReplyVoiceOn}
-              journalPinSet={journalPinSet} onSetJournalPin={setJournalPin} onClearJournalPin={clearJournalPin} deviceUnlockEnabled={deviceUnlockEnabled} onSetDeviceUnlock={setDeviceUnlockPreference}
+              journalPinSet={journalPinSet} journalPinQuestion={journalPinQuestion} journalPinHash={journalPinHash} journalPinAnswerHash={journalPinAnswerHash} onSetJournalPin={setJournalPin} onClearJournalPin={clearJournalPin} deviceUnlockEnabled={deviceUnlockEnabled} onSetDeviceUnlock={setDeviceUnlockPreference}
             installPromptAvailable={Boolean(installPromptEvent)} isStandalone={isStandalone} onPromptInstall={promptAppInstall}
             session={session} authEnabled={showAuth} onSave={saveSettings} onRestoreDefaults={restoreDefaultSettings} onExportVaultRecovery={exportVaultRecoveryPackage} onBack={back}
              onOpenBugReport={() => go("bugReport")} onOpenFeedback={() => go("userFeedback")} />
@@ -4102,11 +4133,8 @@ function CoordinatorChat({ session, userPublicKey, userPrivateKey, onBack }) {
     setBusy(true); setErr(""); setInput("");
     setMsgs((m) => [...(m || []), { id: "tmp" + Date.now(), sender: "user", body: text, created_at: new Date().toISOString() }]);
     try {
-      const teamKey = await getConfiguredTeamPublicKey();
-      const encryptedBody = await encryptForTeam(text, userPublicKey, teamKey, "coordinator_messages.body");
-      const userPublicKeyJwk = await crypto.subtle.exportKey("jwk", userPublicKey);
       const { error } = await supabase.from("coordinator_messages")
-        .insert({ user_id: session.user.id, sender: "user", body: JSON.stringify(encryptedBody), user_public_key_jwk: userPublicKeyJwk });
+        .insert({ user_id: session.user.id, sender: "user", body: text, user_public_key_jwk: null });
       if (error) throw error;
       load();
       fetch("/api/push", {
@@ -4457,16 +4485,20 @@ function MemoryManager({ memories, memoryOn, onSave, onBack }) {
 }
 
 /* ---------- accessibility settings ---------- */
-function Settings({ textScale, reduceMotion, responseSpeed, speechLang, autoIntroVoice, autoReplyVoice, journalPinSet, onSetJournalPin, onClearJournalPin, deviceUnlockEnabled = false, onSetDeviceUnlock, installPromptAvailable, isStandalone, onPromptInstall, session, authEnabled, onSave, onRestoreDefaults, onExportVaultRecovery, onBack, onOpenBugReport, onOpenFeedback }) {
+function Settings({ textScale, reduceMotion, responseSpeed, speechLang, autoIntroVoice, autoReplyVoice, journalPinSet, journalPinQuestion = "", journalPinHash = null, journalPinAnswerHash = null, onSetJournalPin, onClearJournalPin, deviceUnlockEnabled = false, onSetDeviceUnlock, installPromptAvailable, isStandalone, onPromptInstall, session, authEnabled, onSave, onRestoreDefaults, onExportVaultRecovery, onBack, onOpenBugReport, onOpenFeedback }) {
   const [pushState, setPushState] = useState("checking"); // "checking" | "on" | "off" | "denied" | "unsupported" | "error"
   const [pushDetail, setPushDetail] = useState("");
   const [pushBusy, setPushBusy] = useState(false);
   const [newJournalPin, setNewJournalPin] = useState("");
   const [confirmJournalPin, setConfirmJournalPin] = useState("");
+  const [pinQuestion, setPinQuestion] = useState("");
+  const [pinAnswer, setPinAnswer] = useState("");
   const [removeJournalPin, setRemoveJournalPin] = useState("");
+  const [recoveryAnswer, setRecoveryAnswer] = useState("");
   const [journalPinBusy, setJournalPinBusy] = useState(false);
   const [journalPinError, setJournalPinError] = useState("");
   const [showRemoveJournalPin, setShowRemoveJournalPin] = useState(false);
+  const [showChangeJournalPin, setShowChangeJournalPin] = useState(false);
   const [showInstallSteps, setShowInstallSteps] = useState(false);
   const [installMessage, setInstallMessage] = useState("");
   const [recoveryMessage, setRecoveryMessage] = useState("");
@@ -4484,23 +4516,27 @@ function Settings({ textScale, reduceMotion, responseSpeed, speechLang, autoIntr
     if (journalPinBusy) return;
     if (!/^\d{4}$/.test(newJournalPin)) { setJournalPinError("Choose a four-digit PIN."); return; }
     if (newJournalPin !== confirmJournalPin) { setJournalPinError("Those PINs do not match. Please try again."); return; }
+    if (pinQuestion.trim().length < 8) { setJournalPinError("Choose a secret question with at least 8 characters."); return; }
+    if (pinAnswer.trim().length < 3) { setJournalPinError("Add an answer you will remember."); return; }
     setJournalPinBusy(true); setJournalPinError("");
     try {
-      await onSetJournalPin(newJournalPin);
-      setNewJournalPin(""); setConfirmJournalPin("");
+      await onSetJournalPin(newJournalPin, pinQuestion, pinAnswer);
+      setNewJournalPin(""); setConfirmJournalPin(""); setPinQuestion(""); setPinAnswer("");
     } catch (error) { setJournalPinError(error?.message || "We couldn't set your Journal PIN just now."); }
     finally { setJournalPinBusy(false); }
   };
   const disableJournalPin = async () => {
     if (journalPinBusy) return;
-    if (!/^\d{4}$/.test(removeJournalPin)) { setJournalPinError("Enter your current four-digit PIN to remove it."); return; }
+    if (!/^\d{4}$/.test(removeJournalPin) && !recoveryAnswer.trim()) { setJournalPinError("Enter your current PIN or recovery answer."); return; }
     setJournalPinBusy(true); setJournalPinError("");
     try {
       const saved = await sget(JOURNAL_PIN_STORAGE_KEY);
-      const hash = await hashJournalPin(removeJournalPin);
-      if (!saved?.hash || hash !== saved.hash) { setJournalPinError("That PIN is not correct. Please try again."); return; }
-      onClearJournalPin();
-      setRemoveJournalPin(""); setShowRemoveJournalPin(false);
+      const hash = removeJournalPin ? await hashJournalPin(removeJournalPin) : null;
+      const answerHash = recoveryAnswer.trim() && (saved?.question || journalPinQuestion) ? await hashJournalPinAnswer(saved?.question || journalPinQuestion, recoveryAnswer) : null;
+      const valid = (hash && ((saved?.hash && hash === saved.hash) || (journalPinHash && hash === journalPinHash))) || (answerHash && ((saved?.answerHash && answerHash === saved.answerHash) || (journalPinAnswerHash && answerHash === journalPinAnswerHash)));
+      if (!valid) { setJournalPinError("That PIN or recovery answer is not correct. Please try again."); return; }
+      await onClearJournalPin();
+      setRemoveJournalPin(""); setRecoveryAnswer(""); setShowRemoveJournalPin(false);
     } catch (error) { setJournalPinError(error?.message || "We couldn't remove your Journal PIN just now."); }
     finally { setJournalPinBusy(false); }
   };
@@ -4699,52 +4735,50 @@ function Settings({ textScale, reduceMotion, responseSpeed, speechLang, autoIntr
         </div>
         {!journalPinSet ? (
           <>
-            <p style={{ fontSize: 12, color: T.sub, lineHeight: 1.45, margin: "12px 0" }}>Your PIN is stored as a one-way hash on this device and, when you are signed in, on your private account. It locks the Journal when you leave it or put the app in the background.</p>
+            <p style={{ fontSize: 12, color: T.sub, lineHeight: 1.45, margin: "12px 0" }}>Your Journal PIN is a privacy lock, not your account password. It is stored as one-way hashes and can be recovered or changed using your secret question.</p>
             <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
               <input value={newJournalPin} onChange={(e) => setNewJournalPin(onlyPinDigits(e.target.value))} inputMode="numeric" autoComplete="new-password" type="password" placeholder="4-digit PIN" aria-label="New four-digit Journal PIN" style={{ ...inputStyle, flex: 1, minWidth: 0 }} />
               <input value={confirmJournalPin} onChange={(e) => setConfirmJournalPin(onlyPinDigits(e.target.value))} inputMode="numeric" autoComplete="new-password" type="password" placeholder="Confirm PIN" aria-label="Confirm Journal PIN" style={{ ...inputStyle, flex: 1, minWidth: 0 }} />
             </div>
+            <input value={pinQuestion} onChange={(e) => setPinQuestion(e.target.value)} placeholder="Your secret question" aria-label="Journal PIN secret question" style={{ ...inputStyle, marginBottom: 8 }} />
+            <input value={pinAnswer} onChange={(e) => setPinAnswer(e.target.value)} type="password" placeholder="Answer to your secret question" aria-label="Journal PIN secret answer" style={{ ...inputStyle, marginBottom: 10 }} />
             {journalPinError && <p style={{ fontSize: 12.5, color: "#c94f4f", margin: "0 0 10px" }}>{journalPinError}</p>}
             <Btn onClick={enableJournalPin} disabled={journalPinBusy || newJournalPin.length !== 4 || confirmJournalPin.length !== 4} style={{ width: "100%" }}>{journalPinBusy ? "Saving…" : "Turn on Journal PIN"}</Btn>
           </>
         ) : (
           <>
             <p style={{ fontSize: 12.5, color: T.greenDk, fontWeight: 700, margin: "12px 0 8px" }}>Journal PIN is on for this device.</p>
-            <p style={{ fontSize: 12, color: T.sub, lineHeight: 1.45, margin: "0 0 12px" }}>For privacy, the Journal locks whenever you leave it or put the app in the background. Your PIN is protected as a one-way hash and cannot be recovered if forgotten.</p>
-            {!showRemoveJournalPin ? (
-              <Btn kind="outline" onClick={() => { setJournalPinError(""); setShowRemoveJournalPin(true); }} style={{ width: "100%" }}>Remove Journal PIN</Btn>
-            ) : (
+            <p style={{ fontSize: 12, color: T.sub, lineHeight: 1.45, margin: "0 0 12px" }}>For privacy, the Journal locks whenever you leave it or put the app in the background. Your PIN can be changed or removed with the current PIN or your recovery answer.</p>
+            {!showChangeJournalPin && !showRemoveJournalPin && <div style={{ display: "flex", gap: 8 }}><Btn kind="outline" onClick={() => { setJournalPinError(""); setShowChangeJournalPin(true); }} style={{ flex: 1 }}>Change PIN</Btn><Btn kind="outline" onClick={() => { setJournalPinError(""); setShowRemoveJournalPin(true); }} style={{ flex: 1 }}>Remove PIN</Btn></div>}
+            {showChangeJournalPin && (
+              <div style={{ marginTop: 10 }}>
+                <input value={newJournalPin} onChange={(e) => setNewJournalPin(onlyPinDigits(e.target.value))} inputMode="numeric" type="password" placeholder="New 4-digit PIN" aria-label="New four-digit Journal PIN" style={{ ...inputStyle, marginBottom: 8 }} />
+                <input value={confirmJournalPin} onChange={(e) => setConfirmJournalPin(onlyPinDigits(e.target.value))} inputMode="numeric" type="password" placeholder="Confirm new PIN" aria-label="Confirm new Journal PIN" style={{ ...inputStyle, marginBottom: 8 }} />
+                <input value={pinQuestion || journalPinQuestion} onChange={(e) => setPinQuestion(e.target.value)} placeholder="Secret question" aria-label="Journal PIN secret question" style={{ ...inputStyle, marginBottom: 8 }} />
+                <input value={pinAnswer} onChange={(e) => setPinAnswer(e.target.value)} type="password" placeholder="Answer to secret question" aria-label="Journal PIN secret answer" style={{ ...inputStyle, marginBottom: 8 }} />
+                {journalPinError && <p style={{ fontSize: 12.5, color: "#c94f4f", margin: "0 0 10px" }}>{journalPinError}</p>}
+                <div style={{ display: "flex", gap: 8 }}><Btn kind="outline" onClick={() => { setShowChangeJournalPin(false); setJournalPinError(""); }} style={{ flex: 1 }}>Cancel</Btn><Btn onClick={enableJournalPin} disabled={journalPinBusy} style={{ flex: 1 }}>{journalPinBusy ? "Saving…" : "Save changes"}</Btn></div>
+              </div>
+            )}
+            {showRemoveJournalPin ? (
               <>
-                <label style={{ fontSize: 12.5, fontWeight: 700, display: "block", marginBottom: 6 }}>Enter your current PIN to remove it</label>
-                <input value={removeJournalPin} onChange={(e) => setRemoveJournalPin(onlyPinDigits(e.target.value))} inputMode="numeric" autoComplete="current-password" type="password" placeholder="Current 4-digit PIN" aria-label="Current four-digit Journal PIN" style={{ ...inputStyle, marginBottom: 10 }} />
+                <label style={{ fontSize: 12.5, fontWeight: 700, display: "block", marginBottom: 6 }}>Enter your current PIN or recovery answer</label>
+                <input value={removeJournalPin} onChange={(e) => setRemoveJournalPin(onlyPinDigits(e.target.value))} inputMode="numeric" autoComplete="current-password" type="password" placeholder="Current 4-digit PIN (or leave blank)" aria-label="Current four-digit Journal PIN" style={{ ...inputStyle, marginBottom: 8 }} />
+                <input value={recoveryAnswer} onChange={(e) => setRecoveryAnswer(e.target.value)} type="password" placeholder={journalPinQuestion || "Answer to your secret question"} aria-label="Answer to Journal PIN secret question" style={{ ...inputStyle, marginBottom: 10 }} />
                 {journalPinError && <p style={{ fontSize: 12.5, color: "#c94f4f", margin: "0 0 10px" }}>{journalPinError}</p>}
                 <div style={{ display: "flex", gap: 8 }}>
-                  <Btn kind="outline" onClick={() => { setRemoveJournalPin(""); setJournalPinError(""); setShowRemoveJournalPin(false); }} style={{ flex: 1 }}>Cancel</Btn>
-                  <Btn onClick={disableJournalPin} disabled={journalPinBusy || removeJournalPin.length !== 4} style={{ flex: 1, background: "#8f3f3f" }}>{journalPinBusy ? "Removing…" : "Remove PIN"}</Btn>
+                  <Btn kind="outline" onClick={() => { setRemoveJournalPin(""); setRecoveryAnswer(""); setJournalPinError(""); setShowRemoveJournalPin(false); }} style={{ flex: 1 }}>Cancel</Btn>
+                  <Btn onClick={disableJournalPin} disabled={journalPinBusy || (removeJournalPin.length !== 4 && !recoveryAnswer.trim())} style={{ flex: 1, background: "#8f3f3f" }}>{journalPinBusy ? "Removing…" : "Remove PIN"}</Btn>
                 </div>
               </>
-            )}
+            ) : null}
           </>
         )}
       </div>
 
-      <div style={{ background: "#f7f3fc", border: `1px solid ${T.line}`, borderRadius: 18, padding: 16, boxShadow: T.soft, marginTop: 14 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ width: 40, height: 40, borderRadius: 12, background: "#eee9f8", display: "grid", placeItems: "center", flexShrink: 0 }}><Shield size={18} color="#7055a8" /></div>
-          <div style={{ flex: 1 }}><div style={{ fontWeight: 700 }}>Keep vault unlocked on this device</div><div style={{ fontSize: 12.5, color: T.sub, lineHeight: 1.4 }}>Optional convenience for a personal device. Your passphrase is never stored.</div></div>
-          <button type="button" onClick={() => onSetDeviceUnlock?.(!deviceUnlockEnabled)} aria-label="Toggle device vault unlock" style={{ width: 52, height: 30, borderRadius: 999, border: "none", cursor: "pointer", flexShrink: 0, background: deviceUnlockEnabled ? T.green : "#cfc6da", position: "relative" }}><span style={{ position: "absolute", top: 3, left: deviceUnlockEnabled ? 25 : 3, width: 24, height: 24, borderRadius: "50%", background: "#fff" }} /></button>
-        </div>
-        <p style={{ fontSize: 12, color: "#7b5c20", lineHeight: 1.45, margin: "12px 0 0" }}>When on, anyone who can open this device may be able to open your private vault. It is off by default.</p>
-      </div>
-
-      <div style={{ background: "#f7f3fc", border: `1px solid ${T.line}`, borderRadius: 18, padding: 16, boxShadow: T.soft, marginTop: 14 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ width: 40, height: 40, borderRadius: 12, background: "#eee9f8", display: "grid", placeItems: "center", flexShrink: 0 }}><Download size={18} color="#7055a8" /></div>
-          <div><div style={{ fontWeight: 700 }}>Save a vault recovery package</div><div style={{ fontSize: 12.5, color: T.sub, lineHeight: 1.4 }}>Keep this file somewhere private and separate from your phone.</div></div>
-        </div>
-        <p style={{ fontSize: 12, color: T.sub, lineHeight: 1.45, margin: "12px 0" }}>This file contains wrapped encryption metadata, not your passphrase or raw data key. It cannot unlock anything by itself, but it can help recover your vault if account metadata is ever lost. Protect it like a key.</p>
-        <Btn kind="outline" onClick={() => { try { onExportVaultRecovery?.(); setRecoveryMessage("Recovery package downloaded. Store it somewhere private."); } catch (e) { setRecoveryMessage(e?.message || "Unlock your vault before creating a recovery package."); } }} style={{ width: "100%" }}>Download recovery package</Btn>
-        {recoveryMessage && <p style={{ fontSize: 12.5, color: T.greenDk, margin: "10px 0 0", lineHeight: 1.4 }}>{recoveryMessage}</p>}
+      <div style={{ background: "#eef6f1", border: `1px solid ${T.line}`, borderRadius: 18, padding: 16, boxShadow: T.soft, marginTop: 14 }}>
+        <div style={{ fontWeight: 800, color: T.greenDk, marginBottom: 5 }}>Account privacy</div>
+        <div style={{ fontSize: 12.5, color: T.sub, lineHeight: 1.5 }}>Your account login controls access across devices. The Journal PIN is an optional extra lock for the Journal itself and can be changed or recovered here without a vault passphrase.</div>
       </div>
 
       <div style={{ fontSize: 15, color: T.greenDk, fontWeight: 900, letterSpacing: 0.7, textTransform: "uppercase", margin: "22px 2px 10px" }}>Help &amp; feedback</div>
@@ -4860,7 +4894,7 @@ function PrivacyLink({ style, variant }) {
           </div>
           <div style={{ flex: 1 }}>
             <div style={{ fontWeight: 700, fontSize: 15 }}>Privacy & security</div>
-            <div style={{ fontSize: 12.5, color: T.sub }}>How your information is encrypted, used and protected</div>
+            <div style={{ fontSize: 12.5, color: T.sub }}>How your information is accessed, protected and used</div>
           </div>
           <ChevronRight size={20} color={T.sub} />
         </button>
@@ -4881,21 +4915,21 @@ function PrivacyLink({ style, variant }) {
               <X size={19} />
             </button>
             <h2 style={{ fontSize: 20, margin: "0 0 5px", paddingRight: 30 }}>Privacy & security</h2>
-            <p style={{ fontSize: 12.5, color: T.sub, margin: "0 0 16px", lineHeight: 1.45 }}>Plain-English notice · Updated 8 September 2026</p>
+            <p style={{ fontSize: 12.5, color: T.sub, margin: "0 0 16px", lineHeight: 1.45 }}>Plain-English notice · Updated 12 September 2026</p>
             <div style={{ background: "#fff4d6", border: "1px solid #f0d493", borderRadius: 15, padding: 13, marginBottom: 16, color: "#6b5118", fontSize: 13.5, lineHeight: 1.5, fontWeight: 700 }}>
               Important: no software can honestly promise absolute security. We use multiple protection layers, but please choose carefully what you share. The Hub is not an emergency, medical, or crisis-response service.
             </div>
             {section("What you may choose to put into the Hub", <>Depending on the features you use, this may include your account email and sign-in provider; profile details; intake answers and recovery-plan information; plan and game progress; journal entries and fleeting thoughts; AI-guide conversations and memory notes; messages to the real Juan or support team; bug reports, feedback, appointment requests, optional screenshots, and app preferences. Optional information can be left blank.</>)}
-            {section("Personal data is encrypted before storage", <>Personal content is encrypted in your browser before it is sent to our database using AES-GCM encryption. Your privacy passphrase and recovery key unlock your private vault; they are not sent to The Resilience Hub and we do not store the passphrase. The personal vault covers profile and intake data, plans, progress, journal content, guide memories, and saved AI-guide conversations. Local browser copies are encrypted after the vault is unlocked.</>)}
+            {section("How account data is protected", <>The app now uses your authenticated account, Supabase access controls, HTTPS, encrypted database storage, and encrypted backups to protect account data. The former client-side privacy vault is being retired because a browser-data clear or lost device metadata could make encrypted records unrecoverable. We do not use your Journal PIN as an encryption key. Authorised service operations may technically access account data when needed to operate, support, secure, or maintain the service.</>)}
             <div style={{ background: "#fff0ef", border: "1px solid #efc2bd", borderRadius: 15, padding: 13, marginBottom: 14, color: "#7d302b", fontSize: 13.5, lineHeight: 1.5, fontWeight: 700 }}>
-              If you lose both your privacy passphrase and recovery key, your encrypted personal data cannot be recovered by you or by The Resilience Hub team. This is intentional. Please keep the recovery key somewhere safe.
+              Your Journal PIN is a privacy lock for the Journal, not an account password or encryption key. You choose a recovery question and answer when setting it up. The PIN and recovery answer are stored as one-way hashes. Keep your account login secure and choose a recovery answer that others cannot guess.
             </div>
-            {section("Support messages and reports", <>Messages to the real Juan, bug reports, feedback, appointment requests, and optional screenshots use dual-recipient encryption. They are encrypted for your account and authorised Resilience Hub staff. This means staff can read something you deliberately send to them; these support submissions are not user-only encrypted. Other members cannot read them. Screenshots are optional and may contain sensitive details, so crop or hide anything unnecessary.</>)}
+            {section("Support messages and reports", <>Messages to the real Juan, bug reports, feedback, appointment requests, and optional screenshots are sent only when you choose those features. They are protected by authenticated access and database/storage controls and are available to authorised Resilience Hub staff so they can respond or provide support. These submissions are not user-only encrypted. Other members cannot read them. Screenshots are optional and may contain sensitive details, so crop or hide anything unnecessary.</>)}
             {section("AI and voice services", <>When you ask an AI guide to reply, the relevant content is sent through our server to Anthropic so a response can be generated. When voice playback is requested, text may be sent through Fish Audio or Google Cloud Text-to-Speech, with browser speech as a fallback. These providers may process content under their own terms and retention practices. Do not enter information you are not comfortable sending to an AI or speech service.</>)}
-            {section("Account, sign-in and notifications", <>The app uses Supabase authentication and database services. Email/password and Google sign-in may be available. “Stay logged in” controls session persistence; disable it on shared devices. The optional device-unlock setting is off by default and stores a device-wrapped key, not your passphrase. Push notification bodies are kept generic and should not contain journal text, message content, or crisis disclosures.</>)}
+            {section("Account, sign-in and notifications", <>The app uses Supabase authentication and database services. Email/password and Google sign-in may be available. “Stay logged in” controls session persistence; disable it on shared devices. The optional Journal PIN is separate from your account login and can be changed or removed in Settings using your PIN or recovery answer. Do not reuse your account password as your recovery answer. Push notification bodies are kept generic and should not contain journal text, message content, or crisis disclosures.</>)}
             {section("Who may access information", <>Authorised Resilience Hub staff may access support submissions that you deliberately send. Supabase, Vercel, Anthropic, Fish Audio, Google Cloud Text-to-Speech, authentication providers, push-notification infrastructure, and other service providers may process limited information needed to provide the app. We do not sell personal information or use it for advertising profiling. We may disclose information where required by law or needed to respond to an immediate safety risk.</>)}
-            {section("Deletion and retention", <>You can clear your app data from your Profile. The app attempts to remove encrypted account rows, support rows linked to your account, game progress, push subscriptions, local encrypted data, vault metadata, and associated screenshot objects. Deleted data may remain in provider backups, point-in-time recovery, disaster-recovery systems, device backups, or third-party provider systems for up to <strong>31 days</strong> before those backup copies are routinely overwritten or expire.</>)}
-            {section("Your choices and questions", <>You can change optional profile details, manage guide memory, control voice and notification preferences, disable device vault unlock, clear app data, sign out, and contact the team about privacy or deletion requests. Never send a privacy passphrase, recovery key, private encryption key, or service secret to support. For urgent danger, call 000 or use Help Now.</>)}
+            {section("Deletion and retention", <>You can clear your app data from your Profile. The app attempts to remove account rows, support rows linked to your account, game progress, push subscriptions, local cached data, Journal PIN metadata, and associated screenshot objects. Deleted data may remain in provider backups, point-in-time recovery, disaster-recovery systems, device backups, or third-party provider systems for up to <strong>31 days</strong> before those backup copies are routinely overwritten or expire.</>)}
+            {section("Your choices and questions", <>You can change optional profile details, manage guide memory, control voice and notification preferences, manage your Journal PIN, clear app data, sign out, and contact the team about privacy or deletion requests. Never send a privacy passphrase, recovery key, private encryption key, or service secret to support. For urgent danger, call 000 or use Help Now.</>)}
             <div style={{ marginTop: 14 }}><Btn onClick={() => setOpen(false)}>Close</Btn></div>
           </div>
         </div>
@@ -7054,22 +7088,17 @@ function BugReport({ session, userPublicKey, onBack }) {
     if (!supabase) { setErr("Couldn't reach the server just now — try again in a moment."); return; }
     setBusy(true); setErr("");
     try {
-      const teamKey = await getConfiguredTeamPublicKey();
       let screenshotPath = null;
       if (photo) {
         const userFolder = session?.user?.id || "anonymous";
         screenshotPath = `${userFolder}/${Date.now()}-${Math.random().toString(36).slice(2, 9)}.rh-encrypted.json`;
-        const dataUrl = await new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.onerror = reject; reader.readAsDataURL(photo); });
-        const screenshotEnvelope = await encryptForTeam({ name: photo.name, type: photo.type, dataUrl }, userPublicKey, teamKey, "bug_reports.screenshot");
-        const encryptedFile = new Blob([JSON.stringify(screenshotEnvelope)], { type: "application/json" });
-        const { error: uploadError } = await supabase.storage.from("bug-screenshots").upload(screenshotPath, encryptedFile, { contentType: "application/json", upsert: false });
+        const { error: uploadError } = await supabase.storage.from("bug-screenshots").upload(screenshotPath, photo, { contentType: photo.type, upsert: false });
         if (uploadError) throw uploadError;
       }
-      const reportEnvelope = await encryptForTeam({ name: name.trim() || null, description: desc, email: session?.user?.email || null, user_id: session?.user?.id || null }, userPublicKey, teamKey, "bug_reports.payload");
       const { error } = await supabase.from("bug_reports").insert({
-        name: null,
-        description: JSON.stringify(reportEnvelope),
-        email: null,
+        name: name.trim() || null,
+        description: desc,
+        email: session?.user?.email || null,
         user_id: session?.user?.id || null,
         screenshot_path: screenshotPath,
       });
@@ -7166,12 +7195,10 @@ function UserFeedback({ session, userPublicKey, onBack }) {
     if (!supabase) { setErr("Couldn't reach the server just now — try again in a moment."); return; }
     setBusy(true); setErr("");
     try {
-      const teamKey = await getConfiguredTeamPublicKey();
-      const feedbackEnvelope = await encryptForTeam({ name: sender, email: contactEmail || null, description: message, user_id: session?.user?.id || null }, userPublicKey, teamKey, "bug_reports.feedback");
       const { error } = await supabase.from("bug_reports").insert({
-        name: null,
-        email: null,
-        description: JSON.stringify(feedbackEnvelope),
+        name: sender,
+        email: contactEmail || null,
+        description: message,
         user_id: session?.user?.id || null,
       });
       if (error) throw error;
@@ -7735,7 +7762,7 @@ function MensGroup({ onBack }) {
   );
 }
 
-function JournalPinGate({ onUnlock, onBack }) {
+function JournalPinGate({ journalPinHash = null, onUnlock, onBack }) {
   const [pin, setPin] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -7746,7 +7773,9 @@ function JournalPinGate({ onUnlock, onBack }) {
     try {
       const saved = await sget(JOURNAL_PIN_STORAGE_KEY);
       const hash = await hashJournalPin(pin);
-      if (!saved?.hash || hash !== saved.hash) { setError("That PIN is not correct. Please try again."); return; }
+      const expected = saved?.hash || journalPinHash;
+      if (!expected || hash !== expected) { setError("That PIN is not correct. Please try again."); return; }
+      if (!saved?.hash && journalPinHash) await sset(JOURNAL_PIN_STORAGE_KEY, { hash: journalPinHash, question: "", createdAt: Date.now(), accountSynced: true });
       onUnlock();
     } catch (unlockError) { setError(unlockError?.message || "We couldn't unlock your Journal just now."); }
     finally { setBusy(false); }
