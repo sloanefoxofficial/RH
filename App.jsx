@@ -3387,8 +3387,10 @@ function AdminActivity({ onBack }) {
   const [sessions, setSessions] = useState(null);
   const [error, setError] = useState("");
   const [refreshedAt, setRefreshedAt] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
   const load = useCallback(async () => {
     if (!supabase) { setPresence([]); setSessions([]); return; }
+    setRefreshing(true);
     try {
       setError("");
       const cutoff = new Date(Date.now() - 35 * 24 * 60 * 60 * 1000).toISOString();
@@ -3399,6 +3401,7 @@ function AdminActivity({ onBack }) {
       if (liveError || usageError) throw new Error(liveError?.message || usageError?.message || "Unable to load activity.");
       setPresence(live || []); setSessions(usage || []); setRefreshedAt(new Date());
     } catch (e) { setError(e?.message || "Unable to load activity data."); setPresence([]); setSessions([]); }
+    finally { setRefreshing(false); }
   }, []);
   useEffect(() => { load(); const timer = setInterval(load, 60 * 1000); return () => clearInterval(timer); }, [load]);
   const active = (presence || []).filter((row) => Date.now() - new Date(row.last_seen_at).getTime() <= ACTIVITY_ACTIVE_WINDOW_MS);
@@ -3426,7 +3429,7 @@ function AdminActivity({ onBack }) {
   return (
     <>
       <Brand right={<BackBtn onBack={onBack} label="Admin" />} />
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6, marginBottom: 4 }}><Radio size={18} color={T.greenDk} /><h2 style={{ fontSize: 18, margin: 0 }}>Activity &amp; usage</h2></div>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6, marginBottom: 4 }}><Radio size={18} color={T.greenDk} /><h2 style={{ fontSize: 18, margin: 0, flex: 1 }}>Activity &amp; usage</h2><button onClick={load} disabled={refreshing} aria-label="Refresh activity data" title="Refresh activity data" style={{ display: "inline-flex", alignItems: "center", gap: 6, border: `1px solid ${T.line}`, background: refreshing ? "#f1f3f2" : T.card, color: T.greenDk, borderRadius: 999, padding: "7px 10px", fontSize: 12, fontWeight: 750, cursor: refreshing ? "default" : "pointer", opacity: refreshing ? 0.7 : 1 }}><RotateCcw size={14} style={{ transform: refreshing ? "rotate(180deg)" : "none", transition: "transform .25s" }} />{refreshing ? "Refreshing…" : "Refresh"}</button></div>
       <p style={{ fontSize: 13, color: T.sub, margin: "0 2px 14px", lineHeight: 1.5 }}>Admin-only service information. This view contains timestamps and broad section names only — never journal entries, notes, chats, uploads, or other private content.</p>
       {error && <div style={{ background: "#fff4f2", color: "#a4453c", borderRadius: 12, padding: 11, fontSize: 12.5, marginBottom: 12 }}>{error}</div>}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10, marginBottom: 16 }}>
