@@ -41,6 +41,8 @@ const SCREEN_BACK_LABELS = {
   bugReport: "Report a Bug", userFeedback: "Share Feedback",
 };
 const screenBackLabel = (screen) => SCREEN_BACK_LABELS[screen] || "Home";
+const LAST_SCREEN_STORAGE_KEY = (userId) => userId ? `rh_last_screen_${userId}` : "rh_last_screen_guest";
+const RESTORABLE_SCREENS = new Set(["hub", "program", "guides", "chat", "journal", "toolkit", "resources", "chaptly", "supportUs", "games", "merch", "carlosLibrary", "programInfo", "bookAppointment", "mensShed", "mensGroup", "settings", "profile", "memory", "notifications", "coordinator"]);
 let __backDestinationLabel = "Home";
 
 /* ---- persistent storage (browser localStorage) ---- */
@@ -448,6 +450,11 @@ export default function App() {
   const [guidePrompts, setGuidePrompts] = useState(PERSONALITY_DEFAULTS); // per-guide personality notes (admin-editable)
   const [vaultStatus, setVaultStatus] = useState("checking");
   const [accountData, setAccountData] = useState(null);
+  const routeHydratedRef = useRef(false);
+  const screenRef = useRef(screen);
+  const activeCharRef = useRef(activeChar);
+  screenRef.current = screen;
+  activeCharRef.current = activeChar;
   const [vaultMeta, setVaultMeta] = useState(null);
   const [vaultKey, setVaultKey] = useState(null);
   const [deviceUnlockEnabled, setDeviceUnlockEnabled] = useState(false);
@@ -584,6 +591,24 @@ export default function App() {
     const frame = requestAnimationFrame(reset);
     return () => cancelAnimationFrame(frame);
   }, [screen]);
+
+  // Phones can discard and recreate the PWA while it is in the background.
+  // Keep only navigation state (never private content) so returning from another
+  // app can restore the screen the person was using.
+  useEffect(() => {
+    if (!dataHydrated || !RESTORABLE_SCREENS.has(screen)) return;
+    try {
+      localStorage.setItem(LAST_SCREEN_STORAGE_KEY(session?.user?.id), JSON.stringify({
+        screen,
+        char: screen === "chat" ? activeChar : null,
+        savedAt: Date.now(),
+      }));
+    } catch {}
+  }, [dataHydrated, screen, activeChar, session?.user?.id]);
+
+  useEffect(() => {
+    routeHydratedRef.current = false;
+  }, [session?.user?.id, vaultStatus]);
 
   useEffect(() => {
     let cancelled = false;
@@ -752,10 +777,23 @@ export default function App() {
         returnToChaptly = sessionStorage.getItem("rh_return_to_chaptly") === "1";
         if (returnToChaptly) sessionStorage.removeItem("rh_return_to_chaptly");
       } catch {}
+      let savedRoute = null;
+      if (!routeHydratedRef.current && !returnToChaptly) {
+        try {
+          const rawRoute = localStorage.getItem(LAST_SCREEN_STORAGE_KEY(session?.user?.id));
+          const parsedRoute = rawRoute ? JSON.parse(rawRoute) : null;
+          const isRecent = parsedRoute?.savedAt && Date.now() - parsedRoute.savedAt < 7 * 24 * 60 * 60 * 1000;
+          if (isRecent && RESTORABLE_SCREENS.has(parsedRoute.screen)) savedRoute = parsedRoute;
+        } catch {}
+      }
       if (returnToChaptly) setScreen("chaptly");
-      else if (resolvedProfile?.onboardingComplete) setScreen("hub");
+      else if (savedRoute) {
+        if (savedRoute.screen === "chat" && CHARS[savedRoute.char]) setActiveChar(savedRoute.char);
+        setScreen(savedRoute.screen);
+      } else if (resolvedProfile?.onboardingComplete) setScreen("hub");
       else if (resolvedProfile?.path === "full") setScreen("onboarding");
       else setScreen("welcome");
+      routeHydratedRef.current = true;
       setDataHydrated(true);
     })();
   }, [vaultStatus, secureLocalGet, accountData]);
@@ -970,6 +1008,11 @@ export default function App() {
     for (const k of ["rh_profile", "rh_answers", "rh_plan", "rh_progress", "rh_journal", "rh_chats", "rh_memories", "rh_memory_on", JOURNAL_PIN_STORAGE_KEY]) {
       try { localStorage.removeItem(k); } catch {}
     }
+    try {
+      localStorage.removeItem(LAST_SCREEN_STORAGE_KEY(accountId));
+      localStorage.removeItem(LAST_SCREEN_STORAGE_KEY());
+    } catch {}
+    routeHydratedRef.current = false;
     setProfile(null); setAnswers({}); setPlan(null); setProgress({});
     setJournal([]); setChats({}); chatsRef.current = {};
     setMemories([]); memoriesRef.current = [];
