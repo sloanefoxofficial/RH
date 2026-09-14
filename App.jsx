@@ -598,7 +598,7 @@ export default function App() {
   useEffect(() => {
     if (!dataHydrated || !RESTORABLE_SCREENS.has(screen)) return;
     try {
-      localStorage.setItem(LAST_SCREEN_STORAGE_KEY(session?.user?.id), JSON.stringify({
+      sessionStorage.setItem(LAST_SCREEN_STORAGE_KEY(session?.user?.id), JSON.stringify({
         screen,
         char: screen === "chat" ? activeChar : null,
         savedAt: Date.now(),
@@ -609,6 +609,22 @@ export default function App() {
   useEffect(() => {
     routeHydratedRef.current = false;
   }, [session?.user?.id, vaultStatus]);
+
+  // A normal app switch only changes visibility and keeps the route. A genuine
+  // page exit (closing the tab/PWA or navigating away) clears the temporary
+  // route so a fresh launch starts at the Hub.
+  useEffect(() => {
+    const clearRouteOnExit = (event) => {
+      if (event?.persisted) return;
+      try { sessionStorage.removeItem(LAST_SCREEN_STORAGE_KEY(session?.user?.id)); } catch {}
+    };
+    window.addEventListener("pagehide", clearRouteOnExit);
+    window.addEventListener("beforeunload", clearRouteOnExit);
+    return () => {
+      window.removeEventListener("pagehide", clearRouteOnExit);
+      window.removeEventListener("beforeunload", clearRouteOnExit);
+    };
+  }, [session?.user?.id]);
 
   useEffect(() => {
     let cancelled = false;
@@ -780,20 +796,22 @@ export default function App() {
       let savedRoute = null;
       if (!routeHydratedRef.current && !returnToChaptly) {
         try {
-          const rawRoute = localStorage.getItem(LAST_SCREEN_STORAGE_KEY(session?.user?.id));
+          const rawRoute = sessionStorage.getItem(LAST_SCREEN_STORAGE_KEY(session?.user?.id));
           const parsedRoute = rawRoute ? JSON.parse(rawRoute) : null;
           const isRecent = parsedRoute?.savedAt && Date.now() - parsedRoute.savedAt < 7 * 24 * 60 * 60 * 1000;
           if (isRecent && RESTORABLE_SCREENS.has(parsedRoute.screen)) savedRoute = parsedRoute;
         } catch {}
       }
-      if (returnToChaptly) setScreen("chaptly");
-      else if (savedRoute) {
-        if (savedRoute.screen === "chat" && CHARS[savedRoute.char]) setActiveChar(savedRoute.char);
-        setScreen(savedRoute.screen);
-      } else if (resolvedProfile?.onboardingComplete) setScreen("hub");
-      else if (resolvedProfile?.path === "full") setScreen("onboarding");
-      else setScreen("welcome");
-      routeHydratedRef.current = true;
+      if (!routeHydratedRef.current) {
+        if (returnToChaptly) setScreen("chaptly");
+        else if (savedRoute) {
+          if (savedRoute.screen === "chat" && CHARS[savedRoute.char]) setActiveChar(savedRoute.char);
+          setScreen(savedRoute.screen);
+        } else if (resolvedProfile?.onboardingComplete) setScreen("hub");
+        else if (resolvedProfile?.path === "full") setScreen("onboarding");
+        else setScreen("welcome");
+        routeHydratedRef.current = true;
+      }
       setDataHydrated(true);
     })();
   }, [vaultStatus, secureLocalGet, accountData]);
@@ -1009,8 +1027,8 @@ export default function App() {
       try { localStorage.removeItem(k); } catch {}
     }
     try {
-      localStorage.removeItem(LAST_SCREEN_STORAGE_KEY(accountId));
-      localStorage.removeItem(LAST_SCREEN_STORAGE_KEY());
+      sessionStorage.removeItem(LAST_SCREEN_STORAGE_KEY(accountId));
+      sessionStorage.removeItem(LAST_SCREEN_STORAGE_KEY());
     } catch {}
     routeHydratedRef.current = false;
     setProfile(null); setAnswers({}); setPlan(null); setProgress({});
@@ -6108,8 +6126,14 @@ function ProgramPage({ profile, plan, progress, saveProgress, answers, journalCo
   const [calendarTick, setCalendarTick] = useState(0);
   const week = weeks.find((w) => w.n === wk);
   const planStart = plan?.startedAt ? new Date(plan.startedAt) : null;
+  // Compare local calendar dates, not rolling 24-hour periods. If a plan was
+  // started at 11:30pm, the next calendar day must become Day 2 at midnight.
+  const localCalendarDay = (value) => {
+    const date = new Date(value);
+    return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+  };
   const elapsedPlanDay = planStart && !Number.isNaN(planStart.getTime())
-    ? Math.min(weeks.length * 7, Math.max(1, Math.floor((Date.now() - planStart.getTime()) / 86400000) + 1))
+    ? Math.min(weeks.length * 7, Math.max(1, Math.floor((localCalendarDay(Date.now()) - localCalendarDay(planStart)) / 86400000) + 1))
     : null;
   const calendarWeekNumber = elapsedPlanDay ? Math.ceil(elapsedPlanDay / 7) : currentWeek;
   const calendarDayNumber = elapsedPlanDay ? ((elapsedPlanDay - 1) % 7) + 1 : 1;
