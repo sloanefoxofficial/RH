@@ -43,6 +43,21 @@ const SCREEN_BACK_LABELS = {
 const screenBackLabel = (screen) => SCREEN_BACK_LABELS[screen] || "Home";
 const LAST_SCREEN_STORAGE_KEY = (userId) => userId ? `rh_last_screen_${userId}` : "rh_last_screen_guest";
 const RESTORABLE_SCREENS = new Set(["hub", "program", "guides", "chat", "journal", "toolkit", "resources", "chaptly", "supportUs", "games", "merch", "carlosLibrary", "programInfo", "bookAppointment", "mensShed", "mensGroup", "settings", "profile", "memory", "notifications", "coordinator"]);
+const ACTIVITY_PREF_KEY = "rh_activity_tracking_on";
+const ACTIVITY_HEARTBEAT_MS = 60 * 1000;
+const ACTIVITY_ACTIVE_WINDOW_MS = 2 * 60 * 1000;
+const ACTIVITY_SECTIONS = ["Home", "Program", "Journal", "Resources", "Guides", "Toolkit", "Settings", "Support", "Admin"];
+function activitySectionForScreen(screen) {
+  if (["program", "programInfo", "bookAppointment"].includes(screen)) return "Program";
+  if (["journal"].includes(screen)) return "Journal";
+  if (["resources", "chaptly", "mensShed", "mensGroup", "carlosLibrary", "merch", "games"].includes(screen)) return "Resources";
+  if (["guides", "chat", "coordinator"].includes(screen)) return "Guides";
+  if (["toolkit"].includes(screen)) return "Toolkit";
+  if (["settings", "profile", "memory", "notifications"].includes(screen)) return "Settings";
+  if (["supportUs"].includes(screen)) return "Support";
+  if (["admin", "adminMessages", "adminBugReports", "adminAppointments"].includes(screen)) return "Admin";
+  return "Home";
+}
 let __backDestinationLabel = "Home";
 
 /* ---- persistent storage (browser localStorage) ---- */
@@ -397,6 +412,63 @@ class ScreenErrorBoundary extends React.Component {
   }
 }
 
+function useActivityTracking({ session, screen, displayName, enabled, ready }) {
+  const activitySessionRef = useRef(null);
+  const sectionRef = useRef(activitySectionForScreen(screen));
+  const displayNameRef = useRef(displayName || "Member");
+  sectionRef.current = activitySectionForScreen(screen);
+  displayNameRef.current = displayName || "Member";
+
+  useEffect(() => {
+    if (!authEnabled || !supabase || !session?.user?.id || !enabled || !ready) return undefined;
+    let cancelled = false;
+    const userId = session.user.id;
+    const touch = async () => {
+      if (cancelled) return;
+      const now = new Date().toISOString();
+      try {
+        if (!activitySessionRef.current) {
+          const { data } = await supabase.from("rh_usage_sessions").insert({ user_id: userId, started_at: now, last_seen_at: now, section: sectionRef.current }).select("id").single();
+          if (!cancelled) activitySessionRef.current = data?.id || null;
+        } else {
+          await supabase.from("rh_usage_sessions").update({ last_seen_at: now, section: sectionRef.current }).eq("id", activitySessionRef.current).eq("user_id", userId);
+        }
+        await supabase.from("rh_activity_presence").upsert({ user_id: userId, display_name: displayNameRef.current, section: sectionRef.current, last_seen_at: now, updated_at: now }, { onConflict: "user_id" });
+      } catch {}
+    };
+    const finish = () => {
+      const id = activitySessionRef.current;
+      if (!id) return;
+      const now = new Date().toISOString();
+      void supabase.from("rh_usage_sessions").update({ ended_at: now, last_seen_at: now, section: sectionRef.current }).eq("id", id).eq("user_id", userId);
+      void supabase.from("rh_activity_presence").delete().eq("user_id", userId);
+      activitySessionRef.current = null;
+    };
+    void touch();
+    const timer = setInterval(touch, ACTIVITY_HEARTBEAT_MS);
+    const onVisible = () => { if (document.visibilityState === "visible") void touch(); };
+    const onExit = () => finish();
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("pagehide", onExit);
+    window.addEventListener("beforeunload", onExit);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("pagehide", onExit);
+      window.removeEventListener("beforeunload", onExit);
+      finish();
+    };
+  }, [session?.user?.id, enabled, ready]);
+
+  useEffect(() => {
+    if (!activitySessionRef.current || !supabase || !session?.user?.id || !enabled) return;
+    const now = new Date().toISOString();
+    void supabase.from("rh_usage_sessions").update({ last_seen_at: now, section: sectionRef.current }).eq("id", activitySessionRef.current).eq("user_id", session.user.id);
+    void supabase.from("rh_activity_presence").upsert({ user_id: session.user.id, display_name: displayNameRef.current, section: sectionRef.current, last_seen_at: now, updated_at: now }, { onConflict: "user_id" });
+  }, [screen, enabled, session?.user?.id]);
+}
+
 export default function App() {
   const [ready, setReady] = useState(false);
   const [dataHydrated, setDataHydrated] = useState(false);
@@ -426,6 +498,7 @@ export default function App() {
     catch { return true; }
   });
   const [isAdmin, setIsAdmin] = useState(false);
+  const [activityTrackingOn, setActivityTrackingOn] = useState(true);
   const [authChecked, setAuthChecked] = useState(!authEnabled);
   const [memories, setMemories] = useState([]);          // durable "about me" notes
   const [memoryOn, setMemoryOn] = useState(true);        // person can switch memory off entirely
@@ -455,6 +528,8 @@ export default function App() {
   const activeCharRef = useRef(activeChar);
   screenRef.current = screen;
   activeCharRef.current = activeChar;
+  const activityDisplayName = profile?.name || session?.user?.user_metadata?.full_name || "Member";
+  useActivityTracking({ session, screen, displayName: activityDisplayName, enabled: activityTrackingOn, ready: ready && dataHydrated && !guestMode });
   const [vaultMeta, setVaultMeta] = useState(null);
   const [vaultKey, setVaultKey] = useState(null);
   const [deviceUnlockEnabled, setDeviceUnlockEnabled] = useState(false);
@@ -745,6 +820,8 @@ export default function App() {
       if (savedJournalPin?.hash) setJournalPinSet(true);
       const consent = await sget("rh_consent");
       if (consent) setConsented(true);
+      const tracking = await sget(ACTIVITY_PREF_KEY);
+      setActivityTrackingOn(tracking !== false);
     })();
   }, []);
 
@@ -946,13 +1023,14 @@ export default function App() {
     }
   }, []);
 
-  const saveSettings = useCallback(({ textScale: ts, reduceMotion: rm, responseSpeed: rs, speechLang: sl, autoIntroVoice: ai, autoReplyVoice: ar }) => {
+  const saveSettings = useCallback(({ textScale: ts, reduceMotion: rm, responseSpeed: rs, speechLang: sl, autoIntroVoice: ai, autoReplyVoice: ar, activityTracking: at }) => {
     if (typeof ts === "number") { setTextScale(ts); sset("rh_text_scale", ts); }
     if (typeof rm === "boolean") { setReduceMotion(rm); sset("rh_reduce_motion", rm); }
     if (rs === "chilled" || rs === "normal" || rs === "fast") { setResponseSpeed(rs); sset("rh_response_speed", rs); }
     if (sl && SPEECH_LANGS.some((l) => l.code === sl)) { setSpeechLang(sl); __speechLang = sl; sset("rh_speech_lang", sl); }
     if (typeof ai === "boolean") { setAutoIntroVoiceOn(ai); __autoIntroVoiceOn = ai; sset("rh_auto_intro_voice", ai); }
     if (typeof ar === "boolean") { setAutoReplyVoiceOn(ar); __autoReplyVoiceOn = ar; sset("rh_auto_reply_voice", ar); }
+    if (typeof at === "boolean") { setActivityTrackingOn(at); sset(ACTIVITY_PREF_KEY, at); }
   }, []);
 
   const setJournalPin = useCallback(async (pin, question, answer) => {
@@ -1426,7 +1504,7 @@ export default function App() {
           <MemoryManager memories={memories} memoryOn={memoryOn}
             onSave={(list, on) => saveMemories(list, on)} onBack={back} />
         ) : screen === "settings" ? (
-              <Settings textScale={textScale} reduceMotion={reduceMotion} responseSpeed={responseSpeed} speechLang={speechLang} autoIntroVoice={autoIntroVoiceOn} autoReplyVoice={autoReplyVoiceOn}
+              <Settings textScale={textScale} reduceMotion={reduceMotion} responseSpeed={responseSpeed} speechLang={speechLang} autoIntroVoice={autoIntroVoiceOn} autoReplyVoice={autoReplyVoiceOn} activityTrackingOn={activityTrackingOn}
               journalPinSet={journalPinSet} journalPinQuestion={journalPinQuestion} journalPinHash={journalPinHash} journalPinAnswerHash={journalPinAnswerHash} onSetJournalPin={setJournalPin} onClearJournalPin={clearJournalPin} deviceUnlockEnabled={deviceUnlockEnabled} onSetDeviceUnlock={setDeviceUnlockPreference}
             installPromptAvailable={Boolean(installPromptEvent)} isStandalone={isStandalone} onPromptInstall={promptAppInstall}
             session={session} authEnabled={showAuth} onSave={saveSettings} onRestoreDefaults={restoreDefaultSettings} onExportVaultRecovery={exportVaultRecoveryPackage} onBack={back}
@@ -3289,8 +3367,90 @@ function GuidePersonalityEditor({ guidePrompts, onSave }) {
   );
 }
 
+function formatActivityAge(value) {
+  const seconds = Math.max(0, Math.floor((Date.now() - new Date(value).getTime()) / 1000));
+  if (seconds < 60) return "Just now";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes} min${minutes === 1 ? "" : "s"} ago`;
+  const hours = Math.floor(minutes / 60);
+  return `${hours} hr${hours === 1 ? "" : "s"} ago`;
+}
+function formatDuration(seconds) {
+  const minutes = Math.max(0, Math.round(Number(seconds || 0) / 60));
+  if (minutes < 60) return `${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  const remainder = minutes % 60;
+  return remainder ? `${hours}h ${remainder}m` : `${hours}h`;
+}
+function AdminActivity({ onBack }) {
+  const [presence, setPresence] = useState(null);
+  const [sessions, setSessions] = useState(null);
+  const [error, setError] = useState("");
+  const [refreshedAt, setRefreshedAt] = useState(null);
+  const load = useCallback(async () => {
+    if (!supabase) { setPresence([]); setSessions([]); return; }
+    try {
+      setError("");
+      const cutoff = new Date(Date.now() - 35 * 24 * 60 * 60 * 1000).toISOString();
+      const [{ data: live, error: liveError }, { data: usage, error: usageError }] = await Promise.all([
+        supabase.from("rh_activity_presence").select("user_id,display_name,section,last_seen_at,session_started_at").order("last_seen_at", { ascending: false }),
+        supabase.from("rh_usage_sessions").select("id,user_id,started_at,ended_at,last_seen_at,section").gte("started_at", cutoff).order("started_at", { ascending: false }),
+      ]);
+      if (liveError || usageError) throw new Error(liveError?.message || usageError?.message || "Unable to load activity.");
+      setPresence(live || []); setSessions(usage || []); setRefreshedAt(new Date());
+    } catch (e) { setError(e?.message || "Unable to load activity data."); setPresence([]); setSessions([]); }
+  }, []);
+  useEffect(() => { load(); const timer = setInterval(load, 60 * 1000); return () => clearInterval(timer); }, [load]);
+  const active = (presence || []).filter((row) => Date.now() - new Date(row.last_seen_at).getTime() <= ACTIVITY_ACTIVE_WINDOW_MS);
+  const userNames = Object.fromEntries((presence || []).map((row) => [row.user_id, row.display_name || "Member"]));
+  const now = Date.now();
+  const durationFor = (row) => {
+    const start = new Date(row.started_at).getTime();
+    const end = row.ended_at ? new Date(row.ended_at).getTime() : Math.min(now, new Date(row.last_seen_at || row.started_at).getTime() + ACTIVITY_ACTIVE_WINDOW_MS);
+    return Math.max(0, (end - start) / 1000);
+  };
+  const usage = sessions || [];
+  const totalFor = (rangeMs) => usage.filter((row) => now - new Date(row.started_at).getTime() <= rangeMs).reduce((sum, row) => sum + durationFor(row), 0);
+  const memberStats = Object.values(usage.reduce((all, row) => {
+    const key = row.user_id || "unknown";
+    if (!all[key]) all[key] = { id: key, name: userNames[key] || "Member", day: 0, week: 0, month: 0 };
+    const age = now - new Date(row.started_at).getTime();
+    const seconds = durationFor(row);
+    if (age <= 24 * 60 * 60 * 1000) all[key].day += seconds;
+    if (age <= 7 * 24 * 60 * 60 * 1000) all[key].week += seconds;
+    if (age <= 30 * 24 * 60 * 60 * 1000) all[key].month += seconds;
+    return all;
+  }, {})).sort((a, b) => b.month - a.month);
+  const byBucket = { Morning: 0, Afternoon: 0, Evening: 0, "Late night": 0 };
+  usage.forEach((row) => { const hour = new Date(row.started_at).getHours(); const bucket = hour >= 5 && hour < 12 ? "Morning" : hour >= 12 && hour < 17 ? "Afternoon" : hour >= 17 && hour < 22 ? "Evening" : "Late night"; byBucket[bucket] += durationFor(row); });
+  return (
+    <>
+      <Brand right={<BackBtn onBack={onBack} label="Admin" />} />
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6, marginBottom: 4 }}><Radio size={18} color={T.greenDk} /><h2 style={{ fontSize: 18, margin: 0 }}>Activity &amp; usage</h2></div>
+      <p style={{ fontSize: 13, color: T.sub, margin: "0 2px 14px", lineHeight: 1.5 }}>Admin-only service information. This view contains timestamps and broad section names only — never journal entries, notes, chats, uploads, or other private content.</p>
+      {error && <div style={{ background: "#fff4f2", color: "#a4453c", borderRadius: 12, padding: 11, fontSize: 12.5, marginBottom: 12 }}>{error}</div>}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10, marginBottom: 16 }}>
+        <div style={{ background: "#eaf6ef", borderRadius: 16, padding: 14 }}><div style={{ fontSize: 12, color: T.sub }}>Active now</div><div style={{ fontSize: 28, fontWeight: 850, color: T.greenDk }}>{active.length}</div><div style={{ fontSize: 11, color: T.sub }}>seen within 2 minutes</div></div>
+        <div style={{ background: "#fff5d9", borderRadius: 16, padding: 14 }}><div style={{ fontSize: 12, color: T.sub }}>Last refresh</div><div style={{ fontSize: 15, fontWeight: 800, color: T.ink, marginTop: 7 }}>{refreshedAt ? refreshedAt.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : "Loading…"}</div><div style={{ fontSize: 11, color: T.sub }}>refreshes every minute</div></div>
+      </div>
+      <div style={{ fontSize: 15, color: T.greenDk, fontWeight: 900, letterSpacing: 0.7, textTransform: "uppercase", margin: "7px 2px 10px" }}>Active users</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 18 }}>
+        {presence === null && <div style={{ color: T.sub, fontSize: 13 }}>Loading…</div>}
+        {presence && active.length === 0 && <div style={{ background: T.card, borderRadius: 14, padding: 13, color: T.sub, fontSize: 13 }}>Nobody is active right now.</div>}
+        {active.map((row) => <div key={row.user_id} style={{ background: T.card, borderRadius: 14, padding: 13, boxShadow: T.soft, display: "flex", alignItems: "center", gap: 10 }}><div style={{ width: 9, height: 9, borderRadius: "50%", background: T.green, flexShrink: 0 }} /><div style={{ flex: 1 }}><div style={{ fontWeight: 750, fontSize: 13.5 }}>{row.display_name || "Member"}</div><div style={{ color: T.sub, fontSize: 12 }}>{row.section} · {formatActivityAge(row.last_seen_at)}</div></div></div>)}
+      </div>
+      <div style={{ fontSize: 15, color: T.greenDk, fontWeight: 900, letterSpacing: 0.7, textTransform: "uppercase", margin: "7px 2px 10px" }}>Usage overview</div>
+      <div style={{ background: T.card, borderRadius: 16, padding: 14, boxShadow: T.soft, marginBottom: 12 }}>
+        {[['Today', 24 * 60 * 60 * 1000], ['Last 7 days', 7 * 24 * 60 * 60 * 1000], ['Last 30 days', 30 * 24 * 60 * 60 * 1000]].map(([label, ms]) => <div key={label} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: label === "Last 30 days" ? "none" : `1px solid ${T.line}`, fontSize: 13.5 }}><span>{label}</span><strong>{formatDuration(totalFor(ms))}</strong></div>)}
+      </div>
+      <div style={{ background: T.card, borderRadius: 16, padding: 14, boxShadow: T.soft, marginBottom: 12 }}><div style={{ fontWeight: 750, marginBottom: 8 }}>Usage by member</div>{memberStats.length === 0 ? <div style={{ color: T.sub, fontSize: 13 }}>No usage sessions recorded yet.</div> : memberStats.map((row) => <div key={row.id} style={{ padding: "9px 0", borderBottom: `1px solid ${T.line}` }}><div style={{ fontWeight: 700, fontSize: 13.5, marginBottom: 5 }}>{row.name}</div><div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 5, fontSize: 11.5, color: T.sub }}><span>Day <strong style={{ color: T.ink }}>{formatDuration(row.day)}</strong></span><span>Week <strong style={{ color: T.ink }}>{formatDuration(row.week)}</strong></span><span>Month <strong style={{ color: T.ink }}>{formatDuration(row.month)}</strong></span></div></div>)}</div>
+      <div style={{ background: T.card, borderRadius: 16, padding: 14, boxShadow: T.soft }}><div style={{ fontWeight: 750, marginBottom: 8 }}>Peak usage periods</div>{Object.entries(byBucket).map(([label, seconds]) => <div key={label} style={{ display: "flex", justifyContent: "space-between", padding: "7px 0", fontSize: 13, color: T.sub }}><span>{label}</span><strong style={{ color: T.ink }}>{formatDuration(seconds)}</strong></div>)}</div>
+    </>
+  );
+}
+
 function Admin({ isAdmin, guidePrompts, onSaveGuidePrompt, onBack }) {
-  const [view, setView] = useState(null);       // null | "members" | "safety" | "welcome" | "guides" | "notify"
+  const [view, setView] = useState(null);       // null | "members" | "activity" | "safety" | "welcome" | "guides" | "notify"
   const [member, setMember] = useState(null);   // a selected member row
   if (!isAdmin) {
     return (
@@ -3305,10 +3465,12 @@ function Admin({ isAdmin, guidePrompts, onSaveGuidePrompt, onBack }) {
   }
   if (member) return <MemberDetail member={member} onBack={() => setMember(null)} />;
   if (view === "members") return <MembersDirectory onOpen={(m) => setMember(m)} onBack={() => setView(null)} />;
+  if (view === "activity") return <AdminActivity onBack={() => setView(null)} />;
   if (view === "bugreports") return <AdminBugReports onBack={() => setView(null)} />;
   if (view === "appointments") return <AdminAppointments onBack={() => setView(null)} />;
 
   const tools = [
+    { key: "activity", Icon: Radio, tint: "#e9f5ee", ic: "#2c7d50", title: "Activity & usage", sub: "Admin-only active count, sessions and peak periods" },
     { key: "safety", Icon: LifeBuoy, tint: "#fbe4e4", ic: "#c94f4f", title: "Safety & crisis settings", sub: "Crisis numbers, disclaimers, safety rules" },
     { key: "welcome", Icon: Sparkles, tint: "#fbf1d6", ic: "#c9a227", title: "Welcome message", sub: "What Rex says to brand-new members" },
     { key: "guides", Icon: Users, tint: "#f4e3d9", ic: "#c9803f", title: "Guide personalities", sub: "Fine-tune how each guide comes across" },
@@ -4605,7 +4767,7 @@ function MemoryManager({ memories, memoryOn, onSave, onBack }) {
 }
 
 /* ---------- accessibility settings ---------- */
-function Settings({ textScale, reduceMotion, responseSpeed, speechLang, autoIntroVoice, autoReplyVoice, journalPinSet, journalPinQuestion = "", journalPinHash = null, journalPinAnswerHash = null, onSetJournalPin, onClearJournalPin, deviceUnlockEnabled = false, onSetDeviceUnlock, installPromptAvailable, isStandalone, onPromptInstall, session, authEnabled, onSave, onRestoreDefaults, onExportVaultRecovery, onBack, onOpenBugReport, onOpenFeedback }) {
+function Settings({ textScale, reduceMotion, responseSpeed, speechLang, autoIntroVoice, autoReplyVoice, activityTrackingOn = true, journalPinSet, journalPinQuestion = "", journalPinHash = null, journalPinAnswerHash = null, onSetJournalPin, onClearJournalPin, deviceUnlockEnabled = false, onSetDeviceUnlock, installPromptAvailable, isStandalone, onPromptInstall, session, authEnabled, onSave, onRestoreDefaults, onExportVaultRecovery, onBack, onOpenBugReport, onOpenFeedback }) {
   const [pushState, setPushState] = useState("checking"); // "checking" | "on" | "off" | "denied" | "unsupported" | "error"
   const [pushDetail, setPushDetail] = useState("");
   const [pushBusy, setPushBusy] = useState(false);
@@ -4767,6 +4929,18 @@ function Settings({ textScale, reduceMotion, responseSpeed, speechLang, autoIntr
             <option key={l.code} value={l.code}>{l.label}</option>
           ))}
         </select>
+      </div>
+
+      <div style={{ fontSize: 15, color: T.greenDk, fontWeight: 900, letterSpacing: 0.7, textTransform: "uppercase", margin: "22px 2px 10px" }}>Privacy &amp; service improvement</div>
+      <div style={{ background: T.card, borderRadius: 18, padding: 16, boxShadow: T.soft, marginBottom: 14, display: "flex", alignItems: "center", gap: 12 }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontWeight: 700 }}>Allow anonymous usage tracking</div>
+          <div style={{ fontSize: 12.5, color: T.sub, lineHeight: 1.45, marginTop: 4 }}>When this is on, we record session times and broad app sections to help improve support. We never access or store your journal entries, notes, chats, uploads, location, or what you type. This is only visible to authorised administrators and is never shared externally.</div>
+        </div>
+        <button onClick={() => onSave({ activityTracking: !activityTrackingOn })} aria-pressed={Boolean(activityTrackingOn)} aria-label="Toggle anonymous usage tracking"
+          style={{ width: 52, height: 30, borderRadius: 999, border: "none", cursor: "pointer", background: activityTrackingOn ? T.green : "#cfc6da", position: "relative", transition: "background .2s", flexShrink: 0 }}>
+          <span style={{ position: "absolute", top: 3, left: activityTrackingOn ? 25 : 3, width: 24, height: 24, borderRadius: "50%", background: "#fff", transition: "left .2s" }} />
+        </button>
       </div>
 
       <div style={{ fontSize: 15, color: T.greenDk, fontWeight: 900, letterSpacing: 0.7, textTransform: "uppercase", margin: "22px 2px 10px" }}>Your device</div>
@@ -5047,6 +5221,7 @@ function PrivacyLink({ style, variant }) {
             {section("Support messages and reports", <>Messages to the real Juan, bug reports, feedback, appointment requests, and optional screenshots are sent only when you choose those features. They are protected by authenticated access and database/storage controls and are available to authorised Resilience Hub staff so they can respond or provide support. These submissions are not user-only encrypted. Other members cannot read them. Screenshots are optional and may contain sensitive details, so crop or hide anything unnecessary.</>)}
             {section("AI and voice services", <>When you ask an AI guide to reply, the relevant content is sent through our server to Anthropic so a response can be generated. When voice playback is requested, text may be sent through Fish Audio or Google Cloud Text-to-Speech, with browser speech as a fallback. These providers may process content under their own terms and retention practices. Do not enter information you are not comfortable sending to an AI or speech service.</>)}
             {section("Account, sign-in and notifications", <>The app uses Supabase authentication and database services. Email/password and Google sign-in may be available. “Stay logged in” controls session persistence; disable it on shared devices. The optional Journal PIN is separate from your account login and can be changed or removed in Settings using your PIN or recovery answer. Do not reuse your account password as your recovery answer. Push notification bodies are kept generic and should not contain journal text, message content, or crisis disclosures.</>)}
+            {section("Usage information and live activity", <>If you leave anonymous usage tracking switched on, we record app session times and broad sections such as Program, Journal, Resources, Guides, Toolkit, or Home to help improve support and service coverage. Authorised administrators may see the live active count, display name, last seen time, current broad section, session duration, daily/weekly/monthly totals, and aggregate peak usage periods. This never includes journal entries, notes, guide messages, uploads, what you type, location, IP profiling, or advertising data. No other member can see your activity, and this information is never sold or shared externally. You can turn tracking off at any time in Settings.</>)}
             {section("Who may access information", <>Authorised Resilience Hub staff may access support submissions that you deliberately send. Supabase, Vercel, Anthropic, Fish Audio, Google Cloud Text-to-Speech, authentication providers, push-notification infrastructure, and other service providers may process limited information needed to provide the app. We do not sell personal information or use it for advertising profiling. We may disclose information where required by law or needed to respond to an immediate safety risk.</>)}
             {section("Deletion and retention", <>You can clear your app data from your Profile. The app attempts to remove account rows, support rows linked to your account, game progress, push subscriptions, local cached data, Journal PIN metadata, and associated screenshot objects. Deleted data may remain in provider backups, point-in-time recovery, disaster-recovery systems, device backups, or third-party provider systems for up to <strong>31 days</strong> before those backup copies are routinely overwritten or expire.</>)}
             {section("Your choices and questions", <>You can change optional profile details, manage guide memory, control voice and notification preferences, manage your Journal PIN, clear app data, sign out, and contact the team about privacy or deletion requests. Never send a privacy passphrase, recovery key, private encryption key, or service secret to support. For urgent danger, call 000 or use Help Now.</>)}
