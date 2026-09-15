@@ -913,7 +913,14 @@ export default function App() {
       await supabase.from("member_data").upsert({ user_id: sessionRef.current.user.id, ...patch, encryption_meta: null, updated_at: new Date().toISOString() });
     }
   }, [vaultStatus]);
-  const saveProfile = useCallback((p) => { setProfile(p); void secureLocalSet("rh_profile", p); void syncMemberData({ profile: p }); }, [secureLocalSet, syncMemberData]);
+  const saveProfile = useCallback((p) => {
+    setProfile((current) => {
+      const merged = { ...(current || {}), ...(p || {}) };
+      void secureLocalSet("rh_profile", merged);
+      void syncMemberData({ profile: merged });
+      return merged;
+    });
+  }, [secureLocalSet, syncMemberData]);
   const saveAnswers = useCallback((a) => { setAnswers(a); void secureLocalSet("rh_answers", a); void syncMemberData({ answers: a }); }, [secureLocalSet, syncMemberData]);
   const savePlan = useCallback((pl) => {
     if (pl && !pl.startedAt) pl.startedAt = Date.now();
@@ -5775,7 +5782,13 @@ function Onboarding({ profile, saveProfile, answers, saveAnswers, savePlan, voic
 
   const next = (val) => {
     const merged = val !== undefined ? set(val) : local;
-    if (q.type === "name") { const nm = name.trim() || "friend"; saveProfile({ ...profile, name: nm }); }
+    if (q.type === "name") {
+      const nm = name.trim() || "friend";
+      const nextAnswers = { ...local, [q.key]: nm };
+      setLocal(nextAnswers);
+      saveAnswers(nextAnswers);
+      saveProfile({ name: nm });
+    }
     if (q.type === "safety") {
       const idx = merged.safety;
       if (idx === 2 || idx === 3) { setSafetyPanel(true); return; }
@@ -5788,7 +5801,7 @@ function Onboarding({ profile, saveProfile, answers, saveAnswers, savePlan, voic
   const finish = async () => {
     // Short path: they didn't want a plan right now — save what they shared and go.
     if (mode === "short") {
-      saveProfile({ ...profile, name: name.trim() || "friend", onboardingComplete: true });
+      saveProfile({ name: name.trim() || "friend", onboardingComplete: true });
       onDone({ createdPlan: false });
       return;
     }
@@ -5847,7 +5860,7 @@ Respond with ONLY valid JSON, no markdown fences, exactly this shape:
     // Start Carlos’s completed-plan welcome before leaving onboarding. The
     // finished plan page will reuse this in-flight/cached audio immediately.
     prefetch(spokenIntro("plan", PROGRAM_WELCOME_TEXT, speechLang), CHARS.carlos);
-    saveProfile({ ...profile, name: name.trim() || "friend", onboardingComplete: true });
+    saveProfile({ name: name.trim() || "friend", onboardingComplete: true });
     setBuilding(false);
     onDone({ createdPlan: true });
   };
