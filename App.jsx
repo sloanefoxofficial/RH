@@ -428,13 +428,17 @@ function useActivityTracking({ session, screen, displayName, enabled, ready }) {
       const now = new Date().toISOString();
       try {
         if (!activitySessionRef.current) {
-          const { data } = await supabase.from("rh_usage_sessions").insert({ user_id: userId, started_at: now, last_seen_at: now, section: sectionRef.current }).select("id").single();
-          if (!cancelled) activitySessionRef.current = data?.id || null;
+          const sessionId = typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+          const { error: sessionError } = await supabase.from("rh_usage_sessions").insert({ id: sessionId, user_id: userId, started_at: now, last_seen_at: now, section: sectionRef.current });
+          if (sessionError) throw sessionError;
+          if (!cancelled) activitySessionRef.current = sessionId;
         } else {
           await supabase.from("rh_usage_sessions").update({ last_seen_at: now, section: sectionRef.current }).eq("id", activitySessionRef.current).eq("user_id", userId);
         }
         await supabase.from("rh_activity_presence").upsert({ user_id: userId, display_name: displayNameRef.current, section: sectionRef.current, last_seen_at: now, updated_at: now }, { onConflict: "user_id" });
-      } catch {}
+      } catch (error) {
+        if (import.meta.env?.DEV) console.warn("Activity tracking update failed", error);
+      }
     };
     const finish = () => {
       const id = activitySessionRef.current;
@@ -529,7 +533,7 @@ export default function App() {
   screenRef.current = screen;
   activeCharRef.current = activeChar;
   const activityDisplayName = profile?.name || session?.user?.user_metadata?.full_name || "Member";
-  useActivityTracking({ session, screen, displayName: activityDisplayName, enabled: activityTrackingOn, ready: ready && dataHydrated && !guestMode });
+  useActivityTracking({ session, screen, displayName: activityDisplayName, enabled: activityTrackingOn, ready: ready && authChecked && !guestMode });
   const [vaultMeta, setVaultMeta] = useState(null);
   const [vaultKey, setVaultKey] = useState(null);
   const [deviceUnlockEnabled, setDeviceUnlockEnabled] = useState(false);
