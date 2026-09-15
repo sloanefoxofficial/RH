@@ -1364,7 +1364,7 @@ export default function App() {
         {authEnabled && !authChecked ? (
           <div style={{ paddingTop: 120, textAlign: "center", color: T.sub }}>Loading…</div>
         ) : showAuth && !session ? (
-          <Login onGuest={() => setGuestMode(true)} stayLoggedIn={stayLoggedIn} onStayLoggedInChange={changeStayLoggedIn} />
+          <Login stayLoggedIn={stayLoggedIn} onStayLoggedInChange={changeStayLoggedIn} />
         ) : !ready ? (
           <div style={{ paddingTop: 120, textAlign: "center", color: T.sub }}>Warming up…</div>
         ) : !consented ? (
@@ -3168,7 +3168,7 @@ function QuickCalm({ onBack }) {
 }
 
 /* ---------- auth: login ---------- */
-function Login({ onGuest, stayLoggedIn = true, onStayLoggedInChange }) {
+function Login({ stayLoggedIn = true, onStayLoggedInChange }) {
   const [mode, setMode] = useState("signin");
   const [email, setEmail] = useState("");
   const [pw, setPw] = useState("");
@@ -3312,13 +3312,10 @@ function Login({ onGuest, stayLoggedIn = true, onStayLoggedInChange }) {
         <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "2px 0 14px", color: T.sub, fontSize: 12 }}>
           <div style={{ flex: 1, height: 1, background: T.line }} /> or <div style={{ flex: 1, height: 1, background: T.line }} />
         </div>
-        <Btn kind="outline" onClick={withGoogle}>Continue with Google</Btn>
-        {onGuest && (
-          <button onClick={onGuest} style={{ display: "block", width: "100%", background: "none", border: "none",
-            color: T.sub, cursor: "pointer", fontSize: 12.5, marginTop: 14, textDecoration: "underline", textAlign: "center" }}>
-            Just testing or previewing? Continue without an account
-          </button>
-        )}
+        <button type="button" onClick={withGoogle} disabled={busy} style={{ width: "100%", minHeight: 52, display: "flex", alignItems: "center", justifyContent: "center", gap: 11, borderRadius: 16, border: "1px solid #d7dce5", background: "#fff", color: "#243247", cursor: busy ? "default" : "pointer", fontSize: 15, fontWeight: 800, boxShadow: "0 5px 14px rgba(38, 52, 71, 0.10)", opacity: busy ? 0.65 : 1 }}>
+          <span aria-hidden="true" style={{ width: 25, height: 25, borderRadius: 7, display: "grid", placeItems: "center", background: "#fff", fontSize: 20, fontWeight: 900, fontFamily: "Arial, sans-serif", color: "#4285F4", lineHeight: 1 }}>G</span>
+          <span>Continue with Google</span>
+        </button>
         <Disclaimer />
       </div>
     </>
