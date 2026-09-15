@@ -426,6 +426,7 @@ function useActivityTracking({ session, screen, displayName, enabled, ready }) {
     const touch = async () => {
       if (cancelled) return;
       const now = new Date().toISOString();
+      let usageError = null;
       try {
         if (!activitySessionRef.current) {
           const sessionId = typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -433,12 +434,20 @@ function useActivityTracking({ session, screen, displayName, enabled, ready }) {
           if (sessionError) throw sessionError;
           if (!cancelled) activitySessionRef.current = sessionId;
         } else {
-          await supabase.from("rh_usage_sessions").update({ last_seen_at: now, section: sectionRef.current }).eq("id", activitySessionRef.current).eq("user_id", userId);
+          const { error: updateError } = await supabase.from("rh_usage_sessions").update({ last_seen_at: now, section: sectionRef.current }).eq("id", activitySessionRef.current).eq("user_id", userId);
+          if (updateError) throw updateError;
         }
-        await supabase.from("rh_activity_presence").upsert({ user_id: userId, display_name: displayNameRef.current, section: sectionRef.current, last_seen_at: now, updated_at: now }, { onConflict: "user_id" });
       } catch (error) {
-        if (import.meta.env?.DEV) console.warn("Activity tracking update failed", error);
+        usageError = error;
+        if (import.meta.env?.DEV) console.warn("Activity usage write failed", error?.code || error?.message || "unknown");
       }
+      try {
+        const { error: presenceError } = await supabase.from("rh_activity_presence").upsert({ user_id: userId, display_name: displayNameRef.current, section: sectionRef.current, last_seen_at: now, updated_at: now }, { onConflict: "user_id" });
+        if (presenceError) throw presenceError;
+      } catch (error) {
+        if (import.meta.env?.DEV) console.warn("Activity presence write failed", error?.code || error?.message || "unknown");
+      }
+      if (usageError && import.meta.env?.DEV) console.warn("Activity presence was attempted despite usage write failure");
     };
     const finish = () => {
       const id = activitySessionRef.current;
