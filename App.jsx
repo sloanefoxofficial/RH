@@ -6785,7 +6785,7 @@ function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, set
 
       <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 10 }}>
         <a href="https://healthengine.com.au/v2/appointment/book/41615#specialty-selection" target="_blank" rel="noopener noreferrer" aria-label="Book an appointment with Dr Carlos Robalino at Fairfield Medical Centre" style={{ width: "100%", boxSizing: "border-box", background: "linear-gradient(135deg, #eef4ff 0%, #ffffff 58%, #eaf7f2 100%)", border: "1px solid rgba(63,111,175,0.20)", borderRadius: 21, padding: 15, boxShadow: T.soft, cursor: "pointer", display: "flex", alignItems: "center", gap: 13, textAlign: "left", textDecoration: "none", color: T.ink }}>
-          <div style={{ width: 50, height: 50, borderRadius: 16, background: "linear-gradient(145deg, #8eaddc, #e8f4ff)", display: "grid", placeItems: "center", flexShrink: 0 }}><Stethoscope size={24} color="#345c8d" /></div>
+          <div style={{ width: 50, height: 50, borderRadius: 16, background: "linear-gradient(145deg, #8eaddc, #e8f4ff)", display: "grid", placeItems: "center", flexShrink: 0 }}><LifeBuoy size={24} color="#345c8d" /></div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ color: "#345c8d", fontSize: 10, fontWeight: 900, letterSpacing: 0.9, marginBottom: 2 }}>FAIRFIELD MEDICAL CENTRE</div>
             <div style={{ fontWeight: 800, fontSize: 16 }}>Dr Carlos Robalino — Your GP</div>
