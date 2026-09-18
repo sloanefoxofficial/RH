@@ -6769,7 +6769,7 @@ function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, set
         <div style={{ position: "relative" }}>
           <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,0.72)", borderRadius: 999, padding: "5px 10px", color: T.greenDk, fontSize: 11, fontWeight: 800, letterSpacing: 0.3, marginBottom: 10 }}><Sparkles size={13} /> Built not bought</div>
           <div style={{ fontSize: 23, fontWeight: 900, lineHeight: 1.12, marginBottom: 5, color: T.greenDk }}>Men’s mental health &amp; suicide prevention</div>
-          <div style={{ fontSize: 14, color: T.greenDk, fontWeight: 800, marginBottom: 10 }}>You don’t have to carry it alone{nm ? `, ${nm}` : ""}.</div>
+          <div style={{ fontSize: 14, color: T.greenDk, fontWeight: 800, marginBottom: 10 }}>You never have to walk it alone{nm ? `, ${nm}` : ""}.</div>
         </div>
         <div style={{ position: "relative", fontSize: 13.5, color: T.sub, lineHeight: 1.55 }}>
           A warm place to get support, one step at a time. Not sure who to talk to?
@@ -6785,7 +6785,7 @@ function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, set
         <div style={{ display: "flex", alignItems: "center", gap: 7, color: "#a53f42", fontSize: 11, fontWeight: 900, letterSpacing: 0.8, textTransform: "uppercase", marginBottom: 9 }}><LifeBuoy size={15} /> Need help now?</div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 7 }}>
           <a href="tel:000" aria-label="Call Triple Zero 000" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3, padding: "9px 4px", borderRadius: 13, background: "#c94f4f", color: "#fff", textDecoration: "none", fontWeight: 900, fontSize: 12 }}><Phone size={17} />000</a>
-          <a href="tel:131114" aria-label="Call Lifeline 13 11 14" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3, padding: "9px 4px", borderRadius: 13, background: "#fff", color: "#a53f42", border: "1px solid #efcccc", textDecoration: "none", fontWeight: 900, fontSize: 12 }}><Phone size={17} />13 11 14</a>
+          <a href="tel:131114" aria-label="Call Lifeline 13 11 14" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3, padding: "9px 4px", borderRadius: 13, background: "#fff", color: "#a53f42", border: "1px solid #efcccc", textDecoration: "none", fontWeight: 900, fontSize: 12 }}><Phone size={17} /><span>Lifeline</span><span>13 11 14</span></a>
           <a href="tel:1300789978" aria-label="Call MensLine Australia" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3, padding: "9px 4px", borderRadius: 13, background: "#fff", color: "#a53f42", border: "1px solid #efcccc", textDecoration: "none", fontWeight: 900, fontSize: 12 }}><Phone size={17} />MensLine</a>
         </div>
       </div>
