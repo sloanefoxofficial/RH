@@ -6804,6 +6804,15 @@ function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, set
           </div>
           <ChevronRight size={20} color={T.greenDk} />
         </button>
+        <a href="https://axiompsych.com.au/carlos-camacho/" target="_blank" rel="noopener noreferrer" aria-label="Open Carlos Camacho’s psychologist profile" style={{ width: "100%", boxSizing: "border-box", background: "linear-gradient(135deg, #fff4eb 0%, #ffffff 58%, #f2e4dc 100%)", border: "1px solid rgba(201,128,63,0.22)", borderRadius: 21, padding: 15, boxShadow: T.soft, cursor: "pointer", display: "flex", alignItems: "center", gap: 13, textAlign: "left", textDecoration: "none", color: T.ink }}>
+          <div style={{ width: 50, height: 50, borderRadius: 16, background: "linear-gradient(145deg, #e8b894, #fff3e7)", display: "grid", placeItems: "center", flexShrink: 0 }}><Heart size={24} color="#b56739" /></div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ color: "#b56739", fontSize: 10, fontWeight: 900, letterSpacing: 0.9, marginBottom: 2 }}>AXIOM PSYCHOLOGY</div>
+            <div style={{ fontWeight: 800, fontSize: 16 }}>Carlos Camacho — Registered Psychologist</div>
+            <div style={{ fontSize: 13, color: T.sub, lineHeight: 1.42, marginTop: 3 }}>Professional psychological support, guidance, and a calm place to work through what feels heavy.</div>
+          </div>
+          <ExternalLink size={19} color="#b56739" style={{ flexShrink: 0 }} />
+        </a>
       </div>
 
       <div style={{ marginTop: 10, background: "linear-gradient(135deg, #fff0f0 0%, #fff8f4 100%)", border: "1px solid rgba(201,79,79,0.22)", borderRadius: 20, padding: 13, boxShadow: "0 8px 20px rgba(201,79,79,0.09)" }}>
@@ -6845,11 +6854,6 @@ function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, set
       {/* menu cards — grouped for clarity */}
       <SectionTitle>Your journey</SectionTitle>
       <div className="rh-hub-card-stack" style={{ display: "flex", flexDirection: "column", gap: 11 }}>
-        <button onClick={onOpenProgramInfo} aria-label="Resilience & Recovery Program: Our free 8-week in-person program — how it works & how to join" style={{ width: "100%", background: "linear-gradient(110deg, #ffffff 0%, #f4fbf6 58%, #fff7ed 100%)", borderRadius: 21, padding: 15, boxShadow: T.soft, border: "1px solid rgba(77,159,104,0.18)", cursor: "pointer", display: "flex", alignItems: "center", gap: 13, textAlign: "left" }}>
-          <div style={{ width: 50, height: 50, borderRadius: 16, background: "#fff", display: "grid", placeItems: "center", flexShrink: 0, overflow: "hidden", boxShadow: "inset 0 0 0 1px rgba(44,125,80,0.16)" }}><img src="/resilience-hub-logo.png" alt="Resilience Hub logo" style={{ width: "100%", height: "100%", objectFit: "contain", padding: 3 }} /></div>
-          <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontWeight: 700, fontSize: 16 }}>Resilience &amp; Recovery Program</div><div style={{ fontSize: 13, color: T.sub }}>Our free 8-week in-person program — how it works &amp; how to join</div></div>
-          <ChevronRight size={20} color={T.sub} />
-        </button>
         <div style={{ margin: "7px 0 0", color: T.greenDk, fontSize: 12, fontWeight: 900, letterSpacing: 0.9, textTransform: "uppercase" }}>Your AI mates &amp; tools</div>
         {card(onOpenGuides, "#f4e3d9", "#c9803f", Users, "Your guides", "Nicolas, Carlos, Mick & Lila — chat any time", undefined, { background: "linear-gradient(135deg, #fff4eb 0%, #fffaf6 52%, #f2e4dc 100%)", border: "1px solid rgba(201,128,63,0.22)", iconBackground: "linear-gradient(145deg, #e8b894, #fff3e7)", iconColor: "#b56739", arrowColor: "#b56739", subColor: "#7f6b60" })}
         {card(onOpenToolkit, "#dceee2", "#2c7d50", Wrench, "Toolkit", "Calm down, reflect & grow, stay safe", undefined, { background: "linear-gradient(135deg, #e5f5eb 0%, #f8fcf8 54%, #e1f1ef 100%)", border: "1px solid rgba(46,133,120,0.20)", iconBackground: "linear-gradient(145deg, #72b88b, #e1f5e7)", iconColor: "#236b58", arrowColor: "#2e8578", subColor: "#5f776e" })}
