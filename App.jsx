@@ -3,7 +3,7 @@ import {
   Phone, LifeBuoy, X, Mic, Send, Square, Volume2, VolumeX,
   ArrowLeft, ArrowUp, LogOut, BookOpen, CheckCircle2, Circle, ChevronRight, ChevronUp, ChevronDown,
   ChevronLeft, Sparkles, Heart, Wind, Anchor, Play, Pause, RotateCcw, Wrench,
-  Shield, Eye, EyeOff, User, Megaphone, Youtube, ExternalLink, Radio, Paperclip, MessageCircle, Share2, Flame, HelpCircle, Plus, Search, Settings as SettingsIcon, CalendarCheck, Users, ShoppingBag, Gamepad2, Zap, Download, FileText, Clock, MapPin, DollarSign,
+  Shield, Eye, EyeOff, User, Megaphone, Youtube, ExternalLink, Radio, Paperclip, MessageCircle, Share2, Flame, HelpCircle, Plus, Search, Settings as SettingsIcon, CalendarCheck, Users, ShoppingBag, Gamepad2, Zap, Download, FileText, Clock, MapPin, DollarSign, Wifi,
 } from "lucide-react";
 import { IMG } from "./images.js";
 import { supabase, authEnabled, setAuthSessionPersistence } from "./supabase.js";
@@ -33,7 +33,7 @@ const T = {
 const SCREEN_BACK_LABELS = {
   welcome: "Welcome", hub: "Home", rexTutorial: "Home", onboarding: "Get Started", program: "8-Week Plan",
   guides: "Guides", chat: "Guide Chat", toolkit: "Toolkit", journal: "Private Journal",
-  resources: "Hub", supportUs: "Hub", chaptly: "Hub", games: "Games & Puzzles", merch: "Sloane Fox Merch",
+  resources: "Hub", virtualSupport: "Hub", supportUs: "Hub", chaptly: "Hub", games: "Games & Puzzles", merch: "Sloane Fox Merch",
   carlosLibrary: "Carlos Library", programInfo: "Program", bookAppointment: "Program",
   mensShed: "Men’s Shed", mensGroup: "Men’s Group", settings: "Settings", profile: "Profile",
   memory: "Profile", notifications: "Home", coordinator: "Message Juan", admin: "Admin",
@@ -42,7 +42,7 @@ const SCREEN_BACK_LABELS = {
 };
 const screenBackLabel = (screen) => SCREEN_BACK_LABELS[screen] || "Home";
 const LAST_SCREEN_STORAGE_KEY = (userId) => userId ? `rh_last_screen_${userId}` : "rh_last_screen_guest";
-const RESTORABLE_SCREENS = new Set(["hub", "program", "guides", "chat", "journal", "toolkit", "resources", "chaptly", "supportUs", "games", "merch", "carlosLibrary", "programInfo", "bookAppointment", "mensShed", "mensGroup", "settings", "profile", "memory", "notifications", "coordinator"]);
+const RESTORABLE_SCREENS = new Set(["hub", "program", "guides", "chat", "journal", "toolkit", "resources", "virtualSupport", "chaptly", "supportUs", "games", "merch", "carlosLibrary", "programInfo", "bookAppointment", "mensShed", "mensGroup", "settings", "profile", "memory", "notifications", "coordinator"]);
 const ACTIVITY_PREF_KEY = "rh_activity_tracking_on";
 const ACTIVITY_HEARTBEAT_MS = 60 * 1000;
 const ACTIVITY_ACTIVE_WINDOW_MS = 2 * 60 * 1000;
@@ -50,7 +50,7 @@ const ACTIVITY_SECTIONS = ["Home", "Program", "Journal", "Resources", "Guides", 
 function activitySectionForScreen(screen) {
   if (["program", "programInfo", "bookAppointment"].includes(screen)) return "Program";
   if (["journal"].includes(screen)) return "Journal";
-  if (["resources", "chaptly", "mensShed", "mensGroup", "carlosLibrary", "merch", "games"].includes(screen)) return "Resources";
+  if (["resources", "virtualSupport", "chaptly", "mensShed", "mensGroup", "carlosLibrary", "merch", "games"].includes(screen)) return "Resources";
   if (["guides", "chat", "coordinator"].includes(screen)) return "Guides";
   if (["toolkit"].includes(screen)) return "Toolkit";
   if (["settings", "profile", "memory", "notifications"].includes(screen)) return "Settings";
@@ -1416,6 +1416,7 @@ export default function App() {
             onOpenGames={() => go("games")}
             onOpenToolkit={() => { setToolkitInitial(null); go("toolkit"); }}
             onOpenResources={() => go("resources")}
+            onOpenVirtualSupport={() => go("virtualSupport")}
             onOpenChaptly={() => go("chaptly")}
             onOpenSupportUs={() => go("supportUs")}
             onOpenSafety={() => openTool("safety")}
@@ -1494,6 +1495,8 @@ export default function App() {
           <Toolkit voiceOn={voiceOn} speechLang={speechLang} initial={toolkitInitial} onUseTool={tickToolTask} onOpenJournal={() => { if (planOriginRef.current) openPlanDestination("journal"); else go("journal"); }} onOpenGames={() => go("games")} onBack={planOriginRef.current ? returnToPlan : back} />
         ) : screen === "resources" ? (
           <ResourcesPage onOpenSafety={() => openTool("safety")} onOpenMensShed={() => go("mensShed")} onBack={back} />
+        ) : screen === "virtualSupport" ? (
+          <VirtualSupportPage onBack={back} />
         ) : screen === "chaptly" ? (
           <ChaptlyPage onBack={() => { histRef.current = []; __backDestinationLabel = "Home"; setScreen("hub"); }} />
         ) : screen === "supportUs" ? (
@@ -6656,7 +6659,7 @@ function RexHubTour({ voiceOn, onOpenJournal, onOpenProgram, onOpenSafety, onOpe
   );
 }
 
-function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, setVoiceOn, onOpenChat, onOpenRexTutorial, onOpenProgram, onOpenJournal, onOpenGuides, onOpenMerch, onOpenCarlosLibrary, onOpenGames, onOpenToolkit, onOpenResources, onOpenChaptly, onOpenSupportUs, onOpenSafety, onOpenNotifications, onOpenCoordinator, onOpenSettings, onOpenMensGroup, onOpenMensShed, onOpenAdminMessages, onOpenProgramInfo, onReset, isAdmin, authEnabled, guestMode, onExitGuest, onOpenAdmin, onOpenProfile, onSignOut, session, rexHistory, onSaveRexChat, memories, onConversation, answers, rexPersona }) {
+function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, setVoiceOn, onOpenChat, onOpenRexTutorial, onOpenProgram, onOpenJournal, onOpenGuides, onOpenMerch, onOpenCarlosLibrary, onOpenGames, onOpenToolkit, onOpenResources, onOpenVirtualSupport, onOpenChaptly, onOpenSupportUs, onOpenSafety, onOpenNotifications, onOpenCoordinator, onOpenSettings, onOpenMensGroup, onOpenMensShed, onOpenAdminMessages, onOpenProgramInfo, onReset, isAdmin, authEnabled, guestMode, onExitGuest, onOpenAdmin, onOpenProfile, onSignOut, session, rexHistory, onSaveRexChat, memories, onConversation, answers, rexPersona }) {
   const { speak, stop, speaking } = useVoice(voiceOn);
   const [notifRefresh, setNotifRefresh] = useState(0);
   const [shareMsg, setShareMsg] = useState("");
@@ -6832,6 +6835,12 @@ function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, set
 
       </div>
 
+      <button onClick={onOpenVirtualSupport} aria-label="Open Virtual Support from Home" style={{ width: "100%", marginTop: 11, background: "linear-gradient(135deg, #e8f4f3 0%, #f7fbf8 54%, #eaf0fb 100%)", border: "1px solid rgba(47,126,126,0.20)", borderRadius: 24, padding: 17, boxShadow: "0 10px 24px rgba(47,126,126,0.11)", cursor: "pointer", display: "flex", alignItems: "center", gap: 14, textAlign: "left", position: "relative", overflow: "hidden" }}>
+        <div style={{ position: "absolute", width: 150, height: 150, borderRadius: "50%", right: -55, top: -72, background: "rgba(255,255,255,0.52)" }} />
+        <div style={{ width: 60, height: 60, borderRadius: 19, background: "linear-gradient(145deg, #2f807c, #65b99d)", display: "grid", placeItems: "center", flexShrink: 0, boxShadow: "0 8px 16px rgba(47,128,124,0.19)", position: "relative" }}><Wifi size={29} color="#fff" /></div>
+        <div style={{ flex: 1, minWidth: 0, position: "relative" }}><div style={{ color: "#28736f", fontSize: 10, fontWeight: 900, letterSpacing: 1, marginBottom: 3 }}>MEN’S MENTAL HEALTH</div><div style={{ fontWeight: 800, fontSize: 18, color: T.ink }}>Virtual Support — From Home</div><div style={{ fontSize: 13, color: T.sub, lineHeight: 1.42, marginTop: 3 }}>Talk, connect, or get support from your couch — no travel needed</div></div>
+        <ChevronRight size={23} color="#2f807c" style={{ position: "relative", flexShrink: 0 }} />
+      </button>
       <div className="rh-hub-card-stack" style={{ display: "flex", flexDirection: "column", gap: 11, marginTop: 11 }}>
         <button onClick={onOpenChaptly} aria-label="Open Chaptly partner information" style={{ width: "100%", background: "linear-gradient(135deg, #fff1f1 0%, #fff8f6 55%, #fff3df 100%)", border: "1px solid rgba(238,62,66,0.22)", borderRadius: 24, padding: 14, boxShadow: "0 10px 24px rgba(205,55,58,0.12)", cursor: "pointer", display: "flex", alignItems: "center", gap: 13, textAlign: "left", position: "relative", overflow: "hidden" }}>
           <div style={{ position: "absolute", width: 170, height: 170, borderRadius: "50%", right: -65, top: -80, background: "rgba(255,255,255,0.6)" }} />
@@ -7972,7 +7981,7 @@ function ResourcesPage({ onOpenSafety, onOpenMensShed, onBack }) {
     return <button type="button" onClick={onClick} style={style}>{body}</button>;
   };
   const toc = [
-    ["resources-immediate", "Immediate support"], ["resources-community", "Community and connection"], ["resources-food", "Food and meals"], ["resources-housing", "Housing and essentials"], ["resources-money", "Legal, money and bills"], ["resources-recovery", "Addiction recovery"], ["resources-wellbeing", "Wellbeing and activities"], ["resources-family", "Family, children and youth"], ["resources-health", "Health and wellbeing"], ["resources-safety", "Stay safe"],
+    ["resources-immediate", "Immediate support"], ["resources-virtual", "Virtual support from home"], ["resources-community", "Community and connection"], ["resources-food", "Food and meals"], ["resources-housing", "Housing and essentials"], ["resources-money", "Legal, money and bills"], ["resources-recovery", "Addiction recovery"], ["resources-wellbeing", "Wellbeing and activities"], ["resources-family", "Family, children and youth"], ["resources-health", "Health and wellbeing"], ["resources-safety", "Stay safe"],
   ];
   return (
     <>
@@ -7996,6 +8005,12 @@ function ResourcesPage({ onOpenSafety, onOpenMensShed, onBack }) {
         {resourceCard({ Icon: Heart, tint: "#f4e3d9", color: "#b56739", eyebrow: "Mental health support", title: "Beyond Blue and MensLine Australia", href: "https://www.beyondblue.org.au/get-support", children: "Beyond Blue: 1300 22 4636. MensLine Australia: 1300 78 99 78 for men needing phone or online support." })}
       </div>
 
+      {sectionLabel("resources-virtual", Wifi, "Virtual Support — From Home", "Talk, connect, or get support from your couch. Digital chat, a Zoom group, a phone call, or in-person support — whatever feels right.", "#2f807c")}
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        {resourceCard({ Icon: Users, tint: "#e8f4f3", color: "#28736f", eyebrow: "Online men’s groups", title: "The Complete Men Foundation", href: "https://completemen.org.au/online-mens-groups", children: "Free weekly online men’s support circles via Zoom for men across Australia. A space to talk about isolation, relationships, depression, and everyday life without judgement." })}
+        {resourceCard({ Icon: Wifi, tint: "#eaf0fb", color: T.blueDk, eyebrow: "Online anxiety support", title: "WayAhead Men’s Online Anxiety Support Group", href: "https://wayahead.org.au", children: "A NSW-based online group for men managing anxiety, stress, and overwhelm. Visit the website for current meeting details and registration information." })}
+        {resourceCard({ Icon: Phone, tint: "#e7f5eb", color: T.greenDk, eyebrow: "24/7 men’s counselling", title: "MensLine Australia", href: "https://mensline.org.au", phone: "1300 789 978", children: "Free telephone and online counselling for men and families, including support with personal crisis, relationship breakdown, and emotional wellbeing." })}
+      </div>
       {sectionLabel("resources-food", ShoppingBag, "Food and meals", "Food banks, community meals, food parcels, and help with groceries.", T.greenDk)}
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {resourceCard({ Icon: Search, tint: "#e9f5ee", color: T.greenDk, eyebrow: "Search local services", title: "Food support near postcode 2165", href: "https://askizzy.org.au/food/2165-NSW", children: "Ask Izzy’s current local directory can help you find food banks, pantries, community meals, vouchers, and food parcels near Fairfield, Liverpool, Cabramatta, and surrounding areas." })}
@@ -8056,6 +8071,40 @@ function ResourcesPage({ onOpenSafety, onOpenMensShed, onBack }) {
   );
 }
 
+function VirtualSupportPage({ onBack }) {
+  const supportCard = ({ Icon, title, eyebrow, text, href, phone, color = "#2f807c", tint = "#e8f4f3" }) => (
+    <a href={href} target="_blank" rel="noopener noreferrer" style={{ display: "block", textDecoration: "none", color: T.ink, background: `linear-gradient(135deg, ${tint} 0%, #fff 78%)`, border: `1px solid ${color}22`, borderRadius: 19, padding: 14, boxShadow: T.soft }}>
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}><div style={{ width: 44, height: 44, borderRadius: 14, background: `${color}18`, display: "grid", placeItems: "center", flexShrink: 0 }}><Icon size={22} color={color} /></div><div style={{ flex: 1 }}><div style={{ color, fontSize: 10, fontWeight: 900, letterSpacing: 0.9, textTransform: "uppercase" }}>{eyebrow}</div><div style={{ fontWeight: 800, fontSize: 16, marginTop: 3 }}>{title}</div><div style={{ fontSize: 13, color: T.sub, lineHeight: 1.48, marginTop: 5 }}>{text}</div>{phone && <div style={{ display: "inline-block", marginTop: 10, padding: "7px 10px", borderRadius: 999, background: "rgba(255,255,255,0.78)", fontSize: 11.5, fontWeight: 800 }}>Phone: {phone}</div>}</div><ExternalLink size={18} color={color} style={{ flexShrink: 0, marginTop: 12 }} /></div>
+    </a>
+  );
+  return <>
+    <Brand right={<BackBtn onBack={onBack} />} />
+    <div style={{ background: "linear-gradient(145deg, #e4f4f2 0%, #fbfdf9 55%, #e9effb 100%)", border: "1px solid rgba(47,128,124,0.16)", borderRadius: 24, padding: "22px 18px 20px", marginTop: 7, boxShadow: T.soft, position: "relative", overflow: "hidden" }}>
+      <div style={{ position: "absolute", width: 180, height: 180, borderRadius: "50%", right: -65, top: -85, background: "rgba(255,255,255,0.52)" }} />
+      <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 9, color: "#28736f", fontSize: 11, fontWeight: 900, letterSpacing: 1, textTransform: "uppercase" }}><Wifi size={16} /> Virtual support</div>
+      <h1 style={{ position: "relative", margin: "9px 0 8px", fontSize: 28, lineHeight: 1.12, color: T.ink }}>From home, on your terms</h1>
+      <p style={{ position: "relative", margin: 0, color: T.sub, fontSize: 13.5, lineHeight: 1.55 }}>Talk, connect, or get support from your couch. No travel needed, no pressure to explain everything at once — choose the kind of contact that feels manageable today.</p>
+    </div>
+    <div style={{ marginTop: 14, background: "#fff8f2", border: "1px solid #f0dfcf", borderRadius: 19, padding: 15 }}>
+      <div style={{ color: "#a65f36", fontSize: 10, fontWeight: 900, letterSpacing: 0.9, textTransform: "uppercase" }}>Why this matters</div>
+      <div style={{ fontWeight: 850, fontSize: 18, marginTop: 4 }}>Men deserve support before things reach breaking point.</div>
+      <p style={{ margin: "8px 0 0", color: T.sub, fontSize: 13, lineHeight: 1.52 }}>Australian Bureau of Statistics data recorded 3,326 deaths by suicide in 2024 after preliminary revision. The age-standardised rate was 18.4 per 100,000 for males and 5.6 for females. These figures describe a national pattern, not any individual person’s risk, and recent figures may be revised as coronial information is updated.</p>
+      <p style={{ margin: "9px 0 0", color: T.sub, fontSize: 11.5, lineHeight: 1.45 }}>Sources: <a href="https://www.abs.gov.au/statistics/health/causes-death/intentional-self-harm-suicide-deaths/latest-release" target="_blank" rel="noopener noreferrer" style={{ color: "#a65f36", fontWeight: 800 }}>Australian Bureau of Statistics</a> and <a href="https://www.aihw.gov.au/suicide-self-harm-monitoring/overview/summary" target="_blank" rel="noopener noreferrer" style={{ color: "#a65f36", fontWeight: 800 }}>AIHW</a>.</p>
+    </div>
+    <div style={{ margin: "22px 0 11px", fontSize: 20, fontWeight: 900, color: T.greenDk }}>Talk, connect, or reach out</div>
+    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      {supportCard({ Icon: Users, eyebrow: "Online men’s groups", title: "The Complete Men Foundation", href: "https://completemen.org.au/online-mens-groups", text: "Free weekly online men’s support circles via Zoom for men across Australia — a safe, judgement-free place to talk isolation, relationships, depression, and everyday life." })}
+      {supportCard({ Icon: Wifi, eyebrow: "Online anxiety support", title: "WayAhead Men’s Online Anxiety Support Group", href: "https://wayahead.org.au", color: T.blueDk, tint: "#eaf0fb", text: "A NSW-based online group for men managing anxiety, stress, and overwhelm. Check the website for current meeting details." })}
+      {supportCard({ Icon: Phone, eyebrow: "24/7 men’s counselling", title: "MensLine Australia", href: "https://mensline.org.au", phone: "1300 789 978", color: T.greenDk, tint: "#e7f5eb", text: "Free telephone and online counselling for men and families, including support with personal crisis, relationship breakdown, and emotional wellbeing." })}
+    </div>
+    <div style={{ marginTop: 18, background: "#fff0f0", border: "1px solid #f0d1d1", borderRadius: 19, padding: 15 }}>
+      <div style={{ fontWeight: 850, fontSize: 16, color: "#a53f42" }}>If you feel unsafe right now</div>
+      <p style={{ margin: "7px 0 10px", color: T.sub, fontSize: 13, lineHeight: 1.5 }}>Call <a href="tel:000" style={{ color: "#a53f42", fontWeight: 900 }}>000</a> if there is immediate danger. You can also call <a href="tel:131114" style={{ color: "#a53f42", fontWeight: 900 }}>Lifeline on 13 11 14</a>. If calling feels hard, move closer to another person and ask them to stay with you while you reach out.</p>
+      <div style={{ fontSize: 11.5, color: T.sub, lineHeight: 1.45 }}>These services are independent organisations. Check their current availability directly. This page is support information, not a replacement for emergency or clinical care.</div>
+    </div>
+    <div style={{ height: 28 }} />
+  </>;
+}
 function MensShedPage({ onBack }) {
   const [galleryOpen, setGalleryOpen] = useState(false);
   const signPhoto = "/mens-shed/south-west-sydney-mens-shed-sign.png";
