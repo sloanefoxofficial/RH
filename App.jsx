@@ -6767,9 +6767,9 @@ function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, set
       <div style={{ background: "linear-gradient(135deg, #e8f6ec 0%, #f7fcf8 56%, #fff1e4 100%)", borderRadius: 24, padding: "20px 18px", boxShadow: T.soft, marginTop: 8, border: "1px solid rgba(77,159,104,0.16)", position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", right: -24, top: -30, width: 130, height: 130, borderRadius: "50%", background: "rgba(255,255,255,0.48)" }} />
         <div style={{ position: "relative" }}>
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,0.72)", borderRadius: 999, padding: "5px 10px", color: T.greenDk, fontSize: 11, fontWeight: 800, letterSpacing: 0.3, marginBottom: 10 }}><Sparkles size={13} /> A softer place to land</div>
-          <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 4, color: T.greenDk }}>Welcome to The Resilience Hub{nm ? `, ${nm}` : ""}</div>
-          <div style={{ fontSize: 13.5, color: T.green, fontWeight: 700, marginBottom: 10 }}>You never have to walk it alone.</div>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,0.72)", borderRadius: 999, padding: "5px 10px", color: T.greenDk, fontSize: 11, fontWeight: 800, letterSpacing: 0.3, marginBottom: 10 }}><Sparkles size={13} /> Built not bought</div>
+          <div style={{ fontSize: 23, fontWeight: 900, lineHeight: 1.12, marginBottom: 5, color: T.greenDk }}>Men’s mental health &amp; suicide prevention</div>
+          <div style={{ fontSize: 14, color: T.greenDk, fontWeight: 800, marginBottom: 10 }}>You don’t have to carry it alone{nm ? `, ${nm}` : ""}.</div>
         </div>
         <div style={{ position: "relative", fontSize: 13.5, color: T.sub, lineHeight: 1.55 }}>
           A warm place to get support, one step at a time. Not sure who to talk to?
@@ -6778,6 +6778,15 @@ function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, set
           <br />• <strong style={{ color: T.ink }}>Mick</strong> — housing, bills &amp; practical life
           <br />• <strong style={{ color: T.ink }}>Lila</strong> — family &amp; relationships
           <br />Or just say hi to Rex below — he'll point you the right way.
+        </div>
+      </div>
+
+      <div style={{ marginTop: 10, background: "linear-gradient(135deg, #fff0f0 0%, #fff8f4 100%)", border: "1px solid rgba(201,79,79,0.22)", borderRadius: 20, padding: 13, boxShadow: "0 8px 20px rgba(201,79,79,0.09)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 7, color: "#a53f42", fontSize: 11, fontWeight: 900, letterSpacing: 0.8, textTransform: "uppercase", marginBottom: 9 }}><LifeBuoy size={15} /> Need help now?</div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 7 }}>
+          <a href="tel:000" aria-label="Call Triple Zero 000" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3, padding: "9px 4px", borderRadius: 13, background: "#c94f4f", color: "#fff", textDecoration: "none", fontWeight: 900, fontSize: 12 }}><Phone size={17} />000</a>
+          <a href="tel:131114" aria-label="Call Lifeline 13 11 14" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3, padding: "9px 4px", borderRadius: 13, background: "#fff", color: "#a53f42", border: "1px solid #efcccc", textDecoration: "none", fontWeight: 900, fontSize: 12 }}><Phone size={17} />13 11 14</a>
+          <a href="tel:1300789978" aria-label="Call MensLine Australia" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3, padding: "9px 4px", borderRadius: 13, background: "#fff", color: "#a53f42", border: "1px solid #efcccc", textDecoration: "none", fontWeight: 900, fontSize: 12 }}><Phone size={17} />MensLine</a>
         </div>
       </div>
 
@@ -6816,6 +6825,7 @@ function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, set
           <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontWeight: 700, fontSize: 16 }}>Resilience &amp; Recovery Program</div><div style={{ fontSize: 13, color: T.sub }}>Our free 8-week in-person program — how it works &amp; how to join</div></div>
           <ChevronRight size={20} color={T.sub} />
         </button>
+        <div style={{ margin: "7px 0 0", color: T.greenDk, fontSize: 12, fontWeight: 900, letterSpacing: 0.9, textTransform: "uppercase" }}>Your AI mates &amp; tools</div>
         {card(onOpenGuides, "#f4e3d9", "#c9803f", Users, "Your guides", "Nicolas, Carlos, Mick & Lila — chat any time", undefined, { background: "linear-gradient(135deg, #fff4eb 0%, #fffaf6 52%, #f2e4dc 100%)", border: "1px solid rgba(201,128,63,0.22)", iconBackground: "linear-gradient(145deg, #e8b894, #fff3e7)", iconColor: "#b56739", arrowColor: "#b56739", subColor: "#7f6b60" })}
         {card(onOpenToolkit, "#dceee2", "#2c7d50", Wrench, "Toolkit", "Calm down, reflect & grow, stay safe", undefined, { background: "linear-gradient(135deg, #e5f5eb 0%, #f8fcf8 54%, #e1f1ef 100%)", border: "1px solid rgba(46,133,120,0.20)", iconBackground: "linear-gradient(145deg, #72b88b, #e1f5e7)", iconColor: "#236b58", arrowColor: "#2e8578", subColor: "#5f776e" })}
         {card(onOpenProgram, "#e7eefb", "#3f6faf", CalendarCheck, plan ? "Your 8-Week Plan" : "Optional 8-Week Plan", plan ? "Your active plan, progress & next steps" : "Your plan, progress & next steps — use it if it helps", undefined, { background: "linear-gradient(135deg, #eaf1ff 0%, #f9fbff 54%, #eeeafd 100%)", border: "1px solid rgba(63,111,175,0.20)", iconBackground: "linear-gradient(145deg, #8eaddc, #eef4ff)", iconColor: "#345c8d", arrowColor: "#4e71a6", subColor: "#64758c" })}
@@ -6835,13 +6845,15 @@ function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, set
 
       </div>
 
-      <button onClick={onOpenVirtualSupport} aria-label="Open Virtual Support from Home" style={{ width: "100%", marginTop: 11, background: "linear-gradient(135deg, #e8f4f3 0%, #f7fbf8 54%, #eaf0fb 100%)", border: "1px solid rgba(47,126,126,0.20)", borderRadius: 24, padding: 17, boxShadow: "0 10px 24px rgba(47,126,126,0.11)", cursor: "pointer", display: "flex", alignItems: "center", gap: 14, textAlign: "left", position: "relative", overflow: "hidden" }}>
+      <div style={{ margin: "18px 0 0", color: "#28736f", fontSize: 12, fontWeight: 900, letterSpacing: 0.9, textTransform: "uppercase" }}>From home — virtual spaces</div>
+      <button onClick={onOpenVirtualSupport} aria-label="Open Virtual Support from Home" style={{ width: "100%", marginTop: 8, background: "linear-gradient(135deg, #e8f4f3 0%, #f7fbf8 54%, #eaf0fb 100%)", border: "1px solid rgba(47,126,126,0.20)", borderRadius: 24, padding: 17, boxShadow: "0 10px 24px rgba(47,126,126,0.11)", cursor: "pointer", display: "flex", alignItems: "center", gap: 14, textAlign: "left", position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", width: 150, height: 150, borderRadius: "50%", right: -55, top: -72, background: "rgba(255,255,255,0.52)" }} />
         <div style={{ width: 60, height: 60, borderRadius: 19, background: "linear-gradient(145deg, #2f807c, #65b99d)", display: "grid", placeItems: "center", flexShrink: 0, boxShadow: "0 8px 16px rgba(47,128,124,0.19)", position: "relative" }}><Wifi size={29} color="#fff" /></div>
         <div style={{ flex: 1, minWidth: 0, position: "relative" }}><div style={{ color: "#28736f", fontSize: 10, fontWeight: 900, letterSpacing: 1, marginBottom: 3 }}>MEN’S MENTAL HEALTH</div><div style={{ fontWeight: 800, fontSize: 18, color: T.ink }}>Virtual Support — From Home</div><div style={{ fontSize: 13, color: T.sub, lineHeight: 1.42, marginTop: 3 }}>Talk, connect, or get support from your couch — no travel needed</div></div>
         <ChevronRight size={23} color="#2f807c" style={{ position: "relative", flexShrink: 0 }} />
       </button>
       <div className="rh-hub-card-stack" style={{ display: "flex", flexDirection: "column", gap: 11, marginTop: 11 }}>
+        <div style={{ margin: "7px 0 0", color: "#2f687a", fontSize: 12, fontWeight: 900, letterSpacing: 0.9, textTransform: "uppercase" }}>Out in the real world &amp; practical essentials</div>
         <button onClick={onOpenChaptly} aria-label="Open Chaptly partner information" style={{ width: "100%", background: "linear-gradient(135deg, #fff1f1 0%, #fff8f6 55%, #fff3df 100%)", border: "1px solid rgba(238,62,66,0.22)", borderRadius: 24, padding: 14, boxShadow: "0 10px 24px rgba(205,55,58,0.12)", cursor: "pointer", display: "flex", alignItems: "center", gap: 13, textAlign: "left", position: "relative", overflow: "hidden" }}>
           <div style={{ position: "absolute", width: 170, height: 170, borderRadius: "50%", right: -65, top: -80, background: "rgba(255,255,255,0.6)" }} />
           <div style={{ width: 76, height: 60, borderRadius: 17, overflow: "hidden", flexShrink: 0, background: "#ff3341", boxShadow: "0 8px 16px rgba(205,55,58,0.18)", position: "relative" }}><img src="/partners/chaptly-main-logo.jpg" alt="Chaptly" style={{ width: "100%", height: "100%", objectFit: "cover" }} /></div>
