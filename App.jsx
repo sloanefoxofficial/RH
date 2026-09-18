@@ -6777,8 +6777,33 @@ function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, set
           <br />• <strong style={{ color: T.ink }}>Carlos</strong> — calming, clinical tools for stress &amp; low mood
           <br />• <strong style={{ color: T.ink }}>Mick</strong> — housing, bills &amp; practical life
           <br />• <strong style={{ color: T.ink }}>Lila</strong> — family &amp; relationships
+          <br />• <strong style={{ color: T.ink }}>Dr Robalino</strong> — Fairfield Medical Centre, telehealth or in-person GP appointments
+          <br />• <strong style={{ color: T.ink }}>Juan</strong> — The Resilience Hub’s free 8-week, in-person support program
           <br />Or just say hi to Rex below — he'll point you the right way.
         </div>
+      </div>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 10 }}>
+        <a href="https://healthengine.com.au/v2/appointment/book/41615#specialty-selection" target="_blank" rel="noopener noreferrer" aria-label="Book an appointment with Dr Carlos Robalino at Fairfield Medical Centre" style={{ width: "100%", boxSizing: "border-box", background: "linear-gradient(135deg, #eef4ff 0%, #ffffff 58%, #eaf7f2 100%)", border: "1px solid rgba(63,111,175,0.20)", borderRadius: 21, padding: 15, boxShadow: T.soft, cursor: "pointer", display: "flex", alignItems: "center", gap: 13, textAlign: "left", textDecoration: "none", color: T.ink }}>
+          <div style={{ width: 50, height: 50, borderRadius: 16, background: "linear-gradient(145deg, #8eaddc, #e8f4ff)", display: "grid", placeItems: "center", flexShrink: 0 }}><Stethoscope size={24} color="#345c8d" /></div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ color: "#345c8d", fontSize: 10, fontWeight: 900, letterSpacing: 0.9, marginBottom: 2 }}>FAIRFIELD MEDICAL CENTRE</div>
+            <div style={{ fontWeight: 800, fontSize: 16 }}>Dr Carlos Robalino — Your GP</div>
+            <div style={{ fontSize: 13, color: T.sub, lineHeight: 1.42, marginTop: 3 }}>Telehealth video, in-person appointments, or a direct phone consultation.</div>
+            <div style={{ fontSize: 11.5, color: T.sub, lineHeight: 1.4, marginTop: 6 }}>42 Court Road, Fairfield NSW 2165 · (02) 9724 2662</div>
+          </div>
+          <ExternalLink size={19} color="#345c8d" style={{ flexShrink: 0 }} />
+        </a>
+        <button onClick={onOpenProgramInfo} aria-label="Open Juan’s Resilience Hub 8-week support program" style={{ width: "100%", background: "linear-gradient(135deg, #e8f6ec 0%, #ffffff 58%, #fff4e5 100%)", border: "1px solid rgba(77,159,104,0.20)", borderRadius: 21, padding: 15, boxShadow: T.soft, cursor: "pointer", display: "flex", alignItems: "center", gap: 13, textAlign: "left" }}>
+          <div style={{ width: 50, height: 50, borderRadius: 16, background: "linear-gradient(145deg, #75b98a, #e3f5e8)", display: "grid", placeItems: "center", flexShrink: 0 }}><Users size={24} color={T.greenDk} /></div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ color: T.greenDk, fontSize: 10, fontWeight: 900, letterSpacing: 0.9, marginBottom: 2 }}>THE RESILIENCE HUB · WESTERN SYDNEY</div>
+            <div style={{ fontWeight: 800, fontSize: 16 }}>Juan — 8-Week Support Program</div>
+            <div style={{ fontSize: 13, color: T.sub, lineHeight: 1.42, marginTop: 3 }}>Free, in-person, practical support for men, with lived experience and round-the-clock crisis response.</div>
+            <div style={{ fontSize: 11.5, color: T.sub, lineHeight: 1.4, marginTop: 6 }}>Serving Fairfield, Liverpool, Western Sydney and beyond · 0489 059 833</div>
+          </div>
+          <ChevronRight size={20} color={T.greenDk} />
+        </button>
       </div>
 
       <div style={{ marginTop: 10, background: "linear-gradient(135deg, #fff0f0 0%, #fff8f4 100%)", border: "1px solid rgba(201,79,79,0.22)", borderRadius: 20, padding: 13, boxShadow: "0 8px 20px rgba(201,79,79,0.09)" }}>
