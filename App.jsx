@@ -6789,10 +6789,19 @@ function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, set
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ color: "#345c8d", fontSize: 10, fontWeight: 900, letterSpacing: 0.9, marginBottom: 2 }}>FAIRFIELD MEDICAL CENTRE</div>
             <div style={{ fontWeight: 800, fontSize: 16 }}>Dr Carlos Robalino — Your GP</div>
-            <div style={{ fontSize: 13, color: T.sub, lineHeight: 1.42, marginTop: 3 }}>Telehealth video, in-person appointments, or a direct phone consultation.</div>
+            <div style={{ fontSize: 13, color: T.sub, lineHeight: 1.42, marginTop: 3 }}>In-person appointments or a direct phone consultation at Fairfield Medical Centre.</div>
             <div style={{ fontSize: 11.5, color: T.sub, lineHeight: 1.4, marginTop: 6 }}>42 Court Road, Fairfield NSW 2165 · (02) 9724 2662</div>
           </div>
           <ExternalLink size={19} color="#345c8d" style={{ flexShrink: 0 }} />
+        </a>
+        <a href="https://13sick.com.au/?utm_source=gemini&hl=en-AU" target="_blank" rel="noopener noreferrer" aria-label="Open 13SICK Telehealth" style={{ width: "100%", boxSizing: "border-box", background: "linear-gradient(135deg, #e9f7f6 0%, #ffffff 58%, #eef4ff 100%)", border: "1px solid rgba(46,133,120,0.20)", borderRadius: 21, padding: 15, boxShadow: T.soft, cursor: "pointer", display: "flex", alignItems: "center", gap: 13, textAlign: "left", textDecoration: "none", color: T.ink }}>
+          <div style={{ width: 50, height: 50, borderRadius: 16, background: "linear-gradient(145deg, #63b5a4, #e2f5f1)", display: "grid", placeItems: "center", flexShrink: 0 }}><Wifi size={24} color="#28736f" /></div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ color: "#28736f", fontSize: 10, fontWeight: 900, letterSpacing: 0.9, marginBottom: 2 }}>TELEHEALTH</div>
+            <div style={{ fontWeight: 800, fontSize: 16 }}>13SICK — Doctor to your door or screen</div>
+            <div style={{ fontSize: 13, color: T.sub, lineHeight: 1.42, marginTop: 3 }}>Access medical care from home through 13SICK’s telehealth service.</div>
+          </div>
+          <ExternalLink size={19} color="#28736f" style={{ flexShrink: 0 }} />
         </a>
         <button onClick={onOpenProgramInfo} aria-label="Open Juan’s Resilience Hub 8-week support program" style={{ width: "100%", background: "linear-gradient(135deg, #e8f6ec 0%, #ffffff 58%, #fff4e5 100%)", border: "1px solid rgba(77,159,104,0.20)", borderRadius: 21, padding: 15, boxShadow: T.soft, cursor: "pointer", display: "flex", alignItems: "center", gap: 13, textAlign: "left" }}>
           <div style={{ width: 50, height: 50, borderRadius: 16, background: "linear-gradient(145deg, #75b98a, #e3f5e8)", display: "grid", placeItems: "center", flexShrink: 0 }}><Users size={24} color={T.greenDk} /></div>
