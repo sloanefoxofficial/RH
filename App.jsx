@@ -1499,7 +1499,7 @@ export default function App() {
         ) : screen === "virtualSupport" ? (
           <VirtualSupportPage onBack={back} />
         ) : screen === "campfire" ? (
-          <CampfirePage onBack={back} />
+          <CampfirePage onBack={back} campfireAccess={answers?.campfire_access || profile?.campfireAccess || ""} />
         ) : screen === "chaptly" ? (
           <ChaptlyPage onBack={() => { histRef.current = []; __backDestinationLabel = "Home"; setScreen("hub"); }} />
         ) : screen === "supportUs" ? (
@@ -5597,6 +5597,8 @@ function VoiceToggle({ on, set }) {
 const PROGRAM_WELCOME_TEXT = "This is your tailor-made 8-week plan, shaped around what you told us about your life, your energy, and what you want to work towards. It grows week by week, starting gently and building practical steps at a pace that fits you. I’m here to help you understand each week, answer your questions, make tasks feel manageable, and help you notice your progress — without pressure and without judgement.";
 const QUESTIONS = [
   { key: "name", type: "name", q: "First up — what should we call you?" },
+  { key: "campfire_access", type: "single", q: "If you might use the Campfire feature, which space would you like access to? This is just to help us show you the right support space — there’s no need to explain anything personal.",
+    opts: ["Men’s Fire — the men’s support space", "Ladies’ Fire — the women’s support space", "Common Fire — the open space for everyone", "Not sure yet — I’ll decide later"] },
   { key: "age", type: "single", q: "Which stage of life are you in? It helps us pitch things right.",
     opts: ["16–25", "26–55", "56–80+", "Rather not say"] },
   { key: "mood", type: "single", q: "How have the last couple of weeks felt, overall?",
@@ -5635,7 +5637,7 @@ const QUESTIONS = [
 
 // People who don't want an 8-week plan still answer these few, so the guides
 // know who they're talking to — and so the safety check is never skipped.
-const SHORT_KEYS = ["name", "mood", "areas", "safety"];
+const SHORT_KEYS = ["name", "campfire_access", "mood", "areas", "safety"];
 
 function selectedAnswer(answers = {}, key, options = []) {
   const value = answers[key];
@@ -5800,6 +5802,9 @@ function Onboarding({ profile, saveProfile, answers, saveAnswers, savePlan, voic
       setLocal(nextAnswers);
       saveAnswers(nextAnswers);
       saveProfile({ name: nm });
+    }
+    if (q.key === "campfire_access") {
+      saveProfile({ campfireAccess: merged.campfire_access || "Not sure yet — I’ll decide later" });
     }
     if (q.type === "safety") {
       const idx = merged.safety;
@@ -8134,7 +8139,13 @@ function ResourcesPage({ onOpenSafety, onOpenMensShed, onBack }) {
   );
 }
 
-function CampfirePage({ onBack }) {
+function CampfirePage({ onBack, campfireAccess = "" }) {
+  const access = String(campfireAccess || "");
+  const allowedFire = access.startsWith("Men’s") ? "mens" : access.startsWith("Ladies’") ? "ladies" : access.startsWith("Common") ? "common" : null;
+  const enterCampfire = () => {
+    try { sessionStorage.setItem("rh_campfire_access", allowedFire || ""); } catch {}
+    window.location.href = "/campfire.html";
+  };
   return <>
     <Brand right={<BackBtn onBack={onBack} />} />
     <div style={{ background: "radial-gradient(circle at 50% 0%, #604022 0%, #2a1a10 48%, #140d09 100%)", color: "#e9d9c0", borderRadius: 25, padding: "24px 18px 22px", marginTop: 7, boxShadow: "0 14px 30px rgba(42,26,16,0.24)", position: "relative", overflow: "hidden" }}>
@@ -8152,7 +8163,7 @@ function CampfirePage({ onBack }) {
     <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
       {["Sit quietly or talk straight — both are welcome.", "Men’s Fire is built for blokes, with a Ladies’ Fire and Common Fire also available.", "Use voice or text, at your own pace. No real name is needed.", "The Campfire is peer connection, not counselling or emergency care.", "If someone is in immediate danger, call Triple Zero (000) or use the Hub’s crisis support options."] .map((item, index) => <div key={item} style={{ display: "flex", gap: 10, alignItems: "flex-start", background: index === 4 ? "#fff0f0" : "#fff", border: `1px solid ${index === 4 ? "#f0d1d1" : T.line}`, borderRadius: 15, padding: "11px 12px", color: index === 4 ? "#a53f42" : T.sub, fontSize: 13, lineHeight: 1.45 }}><span style={{ color: index === 4 ? "#c94f4f" : "#a9511f", fontWeight: 900 }}>{index === 4 ? "!" : "•"}</span><span>{item}</span></div>)}
     </div>
-    <a href="/campfire.html" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 9, marginTop: 18, padding: "14px 18px", borderRadius: 999, background: "linear-gradient(135deg, #e8703a, #a9511f)", color: "#fff8ed", textDecoration: "none", fontWeight: 900, boxShadow: "0 9px 18px rgba(169,81,31,0.22)" }}><Flame size={19} /> Enter the Virtual Campfire <ChevronRight size={16} /></a>
+    {allowedFire ? <button onClick={enterCampfire} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 9, marginTop: 18, padding: "14px 18px", border: 0, borderRadius: 999, background: "linear-gradient(135deg, #e8703a, #a9511f)", color: "#fff8ed", fontWeight: 900, cursor: "pointer", boxShadow: "0 9px 18px rgba(169,81,31,0.22)" }}><Flame size={19} /> Enter your Campfire space <ChevronRight size={16} /></button> : <div style={{ marginTop: 18, padding: "14px 15px", borderRadius: 16, background: "#fff7e8", border: "1px solid #efd6a5", color: "#805d22", fontSize: 13, lineHeight: 1.5, textAlign: "center" }}>Choose a Campfire space during onboarding before entering. You can update your choice later in your profile settings.</div>}
     <p style={{ margin: "11px 4px 0", color: T.sub, fontSize: 11.5, lineHeight: 1.45, textAlign: "center" }}>You can come and go as you please. The Campfire does not replace professional or emergency support.</p>
     <div style={{ height: 28 }} />
   </>;
