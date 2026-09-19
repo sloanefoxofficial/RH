@@ -1376,6 +1376,9 @@
   ] }];
   let callSupabase = null;
   let callChannel = null;
+  let callReconnectTimer = null;
+  let callReconnectAttempt = 0;
+  let callPageHidden = false;
   let callPresenceChannel = null;
   let callPresenceFireId = null;
   let callPresenceByClientId = new Map();
@@ -1436,6 +1439,20 @@
     pendingIncoming = null;
     if(currentFireId) setCallPanel('Video calls unavailable', callUnavailableReason, true, false);
     renderCallGate();
+  }
+
+  function scheduleCallReconnect(){
+    if(callPageHidden || callReconnectTimer || !callSupabase || !callUserId) return;
+    callAvailable = false;
+    callAvailabilityResolved = true;
+    callUnavailableReason = 'Video connection interrupted — reconnecting securely…';
+    renderCallGate();
+    const delay = Math.min(12000, 1500 * Math.pow(2, Math.min(callReconnectAttempt, 3)));
+    callReconnectAttempt += 1;
+    callReconnectTimer = setTimeout(()=>{
+      callReconnectTimer = null;
+      initialiseVideoCalls();
+    }, delay);
   }
 
   function renderCallGate(){
@@ -1941,8 +1958,10 @@
           .subscribe(status=>{
             if(status === 'SUBSCRIBED' && !settled){ settled = true; clearTimeout(timeout); resolve(); }
             if((status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') && !settled){ settled = true; clearTimeout(timeout); reject(new Error('realtime')); }
-            else if((status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') && settled && callChannel === channel){
-              setCallUnavailable('Private video calling lost its secure signalling connection. Text and voice messages still work.');
+            else if((status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') && settled && callChannel === channel){
+              callChannel = null;
+              try{ callSupabase.removeChannel(channel); }catch(e){}
+              scheduleCallReconnect();
             }
           });
       });
@@ -1950,6 +1969,7 @@
       callAvailable = true;
       callAvailabilityResolved = true;
       callUnavailableReason = '';
+      callReconnectAttempt = 0;
       renderCallGate();
       syncCallIdentityToSeat();
 
@@ -1973,10 +1993,13 @@
         ? 'Sign in to use private video calls. Text and voice messages still work.'
         : 'Private video calls are unavailable right now. Text and voice messages still work.';
       setCallUnavailable(message);
+      if(e && e.message === 'realtime') scheduleCallReconnect();
     }
   }
 
   function cleanupCallsForPageHide(){
+    callPageHidden = true;
+    if(callReconnectTimer){ clearTimeout(callReconnectTimer); callReconnectTimer = null; }
     endActiveCall(true, true);
     if(callChannel && callSupabase){ callSupabase.removeChannel(callChannel).catch(()=>{}); }
     callChannel = null;
