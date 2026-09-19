@@ -2391,12 +2391,15 @@ function HoldToTalk({ onText, onStart, size = 52 }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
       <button
-        onPointerDown={toggle}
+        onPointerDown={(event) => { event.preventDefault(); toggle(); }}
+        onContextMenu={(event) => event.preventDefault()}
         aria-label={listening ? "Tap to stop and send" : "Tap to talk"}
         style={{ width: size, height: size, borderRadius: "50%", border: "none", cursor: "pointer",
           background: listening ? "#e5484d" : "#fff", color: listening ? "#fff" : T.ink,
           boxShadow: T.soft, display: "grid", placeItems: "center",
-          animation: listening ? "rh-glow 1.2s ease-in-out infinite" : "none", touchAction: "none" }}>
+          animation: listening ? "rh-glow 1.2s ease-in-out infinite" : "none", touchAction: "none",
+          userSelect: "none", WebkitUserSelect: "none", WebkitTouchCallout: "none",
+          WebkitTapHighlightColor: "transparent" }}>
         {listening ? <Square size={20} /> : <Mic size={20} />}
       </button>
       {err && <span style={{ fontSize: 11, color: "#c0392b", marginTop: 4, maxWidth: 120, textAlign: "center" }}>{err}</span>}
