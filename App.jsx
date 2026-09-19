@@ -33,7 +33,7 @@ const T = {
 const SCREEN_BACK_LABELS = {
   welcome: "Welcome", hub: "Home", rexTutorial: "Home", onboarding: "Get Started", program: "8-Week Plan",
   guides: "Guides", chat: "Guide Chat", toolkit: "Toolkit", journal: "Private Journal",
-  resources: "Hub", virtualSupport: "Hub", supportUs: "Hub", chaptly: "Hub", games: "Games & Puzzles", merch: "Sloane Fox Merch",
+  resources: "Hub", virtualSupport: "Hub", campfire: "Hub", supportUs: "Hub", chaptly: "Hub", games: "Games & Puzzles", merch: "Sloane Fox Merch",
   carlosLibrary: "Carlos Library", programInfo: "Program", bookAppointment: "Program",
   mensShed: "Men’s Shed", mensGroup: "Men’s Group", settings: "Settings", profile: "Profile",
   memory: "Profile", notifications: "Home", coordinator: "Message Juan", admin: "Admin",
@@ -42,7 +42,7 @@ const SCREEN_BACK_LABELS = {
 };
 const screenBackLabel = (screen) => SCREEN_BACK_LABELS[screen] || "Home";
 const LAST_SCREEN_STORAGE_KEY = (userId) => userId ? `rh_last_screen_${userId}` : "rh_last_screen_guest";
-const RESTORABLE_SCREENS = new Set(["hub", "program", "guides", "chat", "journal", "toolkit", "resources", "virtualSupport", "chaptly", "supportUs", "games", "merch", "carlosLibrary", "programInfo", "bookAppointment", "mensShed", "mensGroup", "settings", "profile", "memory", "notifications", "coordinator"]);
+const RESTORABLE_SCREENS = new Set(["hub", "program", "guides", "chat", "journal", "toolkit", "resources", "virtualSupport", "campfire", "chaptly", "supportUs", "games", "merch", "carlosLibrary", "programInfo", "bookAppointment", "mensShed", "mensGroup", "settings", "profile", "memory", "notifications", "coordinator"]);
 const ACTIVITY_PREF_KEY = "rh_activity_tracking_on";
 const ACTIVITY_HEARTBEAT_MS = 60 * 1000;
 const ACTIVITY_ACTIVE_WINDOW_MS = 2 * 60 * 1000;
@@ -50,7 +50,7 @@ const ACTIVITY_SECTIONS = ["Home", "Program", "Journal", "Resources", "Guides", 
 function activitySectionForScreen(screen) {
   if (["program", "programInfo", "bookAppointment"].includes(screen)) return "Program";
   if (["journal"].includes(screen)) return "Journal";
-  if (["resources", "virtualSupport", "chaptly", "mensShed", "mensGroup", "carlosLibrary", "merch", "games"].includes(screen)) return "Resources";
+  if (["resources", "virtualSupport", "campfire", "chaptly", "mensShed", "mensGroup", "carlosLibrary", "merch", "games"].includes(screen)) return "Resources";
   if (["guides", "chat", "coordinator"].includes(screen)) return "Guides";
   if (["toolkit"].includes(screen)) return "Toolkit";
   if (["settings", "profile", "memory", "notifications"].includes(screen)) return "Settings";
@@ -1417,6 +1417,7 @@ export default function App() {
             onOpenToolkit={() => { setToolkitInitial(null); go("toolkit"); }}
             onOpenResources={() => go("resources")}
             onOpenVirtualSupport={() => go("virtualSupport")}
+            onOpenCampfire={() => go("campfire")}
             onOpenChaptly={() => go("chaptly")}
             onOpenSupportUs={() => go("supportUs")}
             onOpenSafety={() => openTool("safety")}
@@ -1497,6 +1498,8 @@ export default function App() {
           <ResourcesPage onOpenSafety={() => openTool("safety")} onOpenMensShed={() => go("mensShed")} onBack={back} />
         ) : screen === "virtualSupport" ? (
           <VirtualSupportPage onBack={back} />
+        ) : screen === "campfire" ? (
+          <CampfirePage onBack={back} />
         ) : screen === "chaptly" ? (
           <ChaptlyPage onBack={() => { histRef.current = []; __backDestinationLabel = "Home"; setScreen("hub"); }} />
         ) : screen === "supportUs" ? (
@@ -6659,7 +6662,7 @@ function RexHubTour({ voiceOn, onOpenJournal, onOpenProgram, onOpenSafety, onOpe
   );
 }
 
-function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, setVoiceOn, onOpenChat, onOpenRexTutorial, onOpenProgram, onOpenJournal, onOpenGuides, onOpenMerch, onOpenCarlosLibrary, onOpenGames, onOpenToolkit, onOpenResources, onOpenVirtualSupport, onOpenChaptly, onOpenSupportUs, onOpenSafety, onOpenNotifications, onOpenCoordinator, onOpenSettings, onOpenMensGroup, onOpenMensShed, onOpenAdminMessages, onOpenProgramInfo, onReset, isAdmin, authEnabled, guestMode, onExitGuest, onOpenAdmin, onOpenProfile, onSignOut, session, rexHistory, onSaveRexChat, memories, onConversation, answers, rexPersona }) {
+function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, setVoiceOn, onOpenChat, onOpenRexTutorial, onOpenProgram, onOpenJournal, onOpenGuides, onOpenMerch, onOpenCarlosLibrary, onOpenGames, onOpenToolkit, onOpenResources, onOpenVirtualSupport, onOpenCampfire, onOpenChaptly, onOpenSupportUs, onOpenSafety, onOpenNotifications, onOpenCoordinator, onOpenSettings, onOpenMensGroup, onOpenMensShed, onOpenAdminMessages, onOpenProgramInfo, onReset, isAdmin, authEnabled, guestMode, onExitGuest, onOpenAdmin, onOpenProfile, onSignOut, session, rexHistory, onSaveRexChat, memories, onConversation, answers, rexPersona }) {
   const { speak, stop, speaking } = useVoice(voiceOn);
   const [notifRefresh, setNotifRefresh] = useState(0);
   const [shareMsg, setShareMsg] = useState("");
@@ -6879,6 +6882,16 @@ function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, set
             <div style={{ fontSize: 13, color: T.sub, lineHeight: 1.35 }}>Write, reflect, or capture a fleeting thought at your own pace</div>
           </div>
           <ChevronRight size={20} color="#9a741a" style={{ position: "relative" }} />
+        </button>
+        <button onClick={onOpenCampfire} aria-label="Open Virtual Campfire: a quiet place for men to connect and talk" style={{ width: "100%", background: "linear-gradient(135deg, #fff4e5 0%, #fffaf3 50%, #f2e8df 100%)", borderRadius: 21, padding: 15, boxShadow: "0 9px 22px rgba(156,91,43,0.11)", border: "1px solid rgba(180,105,53,0.22)", cursor: "pointer", display: "flex", alignItems: "center", gap: 13, textAlign: "left", position: "relative", overflow: "hidden" }}>
+          <div style={{ position: "absolute", right: -24, top: -30, width: 105, height: 105, borderRadius: "50%", background: "rgba(255,255,255,0.52)" }} />
+          <div style={{ width: 50, height: 50, borderRadius: 17, background: "radial-gradient(circle at 45% 35%, #ffc36e, #e8703a 62%, #a9511f)", display: "grid", placeItems: "center", flexShrink: 0, boxShadow: "0 7px 15px rgba(168,81,31,0.22)", position: "relative" }}><Flame size={26} color="#fff7e8" fill="#fff7e8" /></div>
+          <div style={{ flex: 1, minWidth: 0, position: "relative" }}>
+            <div style={{ color: "#a9511f", fontSize: 10, fontWeight: 900, letterSpacing: 0.9, marginBottom: 2 }}>MEN’S MENTAL HEALTH &amp; CONNECTION</div>
+            <div style={{ fontWeight: 800, fontSize: 16, color: T.ink }}>Virtual Campfire</div>
+            <div style={{ fontSize: 13, color: T.sub, lineHeight: 1.4 }}>A quiet place to sit, talk straight, or simply not be alone.</div>
+          </div>
+          <ChevronRight size={20} color="#a9511f" style={{ position: "relative" }} />
         </button>
 
       </div>
@@ -8119,6 +8132,30 @@ function ResourcesPage({ onOpenSafety, onOpenMensShed, onBack }) {
       <Disclaimer />
     </>
   );
+}
+
+function CampfirePage({ onBack }) {
+  return <>
+    <Brand right={<BackBtn onBack={onBack} />} />
+    <div style={{ background: "radial-gradient(circle at 50% 0%, #604022 0%, #2a1a10 48%, #140d09 100%)", color: "#e9d9c0", borderRadius: 25, padding: "24px 18px 22px", marginTop: 7, boxShadow: "0 14px 30px rgba(42,26,16,0.24)", position: "relative", overflow: "hidden" }}>
+      <div style={{ position: "absolute", width: 190, height: 190, borderRadius: "50%", right: -72, top: -82, background: "rgba(232,112,58,0.13)" }} />
+      <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 8, color: "#f0a16b", fontSize: 11, fontWeight: 900, letterSpacing: 1, textTransform: "uppercase" }}><Flame size={17} /> A place to sit with it</div>
+      <h1 style={{ position: "relative", margin: "10px 0 9px", fontFamily: "Georgia, serif", fontWeight: 500, fontSize: 30, lineHeight: 1.1, color: "#f4e6d1" }}>The Virtual Campfire</h1>
+      <p style={{ position: "relative", margin: 0, color: "#c8b79d", fontSize: 14, lineHeight: 1.58 }}>A quiet, anonymous place for men to connect, talk straight, listen, or simply sit near other people when the day feels too heavy.</p>
+    </div>
+    <div style={{ marginTop: 14, background: "linear-gradient(135deg, #fff8ee 0%, #fff 75%)", border: "1px solid #ead8c7", borderRadius: 20, padding: 16, boxShadow: T.soft }}>
+      <div style={{ color: "#a9511f", fontSize: 10, fontWeight: 900, letterSpacing: 0.9, textTransform: "uppercase" }}>Why it’s here</div>
+      <h2 style={{ margin: "5px 0 8px", fontSize: 20, color: T.ink }}>Men’s mental health needs somewhere real to land.</h2>
+      <p style={{ margin: 0, color: T.sub, fontSize: 13.5, lineHeight: 1.58 }}>Isolation can make a hard day feel impossible. The Campfire is designed to make connection easier: no fixing, no advice, no pressure to perform, and no requirement to speak. You can use a nickname or stay anonymous, choose an avatar or no image, and leave whenever you need.</p>
+    </div>
+    <div style={{ margin: "20px 0 10px", fontSize: 20, fontWeight: 900, color: T.greenDk }}>What to expect</div>
+    <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+      {["Sit quietly or talk straight — both are welcome.", "Men’s Fire is built for blokes, with a Ladies’ Fire and Common Fire also available.", "Use voice or text, at your own pace. No real name is needed.", "The Campfire is peer connection, not counselling or emergency care.", "If someone is in immediate danger, call Triple Zero (000) or use the Hub’s crisis support options."] .map((item, index) => <div key={item} style={{ display: "flex", gap: 10, alignItems: "flex-start", background: index === 4 ? "#fff0f0" : "#fff", border: `1px solid ${index === 4 ? "#f0d1d1" : T.line}`, borderRadius: 15, padding: "11px 12px", color: index === 4 ? "#a53f42" : T.sub, fontSize: 13, lineHeight: 1.45 }}><span style={{ color: index === 4 ? "#c94f4f" : "#a9511f", fontWeight: 900 }}>{index === 4 ? "!" : "•"}</span><span>{item}</span></div>)}
+    </div>
+    <a href="/campfire.html" target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 9, marginTop: 18, padding: "14px 18px", borderRadius: 999, background: "linear-gradient(135deg, #e8703a, #a9511f)", color: "#fff8ed", textDecoration: "none", fontWeight: 900, boxShadow: "0 9px 18px rgba(169,81,31,0.22)" }}><Flame size={19} /> Enter the Virtual Campfire <ExternalLink size={16} /></a>
+    <p style={{ margin: "11px 4px 0", color: T.sub, fontSize: 11.5, lineHeight: 1.45, textAlign: "center" }}>You can come and go as you please. The Campfire does not replace professional or emergency support.</p>
+    <div style={{ height: 28 }} />
+  </>;
 }
 
 function VirtualSupportPage({ onBack }) {
