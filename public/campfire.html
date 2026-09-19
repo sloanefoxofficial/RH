@@ -63,9 +63,9 @@
     border:1px solid rgba(232,112,58,0.3);
   }
   .fire-card .fc-body{ flex:1; min-width:0; }
-  .fire-card .fc-name{ font-family:var(--serif); font-size:18px; font-weight:500; color:var(--cream); margin-bottom:2px; }
-  .fire-card .fc-tagline{ font-size:12.5px; color:var(--cream-dim); line-height:1.35; }
-  .fire-card .fc-count{ font-size:11.5px; color:rgba(233,217,192,0.45); margin-top:5px; }
+  .fire-card .fc-name{ display:block; font-family:var(--serif); font-size:18px; font-weight:500; color:var(--cream); margin-bottom:3px; overflow-wrap:anywhere; }
+  .fire-card .fc-tagline{ display:block; font-size:12.5px; color:var(--cream-dim); line-height:1.35; overflow-wrap:anywhere; }
+  .fire-card .fc-count{ display:block; font-size:11.5px; color:rgba(233,217,192,0.45); margin-top:5px; }
   .rules-note{ text-align:center; color:rgba(233,217,192,0.35); font-size:12px; margin-top:22px; }
 
   /* ---------- fire screen header ---------- */
@@ -690,9 +690,13 @@
   }
 
   // ---------- state ----------
-  let currentFireId = null;
+  let mySeat = null;
+  let seatHeartbeat = null;
+  const SEAT_STALE_MS = 30 * 1000;
   let backend = null;
   let campfireInitPromise = null;
+  let campfireOpenedAt = 0;
+  let presenceSweepTimer = null;
   let seats = Array.from({length:SEAT_COUNT}, ()=>({occupied:false, name:null, clientId:null, avatarType:null, avatarData:null}));
   let messages = [];
   let waiting = [];
@@ -701,7 +705,6 @@
   let voiceAutoPlay = true;
   let voiceAudioUnlocked = false;
   let voiceUnlockPending = false;
-  let mySeat = null;
   let pendingSeatIndex = null;
   let modalAvatarType = 'none';
   let modalCartoonOpts = null;
@@ -715,6 +718,54 @@
     mySeat = idx === -1 ? null : idx;
   }
 
+  function clearSeatHeartbeat(){
+    if(seatHeartbeat){ clearInterval(seatHeartbeat); seatHeartbeat = null; }
+  }
+  function startSeatHeartbeat(){
+    clearSeatHeartbeat();
+    seatHeartbeat = setInterval(()=>{
+      if(mySeat === null || !backend || !seats[mySeat] || !seats[mySeat].occupied) return;
+      const result = backend.setSeat(mySeat, Object.assign({}, seats[mySeat], { last_seen_at: Date.now() }));
+      if(result && typeof result.catch === 'function') result.catch(()=>{});
+    }, 15000);
+  }
+  function startPresenceSweep(){
+    if(presenceSweepTimer) clearInterval(presenceSweepTimer);
+    presenceSweepTimer = setInterval(()=>{
+      if(!backend || !currentFireId) return;
+      seats = expireStaleSeats(seats.slice());
+      renderSeats();
+    }, 5000);
+  }
+  function stopPresenceSweep(){
+    if(presenceSweepTimer){ clearInterval(presenceSweepTimer); presenceSweepTimer = null; }
+  }
+  function removeMySeatOnExit(){
+    clearSeatHeartbeat();
+    stopPresenceSweep();
+    if(mySeat !== null && backend){
+      const seat = mySeat;
+      mySeat = null;
+      seats[seat] = { occupied:false, name:null, clientId:null, avatarType:null, avatarData:null };
+      renderSeats();
+      const result = backend.setSeat(seat, { occupied:false, name:null, clientId:null, avatarType:null, avatarData:null });
+      if(result && typeof result.catch === 'function') result.catch(()=>{});
+    }
+  }
+  function expireStaleSeats(nextSeats){
+    const now = Date.now();
+    nextSeats.forEach((seat, index)=>{
+      if(!seat || !seat.occupied || seat.clientId === clientId) return;
+      const lastSeen = Number(seat.last_seen_at || seat.sat_at || 0);
+      if(lastSeen && now - lastSeen > SEAT_STALE_MS){
+        const result = backend && backend.setSeat(index, { occupied:false, name:null, clientId:null, avatarType:null, avatarData:null });
+        if(result && typeof result.catch === 'function') result.catch(()=>{});
+        nextSeats[index] = { occupied:false, name:null, clientId:null, avatarType:null, avatarData:null };
+      }
+    });
+    return nextSeats;
+  }
+
   function stopVoicePlayback(){
     voicePlaybackQueue.length = 0;
     if(voicePlayer){ try{ voicePlayer.pause(); voicePlayer.src = ''; }catch(e){} voicePlayer = null; }
@@ -725,13 +776,12 @@
     const player = voicePlayer || new Audio();
     voicePlayer = player;
     player.muted = true;
-    player.src = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
+    player.src = 'data:audio/wav;base64,UklGRmQGAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YUAGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
     const ready = player.play();
     const finish = () => {
       try{ player.pause(); player.currentTime = 0; player.muted = false; }catch(e){}
       voiceAudioUnlocked = true;
       voiceUnlockPending = false;
-      voicePlayer = null;
       if(voicePlaybackQueue.length) playCampfireVoice();
     };
     if(ready && typeof ready.then === 'function') ready.then(finish).catch(()=>{ voiceUnlockPending = false; });
@@ -740,20 +790,24 @@
   function playCampfireVoice(dataUrl, automatic = false){
     if((automatic && !voiceAutoPlay) || (!dataUrl && !voicePlaybackQueue.length)) return;
     if(dataUrl) voicePlaybackQueue.push(dataUrl);
-    if(voicePlayer) return;
-    const next = () => {
-      const src = voicePlaybackQueue.shift();
-      if(!src){ voicePlayer = null; return; }
-      const player = new Audio();
-      voicePlayer = player;
-      player.preload = 'auto';
-      player.src = src;
-      player.onended = next;
-      player.onerror = next;
-      const attempt = player.play();
-      if(attempt && typeof attempt.catch === 'function') attempt.catch(()=>{ voicePlayer = null; voicePlaybackQueue.unshift(src); });
+    if(!voiceAudioUnlocked || !voicePlayer || !voicePlayer.paused) return;
+    const src = voicePlaybackQueue.shift();
+    if(!src) return;
+    const player = voicePlayer;
+    player.preload = 'auto';
+    player.onended = () => playCampfireVoice();
+    player.onerror = () => {
+      try{ voicePlayer.pause(); }catch(e){}
+      voiceAudioUnlocked = false;
+      voicePlaybackQueue.unshift(src);
     };
-    next();
+    player.src = src;
+    const attempt = player.play();
+    if(attempt && typeof attempt.catch === 'function') attempt.catch(()=>{
+      voicePlaybackQueue.unshift(src);
+      voiceAudioUnlocked = false;
+      try{ player.pause(); }catch(e){}
+    });
   }
 
   function hideBubble(i){
@@ -914,7 +968,7 @@
   // ---------- backend abstraction (per-fire scoped) ----------
   function defaultSeats(){ return Array.from({length:SEAT_COUNT}, ()=>({occupied:false,name:null,clientId:null,avatarType:null,avatarData:null})); }
 
-  function makeLocalBackend(fireId){
+  function makeLocalBackend(fireId, openedAt){
     const SEATS_KEY = 'campfire_seats_v3_'+fireId;
     const MSG_KEY = 'campfire_messages_v3_'+fireId;
     const WAIT_KEY = 'campfire_waiting_v3_'+fireId;
@@ -927,7 +981,7 @@
     function writeWait(w){ safeSet(WAIT_KEY, JSON.stringify(w)); }
 
     let seatsLocal = readSeats();
-    let msgsLocal = readMsgs();
+    let msgsLocal = readMsgs().filter(m => !openedAt || Number(m.ts || 0) >= openedAt);
     let waitLocal = readWait();
     writeSeats(seatsLocal);
 
@@ -935,7 +989,7 @@
     function notify(){ listeners.forEach(fn=>fn({seats:seatsLocal, messages:msgsLocal, waiting:waitLocal})); }
     function onStorage(e){
       if(e.key === SEATS_KEY){ seatsLocal = readSeats(); notify(); }
-      if(e.key === MSG_KEY){ msgsLocal = readMsgs(); notify(); }
+      if(e.key === MSG_KEY){ msgsLocal = readMsgs().filter(m => !openedAt || Number(m.ts || 0) >= openedAt); notify(); }
       if(e.key === WAIT_KEY){ waitLocal = readWait(); notify(); }
     }
     window.addEventListener('storage', onStorage);
@@ -945,11 +999,12 @@
       setSeat(i, data){ seatsLocal = seatsLocal.slice(); seatsLocal[i] = data; writeSeats(seatsLocal); notify(); },
       sendMessage(msg){ msgsLocal = msgsLocal.concat([msg]).slice(-60); writeMsgs(msgsLocal); notify(); },
       setWaiting(list){ waitLocal = list; writeWait(waitLocal); notify(); },
+      clearMessages(){ msgsLocal = []; writeMsgs([]); notify(); },
       teardown(){ window.removeEventListener('storage', onStorage); }
     };
   }
 
-  async function makeDbBackend(fireId){
+  async function makeDbBackend(fireId, openedAt){
     let db;
     try{ db = await claude.use('db'); }catch(e){ return null; }
     if(!db) return null;
@@ -978,7 +1033,7 @@
         pushUpdate();
       });
       const unsub3 = msgsCol.orderBy('ts').limit(60).onSnapshot(snap=>{
-        latest.messages = (snap && snap.docs ? snap.docs.map(d=>d.data()) : []);
+        latest.messages = (snap && snap.docs ? snap.docs.map(d=>d.data()) : []).filter(m => !openedAt || Number(m.ts || 0) >= openedAt);
         pushUpdate();
       });
 
@@ -992,6 +1047,7 @@
         },
         async sendMessage(msg){ await msgsCol.add(msg).catch(()=>{}); },
         async setWaiting(list){ await waitDoc.set({ list }).catch(()=>{}); },
+        clearMessages(){ latest.messages = []; push(); },
         teardown(){
           [unsub1,unsub2,unsub3].forEach(u=>{ try{ if(typeof u === 'function') u(); }catch(e){} });
         }
@@ -999,8 +1055,30 @@
     }catch(e){ return null; }
   }
 
-  async function makeSupabaseRoomBackend(fireId){
-    if(!callSupabase || !callUserId) return null;
+  let campfireSessionPromise = null;
+  async function ensureCampfireSession(){
+    if(callSupabase && callUserId) return { client:callSupabase, userId:callUserId };
+    if(campfireSessionPromise) return campfireSessionPromise;
+    campfireSessionPromise = (async()=>{
+      const configResponse = await fetch('/api/campfire-config', { headers:{Accept:'application/json'}, cache:'no-store' });
+      if(!configResponse.ok) throw new Error('Campfire configuration unavailable');
+      const config = await configResponse.json();
+      if(!config || !config.url || !config.anonKey) throw new Error('Campfire configuration incomplete');
+      const module = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
+      callSupabase = module.createClient(config.url, config.anonKey);
+      const sessionResult = await callSupabase.auth.getSession();
+      const session = sessionResult && sessionResult.data ? sessionResult.data.session : null;
+      if(sessionResult.error || !session || !session.user) throw new Error('Campfire session unavailable');
+      callUserId = session.user.id;
+      return { client:callSupabase, userId:callUserId };
+    })().catch(error=>{ campfireSessionPromise = null; throw error; });
+    return campfireSessionPromise;
+  }
+
+  async function makeSupabaseRoomBackend(fireId, openedAt){
+    if(!callSupabase || !callUserId){
+      try{ await ensureCampfireSession(); }catch(e){ return null; }
+    }
     try{
       const roomTable = callSupabase.from('campfire_rooms');
       const messageTable = callSupabase.from('campfire_messages');
@@ -1013,15 +1091,20 @@
       const listeners = [];
       let latest = { seats:(existing.data && existing.data.seats) || defaultSeats(), messages:[], waiting:(existing.data && existing.data.waiting) || [] };
       function push(){ listeners.forEach(fn=>fn(latest)); }
-      const recent = await messageTable.select('message').eq('fire_id',fireId).order('created_at',{ascending:false}).limit(60);
-      if(!recent.error && Array.isArray(recent.data)) latest.messages = recent.data.reverse().map(row=>row.message).filter(Boolean);
+      let recentQuery = messageTable.select('message').eq('fire_id',fireId).order('created_at',{ascending:false}).limit(60);
+      if(openedAt) recentQuery = recentQuery.gte('created_at', new Date(openedAt).toISOString());
+      const recent = await recentQuery;
+      if(!recent.error && Array.isArray(recent.data)) latest.messages = recent.data.reverse().map(row=>row.message).filter(message => message && (!openedAt || Number(message.ts || 0) >= openedAt));
       const channel = callSupabase.channel('campfire-room-'+fireId+'-'+callUserId+'-'+clientId)
         .on('postgres_changes',{event:'*',schema:'public',table:'campfire_rooms',filter:'fire_id=eq.'+fireId},change=>{
           const row = change.new || {};
           latest.seats = row.seats || latest.seats; latest.waiting = row.waiting || latest.waiting; push();
         })
         .on('postgres_changes',{event:'INSERT',schema:'public',table:'campfire_messages',filter:'fire_id=eq.'+fireId},change=>{
-          if(change.new && change.new.message){ latest.messages = latest.messages.concat([change.new.message]).slice(-60); push(); }
+          if(change.new && change.new.message){
+            const incoming = change.new.message;
+            if(!openedAt || Number(incoming.ts || 0) >= openedAt){ latest.messages = latest.messages.concat([incoming]).slice(-60); push(); }
+          }
         })
         .subscribe();
       await new Promise(resolve=>setTimeout(resolve,250));
@@ -1035,6 +1118,7 @@
         },
         async sendMessage(msg){ await messageTable.insert({fire_id:fireId,sender_user:callUserId,message:msg}); },
         async setWaiting(list){ latest.waiting = list; await roomTable.update({waiting:list,updated_at:new Date().toISOString()}).eq('fire_id',fireId); push(); },
+        clearMessages(){ latest.messages = []; push(); },
         teardown(){ try{ callSupabase.removeChannel(channel); }catch(e){} }
       };
     }catch(e){ return null; }
@@ -1044,7 +1128,7 @@
     backend = b;
     msgFirstLoad = true;
     backend.subscribe(state=>{
-      seats = state.seats || seats;
+      seats = expireStaleSeats((state.seats || seats).slice());
       waiting = state.waiting || waiting;
       renderSeats();
 
@@ -1069,6 +1153,7 @@
     stopVoicePlayback();
     unlockCampfireVoice();
     currentFireId = fireId;
+    campfireOpenedAt = Date.now();
     const meta = FIRES.find(f=>f.id===fireId);
     fireTitle.textContent = meta.name;
     fireTagline.textContent = meta.tagline;
@@ -1086,24 +1171,33 @@
     statusLine.textContent = 'Finding a seat for you…';
 
     let db = null;
-    if(campfireInitPromise) try{ await campfireInitPromise; }catch(e){}
-    try{ db = await makeSupabaseRoomBackend(fireId); }catch(e){ db = null; }
-    if(!db && !callSupabase) try{ db = await makeDbBackend(fireId); }catch(e){ db = null; }
+    try{ db = await makeSupabaseRoomBackend(fireId, campfireOpenedAt); }catch(e){ db = null; }
+    if(!db) try{ db = await makeDbBackend(fireId, campfireOpenedAt); }catch(e){ db = null; }
+    if(!db) db = makeLocalBackend(fireId, campfireOpenedAt);
     if(!db){
-      statusLine.textContent = 'The shared Campfire connection is still warming up — please leave and try again in a moment.';
+      statusLine.textContent = 'The Campfire connection is still warming up — please try again in a moment.';
       statusActions.innerHTML = '';
       return;
     }
     bindBackend(db);
+    startPresenceSweep();
   }
 
   function leaveFire(){
     endActiveCall(true, true);
     stopCallPresence();
+    stopPresenceSweep();
+    removeFromWaiting();
     if(mySeat !== null) standUp();
+    messages = [];
+    waiting = [];
+    chatInput.value = '';
+    renderMessages();
+    if(backend && backend.clearMessages) backend.clearMessages();
     if(backend && backend.teardown) backend.teardown();
     backend = null;
     currentFireId = null;
+    campfireOpenedAt = 0;
     fireScreen.style.display = 'none';
     homeScreen.style.display = 'block';
     window.scrollTo(0,0);
@@ -1120,6 +1214,7 @@
   function standUp(){
     if(mySeat === null || !backend) return;
     endActiveCall(true, true);
+    clearSeatHeartbeat();
     backend.setSeat(mySeat, { occupied:false, name:null, clientId:null, avatarType:null, avatarData:null });
     hideBubble(mySeat);
     mySeat = null;
@@ -1128,7 +1223,13 @@
   function removeFromWaiting(){ if(backend && waiting.includes(clientId)) backend.setWaiting(waiting.filter(id=>id!==clientId)); }
   function sitDown(i, name, avatarType, avatarData){
     if(!backend) return;
-    backend.setSeat(i, { occupied:true, name, clientId, avatarType, avatarData, sat_at: Date.now() });
+    const now = Date.now();
+    seats[i] = { occupied:true, name, clientId, avatarType, avatarData, sat_at: now, last_seen_at: now };
+    mySeat = i;
+    renderSeats();
+    const result = backend.setSeat(i, seats[i]);
+    if(result && typeof result.catch === 'function') result.catch(()=>{});
+    startSeatHeartbeat();
   }
 
   // ---------- modal (avatar/name picker) ----------
@@ -1312,7 +1413,7 @@
     recordingStarting = false;
     if(stopRequestedEarly){ mediaStream.getTracks().forEach(t=>t.stop()); mediaStream=null; return; }
     let mimeType = '';
-    ['audio/webm;codecs=opus','audio/webm','audio/mp4'].some(t=>{
+    [(/iPad|iPhone|iPod/.test(navigator.userAgent) ? 'audio/mp4' : 'audio/webm;codecs=opus'),'audio/webm','audio/mp4'].filter((t,i,a)=>a.indexOf(t)===i).some(t=>{
       if(window.MediaRecorder && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t)){ mimeType = t; return true; }
       return false;
     });
@@ -1370,12 +1471,15 @@
   // ---------- private one-to-one video calls (Supabase signalling only) ----------
   const CALL_EVENT_TTL_MS = 2 * 60 * 1000;
   const CALL_RING_MS = 45 * 1000;
-  const CALL_ICE_SERVERS = [{ urls:[
+  let CALL_ICE_SERVERS = [{ urls:[
     'stun:stun.l.google.com:19302',
     'stun:stun1.l.google.com:19302'
   ] }];
   let callSupabase = null;
   let callChannel = null;
+  let callReconnectTimer = null;
+  let callReconnectAttempt = 0;
+  let callPageHidden = false;
   let callPresenceChannel = null;
   let callPresenceFireId = null;
   let callPresenceByClientId = new Map();
@@ -1396,6 +1500,7 @@
   let pendingIceCandidates = [];
   let lastPresenceKey = null;
   let callPanelResetTimer = null;
+  let callStatsTimer = null;
   const processedCallEventIds = new Set();
 
   function callUuid(){
@@ -1407,6 +1512,50 @@
     bytes[8] = (bytes[8] & 63) | 128;
     const hex = Array.from(bytes, b=>b.toString(16).padStart(2,'0')).join('');
     return hex.slice(0,8)+'-'+hex.slice(8,12)+'-'+hex.slice(12,16)+'-'+hex.slice(16,20)+'-'+hex.slice(20);
+  }
+
+  async function tuneCallSenders(pc){
+    for(const sender of (pc.getSenders ? pc.getSenders() : [])){
+      try{
+        const params = sender.getParameters();
+        params.encodings = params.encodings && params.encodings.length ? params.encodings : [{}];
+        const encoding = params.encodings[0];
+        if(sender.track && sender.track.kind === 'video'){
+          encoding.maxBitrate = 350000;
+          encoding.maxFramerate = 15;
+        } else if(sender.track && sender.track.kind === 'audio') {
+          encoding.maxBitrate = 32000;
+        }
+        await sender.setParameters(params);
+      }catch(e){}
+    }
+  }
+
+  function startCallStats(pc){
+    if(callStatsTimer) clearInterval(callStatsTimer);
+    callStatsTimer = setInterval(async()=>{
+      if(pc !== peerConnection || !pc.getStats) return;
+      try{
+        const report = await pc.getStats();
+        let sent = 0, lost = 0;
+        report.forEach(item=>{
+          if(item.type === 'outbound-rtp' && item.kind === 'video'){
+            sent += Number(item.packetsSent || 0);
+            lost += Number(item.packetsLost || 0);
+          }
+        });
+        if(sent + lost < 20) return;
+        const lossRatio = lost / (sent + lost);
+        for(const sender of pc.getSenders()){
+          if(!sender.track || sender.track.kind !== 'video') continue;
+          const params = sender.getParameters();
+          if(!params.encodings || !params.encodings.length) continue;
+          params.encodings[0].maxBitrate = lossRatio > 0.08 ? 180000 : 350000;
+          params.encodings[0].maxFramerate = lossRatio > 0.08 ? 10 : 15;
+          sender.setParameters(params).catch(()=>{});
+        }
+      }catch(e){}
+    }, 5000);
   }
 
   function setCallPanel(heading, text, isError, showVideos){
@@ -1436,6 +1585,20 @@
     pendingIncoming = null;
     if(currentFireId) setCallPanel('Video calls unavailable', callUnavailableReason, true, false);
     renderCallGate();
+  }
+
+  function scheduleCallReconnect(){
+    if(callPageHidden || callReconnectTimer || !callSupabase || !callUserId) return;
+    callAvailable = false;
+    callAvailabilityResolved = true;
+    callUnavailableReason = 'Video connection interrupted — reconnecting securely…';
+    renderCallGate();
+    const delay = Math.min(12000, 1500 * Math.pow(2, Math.min(callReconnectAttempt, 3)));
+    callReconnectAttempt += 1;
+    callReconnectTimer = setTimeout(()=>{
+      callReconnectTimer = null;
+      initialiseVideoCalls();
+    }, delay);
   }
 
   function renderCallGate(){
@@ -1691,7 +1854,10 @@
     if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || typeof RTCPeerConnection === 'undefined'){
       throw new Error('WebRTC is not supported in this browser.');
     }
-    localCallStream = await navigator.mediaDevices.getUserMedia({ video:true, audio:true });
+    localCallStream = await navigator.mediaDevices.getUserMedia({
+      video:{ width:{ideal:640, max:720}, height:{ideal:360, max:480}, frameRate:{ideal:15, max:20}, facingMode:'user' },
+      audio:{ echoCancellation:true, noiseSuppression:true, autoGainControl:true, channelCount:1 }
+    });
     localVideo.srcObject = localCallStream;
     remoteCallStream = new MediaStream();
     remoteVideo.srcObject = remoteCallStream;
@@ -1707,6 +1873,8 @@
     const pc = new RTCPeerConnection({ iceServers:CALL_ICE_SERVERS });
     peerConnection = pc;
     localCallStream.getTracks().forEach(track=>pc.addTrack(track, localCallStream));
+    await tuneCallSenders(pc);
+    startCallStats(pc);
     pc.ontrack = event=>{
       if(event.streams && event.streams[0]){
         remoteVideo.srcObject = event.streams[0];
@@ -1802,6 +1970,7 @@
   }
 
   function closePeerMedia(){
+    if(callStatsTimer){ clearInterval(callStatsTimer); callStatsTimer = null; }
     if(peerConnection){
       peerConnection.ontrack = null;
       peerConnection.onicecandidate = null;
@@ -1906,6 +2075,9 @@
       if(!configResponse.ok) throw new Error('config');
       const config = await configResponse.json();
       if(!config || !config.url || !config.anonKey) throw new Error('config');
+      if(Array.isArray(config.iceServers) && config.iceServers.length){
+        CALL_ICE_SERVERS = CALL_ICE_SERVERS.concat(config.iceServers);
+      }
       const module = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
       callSupabase = module.createClient(config.url, config.anonKey);
       const sessionResult = await callSupabase.auth.getSession();
@@ -1941,8 +2113,10 @@
           .subscribe(status=>{
             if(status === 'SUBSCRIBED' && !settled){ settled = true; clearTimeout(timeout); resolve(); }
             if((status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') && !settled){ settled = true; clearTimeout(timeout); reject(new Error('realtime')); }
-            else if((status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') && settled && callChannel === channel){
-              setCallUnavailable('Private video calling lost its secure signalling connection. Text and voice messages still work.');
+            else if((status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') && settled && callChannel === channel){
+              callChannel = null;
+              try{ callSupabase.removeChannel(channel); }catch(e){}
+              scheduleCallReconnect();
             }
           });
       });
@@ -1950,6 +2124,7 @@
       callAvailable = true;
       callAvailabilityResolved = true;
       callUnavailableReason = '';
+      callReconnectAttempt = 0;
       renderCallGate();
       syncCallIdentityToSeat();
 
@@ -1973,15 +2148,20 @@
         ? 'Sign in to use private video calls. Text and voice messages still work.'
         : 'Private video calls are unavailable right now. Text and voice messages still work.';
       setCallUnavailable(message);
+      if(e && e.message === 'realtime') scheduleCallReconnect();
     }
   }
 
   function cleanupCallsForPageHide(){
+    callPageHidden = true;
+    if(callReconnectTimer){ clearTimeout(callReconnectTimer); callReconnectTimer = null; }
     endActiveCall(true, true);
     if(callChannel && callSupabase){ callSupabase.removeChannel(callChannel).catch(()=>{}); }
     callChannel = null;
   }
   window.addEventListener('pagehide', cleanupCallsForPageHide);
+  window.addEventListener('pagehide', removeMySeatOnExit);
+  window.addEventListener('beforeunload', removeMySeatOnExit);
   campfireInitPromise = initialiseVideoCalls();
 
   // ---------- soft fire sound (procedural, no external audio) ----------
