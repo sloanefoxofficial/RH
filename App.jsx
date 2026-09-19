@@ -1509,7 +1509,12 @@ export default function App() {
         ) : screen === "virtualSupport" ? (
           <VirtualSupportPage onBack={back} />
         ) : screen === "campfire" ? (
-          <CampfirePage onBack={back} campfireAccess={answers?.campfire_access ?? profile?.campfireAccess ?? ""} />
+          <CampfirePage onBack={back} campfireAccess={(() => {
+            const answerAccess = answers?.campfire_access;
+            const profileAccess = profile?.campfireAccess;
+            const usable = (value) => value !== undefined && value !== null && String(value).trim() !== "";
+            return usable(answerAccess) ? answerAccess : (usable(profileAccess) ? profileAccess : "");
+          })()} />
         ) : screen === "chaptly" ? (
           <ChaptlyPage onBack={() => { histRef.current = []; __backDestinationLabel = "Home"; setScreen("hub"); }} />
         ) : screen === "supportUs" ? (
@@ -8188,7 +8193,7 @@ function CampfirePage({ onBack, campfireAccess = "" }) {
     : access === "1" || access.startsWith("Ladies’") || access.startsWith("Ladies'") ? "ladies" : null;
   const enterCampfire = () => {
     try { sessionStorage.setItem("rh_campfire_access", allowedFire || ""); } catch {}
-    window.location.href = "/campfire.html";
+    window.location.href = `/campfire.html?space=${encodeURIComponent(allowedFire || "")}`;
   };
   return <>
     <Brand right={<BackBtn onBack={onBack} />} />
