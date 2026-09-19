@@ -701,6 +701,7 @@
   let seatHeartbeat = null;
   const SEAT_STALE_MS = 30 * 1000;
   let backend = null;
+  let currentFireId = null;
   let campfireInitPromise = null;
   let campfireOpenedAt = 0;
   let presenceSweepTimer = null;
