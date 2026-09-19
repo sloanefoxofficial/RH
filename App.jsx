@@ -8192,8 +8192,9 @@ function ResourcesPage({ onOpenSafety, onOpenMensShed, onBack }) {
 
 function CampfirePage({ onBack, campfireAccess = "" }) {
   const access = String(campfireAccess || "");
-  const allowedFire = access === "0" || access.startsWith("Men’s") || access.startsWith("Men's") ? "mens"
-    : access === "1" || access.startsWith("Ladies’") || access.startsWith("Ladies'") ? "ladies" : null;
+  const normalizedAccess = access.trim().toLowerCase();
+  const allowedFire = access === "0" || normalizedAccess === "mens" || normalizedAccess === "men" || access.startsWith("Men’s") || access.startsWith("Men's") ? "mens"
+    : access === "1" || normalizedAccess === "ladies" || normalizedAccess === "ladies'" || normalizedAccess === "women" || access.startsWith("Ladies’") || access.startsWith("Ladies'") ? "ladies" : null;
   const enterCampfire = () => {
     try { sessionStorage.setItem("rh_campfire_access", allowedFire || ""); } catch {}
     window.location.href = `/campfire.html?space=${encodeURIComponent(allowedFire || "")}`;
