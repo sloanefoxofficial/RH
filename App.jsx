@@ -1507,7 +1507,7 @@ export default function App() {
         ) : screen === "admin" ? (
           <Admin isAdmin={isAdmin} guidePrompts={guidePrompts} onSaveGuidePrompt={saveGuidePrompt} onBack={back} />
         ) : screen === "profile" ? (
-          <Profile session={session} onReset={resetAll} onOpenMemory={() => go("memory")} onBack={back} />
+          <Profile session={session} profile={profile} answers={answers} saveProfile={saveProfile} saveAnswers={saveAnswers} onReset={resetAll} onOpenMemory={() => go("memory")} onBack={back} />
         ) : screen === "notifications" ? (
           <Notifications session={session} onBack={back} />
         ) : screen === "coordinator" ? (
@@ -3946,7 +3946,7 @@ function resizeImage(file, max, cb) {
   } catch {}
 }
 
-function Profile({ session, onReset, onOpenMemory, onBack }) {
+function Profile({ session, profile, answers, saveProfile, saveAnswers, onReset, onOpenMemory, onBack }) {
   const [confirmReset, setConfirmReset] = useState(false);
   const [p, setP] = useState({ preferred_name: "", pronouns: "", bio: "", contact_private: "", avatar: "" });
   const [status, setStatus] = useState("");
@@ -3954,7 +3954,18 @@ function Profile({ session, onReset, onOpenMemory, onBack }) {
   const [pw2, setPw2] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [pwStatus, setPwStatus] = useState("");
+  const [campfireStatus, setCampfireStatus] = useState("");
   const fileRef = useRef(null);
+  const rawCampfireAccess = answers?.campfire_access ?? profile?.campfireAccess ?? "";
+  const campfireAccess = String(rawCampfireAccess);
+  const campfireChoice = campfireAccess === "0" || campfireAccess.startsWith("Men’s") || campfireAccess.startsWith("Men's") ? "Men’s Fire"
+    : campfireAccess === "1" || campfireAccess.startsWith("Ladies’") || campfireAccess.startsWith("Ladies'") ? "Ladies’ Fire" : "";
+  const chooseCampfire = (index) => {
+    if (campfireChoice) return;
+    saveAnswers({ ...(answers || {}), campfire_access: index });
+    saveProfile({ campfireAccess: index });
+    setCampfireStatus("Saved. This choice is now locked to protect the privacy of the spaces.");
+  };
 
   useEffect(() => {
     (async () => {
@@ -4021,6 +4032,17 @@ function Profile({ session, onReset, onOpenMemory, onBack }) {
       <p style={{ fontSize: 13, color: T.sub, margin: "0 2px 12px", lineHeight: 1.5 }}>
         This space is yours. Fill in as much or as little as you like — you can change it any time.
       </p>
+
+      <SectionTitle>Campfire access</SectionTitle>
+      <div style={{ background: "linear-gradient(135deg, #fff8ee 0%, #fff 78%)", border: "1px solid #ead8c7", borderRadius: 20, padding: 16, boxShadow: T.soft, marginBottom: 14 }}>
+        <div style={{ fontWeight: 800, color: T.ink, marginBottom: 5 }}>Which Campfire space is right for you?</div>
+        <p style={{ margin: "0 0 12px", color: T.sub, fontSize: 13, lineHeight: 1.48 }}>Choose one space to access. You’ll also be able to use the Common Fire. To protect everyone’s privacy, this choice cannot be changed later.</p>
+        {campfireChoice ? <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "12px 13px", borderRadius: 14, background: "#eef7ef", color: T.greenDk, fontWeight: 800 }}><Shield size={18} /> {campfireChoice} selected and locked</div> : <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+          <ChoiceRow label="Men’s Fire — the men’s support space" onClick={() => chooseCampfire(0)} />
+          <ChoiceRow label="Ladies’ Fire — the women’s support space" onClick={() => chooseCampfire(1)} />
+        </div>}
+        {campfireStatus && <div style={{ marginTop: 10, color: T.greenDk, fontSize: 12.5, lineHeight: 1.4 }}>{campfireStatus}</div>}
+      </div>
 
       <div style={{ background: T.card, borderRadius: 20, padding: 18, boxShadow: T.soft, marginBottom: 14 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 16 }}>
@@ -5597,8 +5619,8 @@ function VoiceToggle({ on, set }) {
 const PROGRAM_WELCOME_TEXT = "This is your tailor-made 8-week plan, shaped around what you told us about your life, your energy, and what you want to work towards. It grows week by week, starting gently and building practical steps at a pace that fits you. I’m here to help you understand each week, answer your questions, make tasks feel manageable, and help you notice your progress — without pressure and without judgement.";
 const QUESTIONS = [
   { key: "name", type: "name", q: "First up — what should we call you?" },
-  { key: "campfire_access", type: "single", q: "If you might use the Campfire feature, which space would you like access to? This is just to help us show you the right support space — there’s no need to explain anything personal.",
-    opts: ["Men’s Fire — the men’s support space", "Ladies’ Fire — the women’s support space", "Common Fire — the open space for everyone", "Not sure yet — I’ll decide later"] },
+  { key: "campfire_access", type: "single", q: "If you might use the Campfire feature, which support space would feel right for you? This is only to help us show you the right spaces — there’s no need to explain anything personal.",
+    opts: ["Men’s Fire — the men’s support space", "Ladies’ Fire — the women’s support space"] },
   { key: "age", type: "single", q: "Which stage of life are you in? It helps us pitch things right.",
     opts: ["16–25", "26–55", "56–80+", "Rather not say"] },
   { key: "mood", type: "single", q: "How have the last couple of weeks felt, overall?",
@@ -5781,6 +5803,8 @@ function Onboarding({ profile, saveProfile, answers, saveAnswers, savePlan, voic
   const [building, setBuilding] = useState(false);
   const { speak, stop, speaking, prefetch } = useVoice(voiceOn);
   const q = QS[i];
+  const existingCampfireAccess = String(answers?.campfire_access ?? profile?.campfireAccess ?? "");
+  const campfireAlreadySet = existingCampfireAccess === "0" || existingCampfireAccess === "1" || existingCampfireAccess.startsWith("Men’s") || existingCampfireAccess.startsWith("Men's") || existingCampfireAccess.startsWith("Ladies’") || existingCampfireAccess.startsWith("Ladies'");
 
   useEffect(() => {
     setText(local[q.key] || "");
@@ -5795,6 +5819,7 @@ function Onboarding({ profile, saveProfile, answers, saveAnswers, savePlan, voic
   const set = (val) => { const next = { ...local, [q.key]: val }; setLocal(next); saveAnswers(next); return next; };
 
   const next = (val) => {
+    if (q.key === "campfire_access" && campfireAlreadySet) { advance(); return; }
     const merged = val !== undefined ? set(val) : local;
     if (q.type === "name") {
       const nm = name.trim() || "friend";
@@ -5804,7 +5829,7 @@ function Onboarding({ profile, saveProfile, answers, saveAnswers, savePlan, voic
       saveProfile({ name: nm });
     }
     if (q.key === "campfire_access") {
-      saveProfile({ campfireAccess: merged.campfire_access || "Not sure yet — I’ll decide later" });
+      saveProfile({ campfireAccess: merged.campfire_access ?? "" });
     }
     if (q.type === "safety") {
       const idx = merged.safety;
@@ -5947,7 +5972,13 @@ Respond with ONLY valid JSON, no markdown fences, exactly this shape:
         </div>
       )}
 
-      {q.type === "single" && (
+      {q.type === "single" && q.key === "campfire_access" && campfireAlreadySet && (
+        <div style={{ background: "#eef7ef", border: "1px solid #cde5d1", borderRadius: 16, padding: 14, color: T.greenDk, fontSize: 13.5, lineHeight: 1.5 }}>
+          Your Campfire space has already been selected and is locked to protect everyone’s privacy. You’ll have access to that space and the Common Fire.
+          <Btn onClick={() => advance()} style={{ marginTop: 12 }}>Continue</Btn>
+        </div>
+      )}
+      {q.type === "single" && q.key !== "campfire_access" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {q.opts.map((o, idx) => (
             <ChoiceRow key={o} label={o} onClick={() => next(idx)} />
@@ -8141,7 +8172,8 @@ function ResourcesPage({ onOpenSafety, onOpenMensShed, onBack }) {
 
 function CampfirePage({ onBack, campfireAccess = "" }) {
   const access = String(campfireAccess || "");
-  const allowedFire = access.startsWith("Men’s") ? "mens" : access.startsWith("Ladies’") ? "ladies" : access.startsWith("Common") ? "common" : null;
+  const allowedFire = access === "0" || access.startsWith("Men’s") || access.startsWith("Men's") ? "mens"
+    : access === "1" || access.startsWith("Ladies’") || access.startsWith("Ladies'") ? "ladies" : null;
   const enterCampfire = () => {
     try { sessionStorage.setItem("rh_campfire_access", allowedFire || ""); } catch {}
     window.location.href = "/campfire.html";
@@ -8163,7 +8195,7 @@ function CampfirePage({ onBack, campfireAccess = "" }) {
     <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
       {["Sit quietly or talk straight — both are welcome.", "Men’s Fire is built for blokes, with a Ladies’ Fire and Common Fire also available.", "Use voice or text, at your own pace. No real name is needed.", "The Campfire is peer connection, not counselling or emergency care.", "If someone is in immediate danger, call Triple Zero (000) or use the Hub’s crisis support options."] .map((item, index) => <div key={item} style={{ display: "flex", gap: 10, alignItems: "flex-start", background: index === 4 ? "#fff0f0" : "#fff", border: `1px solid ${index === 4 ? "#f0d1d1" : T.line}`, borderRadius: 15, padding: "11px 12px", color: index === 4 ? "#a53f42" : T.sub, fontSize: 13, lineHeight: 1.45 }}><span style={{ color: index === 4 ? "#c94f4f" : "#a9511f", fontWeight: 900 }}>{index === 4 ? "!" : "•"}</span><span>{item}</span></div>)}
     </div>
-    {allowedFire ? <button onClick={enterCampfire} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 9, marginTop: 18, padding: "14px 18px", border: 0, borderRadius: 999, background: "linear-gradient(135deg, #e8703a, #a9511f)", color: "#fff8ed", fontWeight: 900, cursor: "pointer", boxShadow: "0 9px 18px rgba(169,81,31,0.22)" }}><Flame size={19} /> Enter your Campfire space <ChevronRight size={16} /></button> : <div style={{ marginTop: 18, padding: "14px 15px", borderRadius: 16, background: "#fff7e8", border: "1px solid #efd6a5", color: "#805d22", fontSize: 13, lineHeight: 1.5, textAlign: "center" }}>Choose a Campfire space during onboarding before entering. You can update your choice later in your profile settings.</div>}
+    {allowedFire ? <button onClick={enterCampfire} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 9, marginTop: 18, padding: "14px 18px", border: 0, borderRadius: 999, background: "linear-gradient(135deg, #e8703a, #a9511f)", color: "#fff8ed", fontWeight: 900, cursor: "pointer", boxShadow: "0 9px 18px rgba(169,81,31,0.22)" }}><Flame size={19} /> Enter your Campfire space <ChevronRight size={16} /></button> : <div style={{ marginTop: 18, padding: "14px 15px", borderRadius: 16, background: "#fff7e8", border: "1px solid #efd6a5", color: "#805d22", fontSize: 13, lineHeight: 1.5, textAlign: "center" }}>Choose Men’s Fire or Ladies’ Fire during onboarding or in your profile before entering. The choice is permanent to protect the privacy of the spaces.</div>}
     <p style={{ margin: "11px 4px 0", color: T.sub, fontSize: 11.5, lineHeight: 1.45, textAlign: "center" }}>You can come and go as you please. The Campfire does not replace professional or emergency support.</p>
     <div style={{ height: 28 }} />
   </>;
