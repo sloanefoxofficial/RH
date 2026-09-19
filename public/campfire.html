@@ -1,0 +1,1196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>The Campfire</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Source+Sans+3:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-0:#140d09;
+    --bg-1:#1e130c;
+    --bg-2:#2a1a10;
+    --ember:#e8703a;
+    --ember-dim:#a9511f;
+    --coal:#3a2416;
+    --wood:#6b4a30;
+    --wood-light:#8a6444;
+    --cream:#e9d9c0;
+    --cream-dim:#b6a488;
+    --free:#7fa876;
+    --free-glow:#a8cf9c;
+    --serif:'Fraunces', Georgia, serif;
+    --sans:'Source Sans 3', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+  @media (prefers-color-scheme: light){ :root:not([data-theme="light"]){ } }
+  *{ box-sizing:border-box; }
+  html,body{
+    margin:0; padding:0; min-height:100%;
+    background: radial-gradient(ellipse 120% 80% at 50% 15%, var(--bg-2), var(--bg-0) 70%);
+    color:var(--cream);
+    font-family:var(--sans);
+    -webkit-font-smoothing:antialiased;
+  }
+  a{ color:inherit; }
+  button{ font-family:inherit; }
+  .scene{ max-width:640px; margin:0 auto; padding:28px 18px 48px; display:flex; flex-direction:column; align-items:center; }
+  .screen{ width:100%; }
+
+  /* ---------- home / fire selection ---------- */
+  #homeScreen header{ text-align:center; margin-bottom:26px; }
+  #homeScreen h1{ font-family:var(--serif); font-weight:500; font-size:clamp(30px,8vw,42px); margin:0 0 6px; }
+  #homeScreen p.tagline{ margin:0; color:var(--cream-dim); font-size:14.5px; line-height:1.5; max-width:38ch; margin-left:auto; margin-right:auto; }
+  .fire-cards{ display:flex; flex-direction:column; gap:14px; }
+  .fire-card{
+    display:flex; align-items:center; gap:16px;
+    background:rgba(255,255,255,0.035);
+    border:1px solid rgba(233,217,192,0.12);
+    border-radius:18px;
+    padding:18px 20px;
+    cursor:pointer;
+    text-align:left;
+    transition:background 0.15s, border-color 0.15s, transform 0.1s;
+  }
+  .fire-card:hover{ background:rgba(255,255,255,0.06); border-color:rgba(232,112,58,0.4); transform:translateY(-1px); }
+  .fire-card .fc-icon{
+    width:54px; height:54px; border-radius:50%; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center; font-size:24px;
+    background:radial-gradient(circle at 45% 40%, rgba(232,112,58,0.35), rgba(232,112,58,0.06) 70%);
+    border:1px solid rgba(232,112,58,0.3);
+  }
+  .fire-card .fc-body{ flex:1; min-width:0; }
+  .fire-card .fc-name{ font-family:var(--serif); font-size:18px; font-weight:500; color:var(--cream); margin-bottom:2px; }
+  .fire-card .fc-tagline{ font-size:12.5px; color:var(--cream-dim); line-height:1.35; }
+  .fire-card .fc-count{ font-size:11.5px; color:rgba(233,217,192,0.45); margin-top:5px; }
+  .rules-note{ text-align:center; color:rgba(233,217,192,0.35); font-size:12px; margin-top:22px; }
+
+  /* ---------- fire screen header ---------- */
+  #fireScreen header{ width:100%; text-align:center; margin-bottom:6px; position:relative; }
+  .back-btn{
+    position:absolute; left:0; top:2px;
+    background:rgba(255,255,255,0.04);
+    border:1px solid rgba(233,217,192,0.14);
+    color:var(--cream-dim);
+    border-radius:999px;
+    padding:7px 13px;
+    font-size:13px;
+    cursor:pointer;
+  }
+  .back-btn:hover{ color:var(--cream); }
+  #fireScreen h1{ font-family:var(--serif); font-weight:500; font-size:clamp(24px,6vw,32px); margin:0 0 3px; }
+  #fireScreen p.tagline{ margin:0 0 14px; color:var(--cream-dim); font-size:13.5px; }
+  .header-controls{ display:flex; align-items:center; justify-content:center; gap:10px; }
+  .icon-btn{
+    background:rgba(255,255,255,0.04); border:1px solid rgba(233,217,192,0.14);
+    color:var(--cream-dim); border-radius:999px; width:38px; height:38px;
+    display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:16px;
+    transition:background 0.15s, color 0.15s, border-color 0.15s;
+  }
+  .icon-btn:hover{ background:rgba(255,255,255,0.08); color:var(--cream); }
+  .icon-btn[aria-pressed="true"]{ color:var(--ember); border-color:var(--ember-dim); }
+  .icon-btn:focus-visible, button:focus-visible, input:focus-visible{ outline:2px solid var(--ember); outline-offset:2px; }
+
+  /* ---------- fire + chairs ---------- */
+  .fire-circle-wrap{ width:100%; display:flex; justify-content:center; margin:22px 0 10px; }
+  .fire-circle{ position:relative; width:min(86vw, 420px); aspect-ratio:1/1; }
+  .fire-glow{
+    position:absolute; inset:0; border-radius:50%;
+    background: radial-gradient(circle at 50% 55%, rgba(232,112,58,0.30), rgba(232,112,58,0.06) 45%, transparent 70%);
+    pointer-events:none; animation: glow-pulse 3.2s ease-in-out infinite;
+  }
+  @keyframes glow-pulse{ 0%,100%{ opacity:0.75; transform:scale(1); } 50%{ opacity:1; transform:scale(1.04); } }
+  .fire{ position:absolute; left:50%; top:50%; transform:translate(-50%,-46%); width:15%; height:22%; }
+  .fire .log{ position:absolute; bottom:-6%; left:50%; width:150%; height:14%; transform:translateX(-50%); background:linear-gradient(90deg,#2a1710,#4a2c18 50%,#2a1710); border-radius:40%; }
+  .flame{ position:absolute; bottom:8%; left:50%; border-radius:50% 50% 50% 50% / 60% 60% 40% 40%; background:var(--ember); transform-origin:bottom center; filter:blur(0.3px); }
+  .flame.f1{ width:70%; height:100%; margin-left:-35%; background:linear-gradient(0deg,#c9451a,#f5a247); animation:flick1 1.6s ease-in-out infinite; }
+  .flame.f2{ width:46%; height:78%; margin-left:-23%; background:linear-gradient(0deg,#e8703a,#ffd27a); animation:flick2 1.3s ease-in-out infinite; opacity:0.92; }
+  .flame.f3{ width:26%; height:50%; margin-left:-13%; background:#ffe3a1; animation:flick3 0.9s ease-in-out infinite; opacity:0.9; }
+  @keyframes flick1{ 0%,100%{ transform:scaleY(1) scaleX(1) rotate(-1deg); } 50%{ transform:scaleY(1.12) scaleX(0.94) rotate(2deg); } }
+  @keyframes flick2{ 0%,100%{ transform:scaleY(1) rotate(1deg) translateX(0); } 50%{ transform:scaleY(1.18) rotate(-2deg) translateX(2%); } }
+  @keyframes flick3{ 0%,100%{ transform:scaleY(1) translateY(0); } 50%{ transform:scaleY(1.22) translateY(-4%); } }
+  @media (prefers-reduced-motion: reduce){ .flame, .fire-glow{ animation:none !important; } }
+
+  .chair{
+    position:absolute; width:19%; aspect-ratio:1/1; left:50%; top:50%; transform:translate(-50%,-50%);
+    background:none; border:none; padding:0;
+    display:flex; flex-direction:column; align-items:center; gap:6px; cursor:pointer; color:var(--cream);
+  }
+  .chair .seat-icon-wrap{
+    width:100%; aspect-ratio:1/1; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    background:rgba(20,13,9,0.55); border:1.5px solid transparent;
+    transition:border-color 0.2s, box-shadow 0.2s, transform 0.15s; overflow:hidden; position:relative;
+  }
+  .chair:hover .seat-icon-wrap{ transform:scale(1.06); }
+  .chair svg{ width:56%; height:56%; }
+  .chair .seat-icon-wrap img, .chair .seat-icon-wrap svg.avatar-full{ width:100%; height:100%; object-fit:cover; }
+  .chair.free .seat-icon-wrap{ border-color:var(--free); box-shadow:0 0 14px 1px rgba(127,168,118,0.55); }
+  .chair.free svg{ color:var(--free-glow); }
+  .chair.free .seat-icon-wrap{ animation:seat-breathe 2.6s ease-in-out infinite; }
+  @keyframes seat-breathe{ 0%,100%{ box-shadow:0 0 10px 0 rgba(127,168,118,0.4); } 50%{ box-shadow:0 0 18px 3px rgba(127,168,118,0.65); } }
+  .chair.taken svg{ color:var(--wood-light); }
+  .chair.taken .seat-icon-wrap{ border-color:rgba(233,217,192,0.1); }
+  .chair.mine .seat-icon-wrap{ border-color:var(--ember); box-shadow:0 0 14px 1px rgba(232,112,58,0.55); }
+  .chair.mine svg{ color:var(--ember); }
+  .chair.speaking .seat-icon-wrap{ box-shadow:0 0 0 3px rgba(232,112,58,0.5), 0 0 16px 4px rgba(232,112,58,0.5); }
+  .chair-label{ font-size:11px; color:var(--cream-dim); max-width:80px; text-align:center; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-weight:600; }
+  .chair.mine .chair-label{ color:var(--ember); }
+  .chair:disabled{ cursor:default; }
+
+  /* speech bubble */
+  .speech-bubble{
+    position:absolute; bottom:100%; left:50%; transform:translateX(-50%) translateY(4px);
+    margin-bottom:9px;
+    max-width:118px;
+    background:rgba(233,217,192,0.96);
+    color:#2a1a10;
+    border-radius:13px;
+    padding:6px 10px;
+    font-size:11px;
+    line-height:1.3;
+    text-align:center;
+    box-shadow:0 3px 10px rgba(0,0,0,0.35);
+    opacity:0; pointer-events:none;
+    transition:opacity 0.25s ease, transform 0.25s ease;
+    z-index:5;
+  }
+  .speech-bubble::after{
+    content:''; position:absolute; top:100%; left:50%; transform:translateX(-50%);
+    border:6px solid transparent; border-top-color:rgba(233,217,192,0.96);
+  }
+  .speech-bubble.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+  .speech-bubble .sb-name{ font-weight:700; display:block; margin-bottom:2px; color:var(--ember-dim); font-size:10px; }
+  .speech-bubble .sb-voice{ display:flex; align-items:center; justify-content:center; gap:4px; }
+  .speech-bubble .sb-avatar{ display:block; width:26px; height:26px; border-radius:50%; overflow:hidden; margin:0 auto 4px; background:rgba(0,0,0,0.12); }
+  .speech-bubble .sb-avatar svg, .speech-bubble .sb-avatar img{ width:100%; height:100%; object-fit:cover; color:var(--ember-dim); }
+  .mic-note{ font-size:11px; color:rgba(233,217,192,0.45); text-align:center; padding:6px 14px 0; display:none; }
+  .mic-note a{ color:var(--ember); }
+  .mic-note.show{ display:block; }
+
+  /* ---------- status ---------- */
+  .status-line{ text-align:center; font-size:14px; color:var(--cream-dim); min-height:20px; margin:8px 0 4px; }
+  .status-line.full{ color:#f0b98e; }
+  .wait-btn{ margin-top:8px; background:rgba(232,112,58,0.12); border:1px solid var(--ember-dim); color:var(--ember); padding:8px 16px; border-radius:999px; font-size:13.5px; cursor:pointer; }
+  .wait-btn:hover{ background:rgba(232,112,58,0.2); }
+  .stand-btn{ margin-top:10px; background:none; border:1px solid rgba(233,217,192,0.25); color:var(--cream-dim); padding:7px 16px; border-radius:999px; font-size:13px; cursor:pointer; }
+  .stand-btn:hover{ color:var(--cream); border-color:rgba(233,217,192,0.45); }
+
+  /* ---------- chat ---------- */
+  .chat-panel{ width:100%; margin-top:22px; background:rgba(255,255,255,0.03); border:1px solid rgba(233,217,192,0.1); border-radius:14px; overflow:hidden; }
+  .chat-messages{ height:170px; overflow-y:auto; padding:12px 14px; display:flex; flex-direction:column; gap:9px; }
+  .chat-empty{ margin:auto; color:rgba(233,217,192,0.35); font-size:13px; text-align:center; padding:0 20px; }
+  .msg{ font-size:14px; line-height:1.4; }
+  .msg .who{ color:var(--ember); font-weight:600; margin-right:6px; }
+  .msg .when{ color:rgba(233,217,192,0.32); font-size:11px; margin-left:6px; }
+  .msg .body{ color:var(--cream); word-wrap:break-word; }
+  .msg.system{ color:rgba(233,217,192,0.4); font-style:italic; font-size:12.5px; }
+  .voice-chip{
+    display:inline-flex; align-items:center; gap:6px;
+    background:rgba(232,112,58,0.14); border:1px solid rgba(232,112,58,0.35);
+    border-radius:999px; padding:4px 11px; cursor:pointer; color:var(--cream); font-size:13px;
+  }
+  .voice-chip:hover{ background:rgba(232,112,58,0.22); }
+
+  .voice-hint{ font-size:11.5px; color:rgba(233,217,192,0.4); padding:8px 14px 0; text-align:center; }
+
+  #chatForm{ display:flex; align-items:center; gap:8px; border-top:1px solid rgba(233,217,192,0.1); padding:9px 10px; background:rgba(0,0,0,0.15); }
+  #chatInput{ flex:1; background:rgba(255,255,255,0.05); border:1px solid rgba(233,217,192,0.14); border-radius:999px; padding:9px 14px; color:var(--cream); font-size:14px; outline:none; }
+  #chatInput:disabled{ color:rgba(233,217,192,0.3); cursor:not-allowed; }
+  #chatInput:focus{ border-color:var(--ember-dim); }
+  #chatForm button[type="submit"]{ background:var(--ember); color:#1a0f08; border:none; border-radius:999px; padding:9px 16px; font-size:13.5px; font-weight:600; cursor:pointer; }
+  #chatForm button[type="submit"]:disabled{ background:rgba(232,112,58,0.25); color:rgba(26,15,8,0.5); cursor:not-allowed; }
+  #micBtn{
+    background:rgba(232,112,58,0.14); border:1.5px solid var(--ember-dim); color:var(--ember);
+    width:40px; height:40px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:16px; flex-shrink:0;
+    position:relative; user-select:none; touch-action:none;
+    transition:transform 0.1s;
+  }
+  #micBtn.recording{ background:var(--ember); color:#1a0f08; transform:scale(1.12); animation:mic-pulse 1s ease-in-out infinite; }
+  @keyframes mic-pulse{ 0%,100%{ box-shadow:0 0 0 0 rgba(232,112,58,0.5); } 50%{ box-shadow:0 0 0 8px rgba(232,112,58,0); } }
+  #micBtn:disabled{ opacity:0.35; cursor:not-allowed; }
+  .rec-timer{ font-size:11px; color:var(--ember); min-width:30px; text-align:center; }
+
+  /* ---------- rules ---------- */
+  .rules-pinned{ width:100%; margin-top:26px; padding:18px 20px; background:rgba(255,255,255,0.025); border:1px solid rgba(233,217,192,0.08); border-radius:14px; }
+  .rules-pinned h2{ font-family:var(--serif); font-weight:500; font-size:17px; margin:0 0 12px; color:var(--cream); text-align:center; }
+  .rules-pinned ul{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:9px; }
+  .rules-pinned li{ font-size:13.5px; color:var(--cream-dim); padding-left:16px; position:relative; line-height:1.45; }
+  .rules-pinned li::before{ content:''; position:absolute; left:0; top:7px; width:5px; height:5px; border-radius:50%; background:var(--ember-dim); }
+  footer.credit{ margin-top:18px; font-size:11.5px; color:rgba(233,217,192,0.28); text-align:center; }
+
+  ::-webkit-scrollbar{ width:8px; }
+  ::-webkit-scrollbar-track{ background:transparent; }
+  ::-webkit-scrollbar-thumb{ background:rgba(233,217,192,0.15); border-radius:8px; }
+
+  /* ---------- avatar picker modal ---------- */
+  .modal-overlay{ position:fixed; inset:0; background:rgba(10,6,4,0.72); backdrop-filter:blur(2px); display:flex; align-items:flex-end; justify-content:center; z-index:100; opacity:0; pointer-events:none; transition:opacity 0.18s ease; }
+  .modal-overlay.open{ opacity:1; pointer-events:auto; }
+  @media (min-width:560px){ .modal-overlay{ align-items:center; } }
+  .modal-card{ width:100%; max-width:440px; max-height:88vh; overflow-y:auto; background:linear-gradient(180deg, var(--bg-2), var(--bg-0)); border:1px solid rgba(233,217,192,0.14); border-radius:20px 20px 0 0; padding:22px 20px 26px; transform:translateY(16px); transition:transform 0.18s ease; position:relative; }
+  @media (min-width:560px){ .modal-card{ border-radius:18px; transform:translateY(0) scale(0.98); } }
+  .modal-overlay.open .modal-card{ transform:translateY(0) scale(1); }
+  .modal-card h3{ font-family:var(--serif); font-weight:500; font-size:20px; margin:0 0 3px; text-align:center; }
+  .modal-sub{ text-align:center; color:var(--cream-dim); font-size:13px; margin:0 0 18px; }
+  .modal-label{ font-size:12.5px; color:var(--cream-dim); margin:0 0 6px; display:block; font-weight:600; letter-spacing:0.2px; }
+  .modal-name-input{ width:100%; background:rgba(255,255,255,0.05); border:1px solid rgba(233,217,192,0.16); border-radius:12px; padding:11px 14px; color:var(--cream); font-size:15px; outline:none; margin-bottom:18px; }
+  .modal-name-input:focus{ border-color:var(--ember-dim); }
+  .avatar-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:9px; margin-bottom:6px; }
+  .avatar-opt{ display:flex; flex-direction:column; align-items:center; gap:6px; background:rgba(255,255,255,0.035); border:1.5px solid rgba(233,217,192,0.12); border-radius:14px; padding:12px 6px; cursor:pointer; color:var(--cream-dim); font-size:11px; text-align:center; line-height:1.25; }
+  .avatar-opt .opt-icon{ width:38px; height:38px; border-radius:50%; background:rgba(255,255,255,0.05); display:flex; align-items:center; justify-content:center; font-size:19px; }
+  .avatar-opt.selected{ border-color:var(--ember); color:var(--cream); background:rgba(232,112,58,0.09); }
+  .avatar-opt.selected .opt-icon{ background:rgba(232,112,58,0.18); }
+  .subpanel{ margin-top:14px; padding:14px; background:rgba(255,255,255,0.03); border:1px solid rgba(233,217,192,0.1); border-radius:14px; display:none; }
+  .subpanel.show{ display:block; }
+  .swatch-row{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
+  .swatch{ width:30px; height:30px; border-radius:50%; border:2px solid transparent; cursor:pointer; flex-shrink:0; }
+  .swatch.selected{ border-color:var(--cream); box-shadow:0 0 0 2px var(--bg-0), 0 0 0 3px var(--ember); }
+  .seg-row{ display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap; }
+  .seg-btn{ flex:1; min-width:70px; background:rgba(255,255,255,0.04); border:1px solid rgba(233,217,192,0.14); color:var(--cream-dim); border-radius:10px; padding:8px 6px; font-size:12.5px; cursor:pointer; }
+  .seg-btn.selected{ border-color:var(--ember); color:var(--cream); background:rgba(232,112,58,0.12); }
+  .cartoon-preview-row{ display:flex; align-items:center; gap:14px; margin-bottom:4px; }
+  .cartoon-preview{ width:72px; height:72px; border-radius:50%; background:rgba(0,0,0,0.25); display:flex; align-items:center; justify-content:center; flex-shrink:0; border:1.5px solid rgba(233,217,192,0.15); }
+  .cartoon-preview svg{ width:100%; height:100%; }
+  .shuffle-btn{ background:rgba(255,255,255,0.05); border:1px solid rgba(233,217,192,0.18); color:var(--cream); border-radius:999px; padding:9px 16px; font-size:13px; cursor:pointer; }
+  .photo-row{ display:flex; align-items:center; gap:14px; }
+  .photo-preview{ width:72px; height:72px; border-radius:50%; background:rgba(0,0,0,0.25); border:1.5px solid rgba(233,217,192,0.15); display:flex; align-items:center; justify-content:center; overflow:hidden; flex-shrink:0; color:var(--cream-dim); font-size:22px; }
+  .photo-preview img{ width:100%; height:100%; object-fit:cover; }
+  .file-btn-label{ background:rgba(255,255,255,0.05); border:1px solid rgba(233,217,192,0.18); color:var(--cream); border-radius:999px; padding:9px 16px; font-size:13px; cursor:pointer; display:inline-block; }
+  .visibility-note{ font-size:11px; color:rgba(233,217,192,0.4); margin-top:8px; }
+  .modal-actions{ display:flex; gap:10px; margin-top:20px; }
+  .modal-actions button{ flex:1; border-radius:999px; padding:12px; font-size:14.5px; font-weight:600; cursor:pointer; border:none; }
+  .btn-skip{ background:none; border:1px solid rgba(233,217,192,0.25) !important; color:var(--cream-dim); }
+  .btn-skip:hover{ color:var(--cream); border-color:rgba(233,217,192,0.45) !important; }
+  .btn-sit{ background:var(--ember); color:#1a0f08; }
+  .modal-close{ position:absolute; top:14px; right:16px; background:none; border:none; color:var(--cream-dim); font-size:20px; cursor:pointer; line-height:1; }
+</style>
+</head>
+<body>
+
+<div class="scene">
+
+  <!-- ================= HOME: choose a fire ================= -->
+  <div class="screen" id="homeScreen">
+    <header>
+      <h1>The Campfire</h1>
+      <p class="tagline">Three fires, same idea: pull up a chair, come and go as you please. No booking, no agenda.</p>
+    </header>
+    <div class="fire-cards" id="fireCards"><!-- injected --></div>
+    <p class="rules-note">Every fire follows the same quiet rules — see them once you're seated.</p>
+  </div>
+
+  <!-- ================= FIRE ROOM ================= -->
+  <div class="screen" id="fireScreen" style="display:none">
+    <header>
+      <button class="back-btn" id="backBtn">← All fires</button>
+      <h1 id="fireTitle">Fire</h1>
+      <p class="tagline" id="fireTagline"></p>
+      <div class="header-controls">
+        <button class="icon-btn" id="soundBtn" type="button" aria-pressed="false" title="Toggle fire sound">🔇</button>
+      </div>
+    </header>
+
+    <div class="fire-circle-wrap">
+      <div class="fire-circle" id="fireCircle">
+        <div class="fire-glow"></div>
+        <div class="fire">
+          <div class="log"></div>
+          <div class="flame f1"></div>
+          <div class="flame f2"></div>
+          <div class="flame f3"></div>
+        </div>
+        <!-- chairs injected by JS -->
+      </div>
+    </div>
+
+    <div class="status-line" id="statusLine">Finding a seat for you…</div>
+    <div id="statusActions" style="display:flex; justify-content:center;"></div>
+
+    <section class="chat-panel">
+      <p class="voice-hint">🎙️ Voice messages recommended — it feels like we're actually sitting together. Text is always there too.</p>
+      <div class="chat-messages" id="chatMessages">
+        <div class="chat-empty" id="chatEmpty">It's quiet by the fire right now. Take a seat, or just listen in.</div>
+      </div>
+      <form id="chatForm">
+        <button type="button" id="micBtn" title="Hold to talk" disabled>🎙️</button>
+        <span class="rec-timer" id="recTimer" style="display:none">0:00</span>
+        <input id="chatInput" placeholder="Take a seat to talk…" disabled maxlength="500" autocomplete="off">
+        <button type="submit" id="sendBtn" disabled>Send</button>
+      </form>
+      <p class="mic-note" id="micNote">Voice isn't available in this window. <a href="https://claude.ai/artifact/D1e4SriTm8kgBaVZotwD7i" target="_blank" rel="noopener">Open the fire in your browser</a> to talk with your voice — text works everywhere.</p>
+    </section>
+
+    <div class="rules-pinned">
+      <h2>Around this fire</h2>
+      <ul>
+        <li>Pull up a chair — come and go as you please</li>
+        <li>No fixing, no advice — just listening</li>
+        <li>What's said here stays here</li>
+        <li>Silent is fine — you don't have to speak</li>
+        <li>Everyone equal — no one runs it, no one leads</li>
+        <li>Anonymous welcome — no real name needed</li>
+        <li>You can use your name, a nickname, or stay "Bloke" — whatever feels right</li>
+        <li>Avatar, photo, or no image at all — your call, no pressure</li>
+        <li>Voice or text — whatever feels right. Voice recommended.</li>
+        <li>Speech bubbles show who's speaking — clear, quiet, no confusion</li>
+      </ul>
+    </div>
+
+    <footer class="credit">7 seats. When one's free, it's yours.</footer>
+  </div>
+</div>
+
+<!-- avatar / name picker modal -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-card">
+    <button class="modal-close" id="modalClose" aria-label="Close">✕</button>
+    <h3 id="modalTitle">Choose how you appear</h3>
+    <p class="modal-sub" id="modalSub">Completely optional — no pressure at all</p>
+
+    <label class="modal-label" for="modalNameInput">What should we call you?</label>
+    <input id="modalNameInput" class="modal-name-input" maxlength="18" placeholder="Bloke">
+
+    <label class="modal-label">Pick how you look</label>
+    <div class="avatar-grid" id="avatarGrid">
+      <div class="avatar-opt" data-type="male"><span class="opt-icon">🧔</span>Simple avatar</div>
+      <div class="avatar-opt" data-type="female"><span class="opt-icon">👩</span>Simple avatar</div>
+      <div class="avatar-opt" data-type="cartoon"><span class="opt-icon">🎭</span>Build a face</div>
+      <div class="avatar-opt" data-type="photo"><span class="opt-icon">📷</span>Upload photo</div>
+      <div class="avatar-opt selected" data-type="none"><span class="opt-icon">🔕</span>No image</div>
+    </div>
+
+    <div class="subpanel" id="cartoonPanel">
+      <div class="cartoon-preview-row">
+        <div class="cartoon-preview" id="cartoonPreview"></div>
+        <button type="button" class="shuffle-btn" id="shuffleBtn">🔀 Shuffle face</button>
+      </div>
+      <label class="modal-label" style="margin-top:10px;">Skin tone</label>
+      <div class="swatch-row" id="skinRow"></div>
+      <label class="modal-label">Hair</label>
+      <div class="seg-row" id="hairRow"></div>
+      <label class="modal-label">Extra</label>
+      <div class="seg-row" id="accRow"></div>
+    </div>
+
+    <div class="subpanel" id="photoPanel">
+      <div class="photo-row">
+        <div class="photo-preview" id="photoPreview">📷</div>
+        <label class="file-btn-label" for="photoInput">Choose photo</label>
+        <input type="file" id="photoInput" accept="image/*" style="display:none">
+      </div>
+      <p class="visibility-note">Visible to everyone at the fire — kept small &amp; simple.</p>
+    </div>
+
+    <div class="modal-actions">
+      <button type="button" class="btn-skip" id="modalSkip">Skip — just sit</button>
+      <button type="button" class="btn-sit" id="modalSit">Sit down</button>
+    </div>
+  </div>
+</div>
+
+<svg width="0" height="0" style="position:absolute">
+  <symbol id="chair-icon" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 6 L12 26 L36 26 L36 6" />
+    <path d="M12 26 L10 42 M36 26 L38 42 M16 26 L15 42 M32 26 L33 42" />
+    <path d="M12 16 L36 16" opacity="0.55"/>
+  </symbol>
+</svg>
+
+<script>
+(function(){
+  "use strict";
+  const SEAT_COUNT = 7;
+  const NAME_KEY = "campfire_nickname_v1";
+  const CLIENT_KEY = "campfire_client_id_v1";
+  const SOUND_KEY = "campfire_sound_v1";
+  const AVATAR_KEY = "campfire_avatar_pref_v1";
+  const MAX_RECORD_MS = 12000;
+  const BUBBLE_MS = 6000;
+
+  const FIRES = [
+    { id:'mens',   name:"Men's Fire",   icon:'🔥', tagline:"For blokes to sit quiet, or talk straight." },
+    { id:'ladies', name:"Ladies' Fire", icon:'🔥', tagline:"A calm circle for women to gather." },
+    { id:'common', name:"Common Fire",  icon:'🔥', tagline:"Open to everyone, side by side." }
+  ];
+
+  // ---------- identity ----------
+  function uid(){ return 'c' + Math.random().toString(36).slice(2,10) + Date.now().toString(36); }
+  function safeGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
+  function safeSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
+
+  let clientId = safeGet(CLIENT_KEY);
+  if(!clientId){ clientId = uid(); safeSet(CLIENT_KEY, clientId); }
+  let nickname = safeGet(NAME_KEY) || "";
+  let avatarPref = null;
+  try{ avatarPref = JSON.parse(safeGet(AVATAR_KEY) || 'null'); }catch(e){ avatarPref = null; }
+
+  // ---------- avatar rendering ----------
+  const SKIN_TONES = ['#8d5524','#c68642','#e0ac69','#f1c27d','#ffdbac'];
+  const HAIR_COLORS = ['#2b1c12','#5a3825','#8a5a2b','#c9a45c','#3a3a3a'];
+  const HAIR_STYLES = ['short','long','none'];
+  const ACCESSORIES = ['none','glasses','beard'];
+  function randChoice(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+  function randomCartoon(){ return { skin:randChoice(SKIN_TONES), hairColor:randChoice(HAIR_COLORS), hairStyle:randChoice(HAIR_STYLES), accessory:randChoice(ACCESSORIES) }; }
+
+  function cartoonSVG(opts){
+    opts = opts || randomCartoon();
+    const skin = opts.skin || SKIN_TONES[2];
+    const hairColor = opts.hairColor || HAIR_COLORS[0];
+    const hairStyle = opts.hairStyle || 'short';
+    const acc = opts.accessory || 'none';
+    let hair = '';
+    if(hairStyle === 'short') hair = '<path d="M14 22 Q24 4 34 22 L33 15 Q24 8 15 15 Z" fill="'+hairColor+'"/>';
+    else if(hairStyle === 'long') hair = '<path d="M12 34 Q10 10 24 8 Q38 10 36 34 L32 34 Q34 16 24 14 Q14 16 16 34 Z" fill="'+hairColor+'"/>';
+    let accessory = '';
+    if(acc === 'glasses') accessory = '<g stroke="#2b1c12" stroke-width="1.6" fill="rgba(255,255,255,0.12)"><circle cx="19" cy="24" r="4.2"/><circle cx="29" cy="24" r="4.2"/><line x1="23.2" y1="24" x2="24.8" y2="24"/></g>';
+    else if(acc === 'beard') accessory = '<path d="M15 26 Q15 38 24 39 Q33 38 33 26 L30 30 Q24 35 18 30 Z" fill="'+hairColor+'" opacity="0.85"/>';
+    return '<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">' +
+      '<circle cx="24" cy="25" r="15" fill="'+skin+'"/>' +
+      '<circle cx="19" cy="24" r="1.7" fill="#2b1c12"/>' +
+      '<circle cx="29" cy="24" r="1.7" fill="#2b1c12"/>' +
+      '<path d="M19 31 Q24 34 29 31" stroke="#2b1c12" stroke-width="1.6" fill="none" stroke-linecap="round"/>' +
+      accessory + hair + '</svg>';
+  }
+  function simplePersonSVG(kind){
+    const hairPath = kind === 'female'
+      ? '<path d="M13 21 Q24 5 35 21 Q36 30 33 33 L33 22 Q24 15 15 22 L15 33 Q12 30 13 21 Z" fill="var(--wood-light)"/>'
+      : '<path d="M15 21 Q24 9 33 21 L32 16 Q24 10 16 16 Z" fill="var(--wood-light)"/>';
+    return '<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">' +
+      '<circle cx="24" cy="24" r="15"/>' +
+      '<circle cx="19" cy="23" r="1.4" fill="currentColor" stroke="none"/>' +
+      '<circle cx="29" cy="23" r="1.4" fill="currentColor" stroke="none"/>' +
+      '<path d="M19 29 Q24 32 29 29" />' + hairPath + '</svg>';
+  }
+  function avatarMarkup(type, data, isFree){
+    if(isFree || type === 'none' || !type) return '<svg><use href="#chair-icon"></use></svg>';
+    if(type === 'male') return simplePersonSVG('male').replace('<svg ', '<svg class="avatar-full" ');
+    if(type === 'female') return simplePersonSVG('female').replace('<svg ', '<svg class="avatar-full" ');
+    if(type === 'cartoon') return cartoonSVG(data).replace('<svg ', '<svg class="avatar-full" ');
+    if(type === 'photo' && data) return '<img src="'+data+'" alt="">';
+    return '<svg><use href="#chair-icon"></use></svg>';
+  }
+
+  // ---------- dom refs ----------
+  const homeScreen = document.getElementById('homeScreen');
+  const fireScreen = document.getElementById('fireScreen');
+  const fireCardsEl = document.getElementById('fireCards');
+  const backBtn = document.getElementById('backBtn');
+  const fireTitle = document.getElementById('fireTitle');
+  const fireTagline = document.getElementById('fireTagline');
+  const fireCircle = document.getElementById('fireCircle');
+  const statusLine = document.getElementById('statusLine');
+  const statusActions = document.getElementById('statusActions');
+  const chatMessages = document.getElementById('chatMessages');
+  const chatEmpty = document.getElementById('chatEmpty');
+  const chatForm = document.getElementById('chatForm');
+  const chatInput = document.getElementById('chatInput');
+  const sendBtn = document.getElementById('sendBtn');
+  const soundBtn = document.getElementById('soundBtn');
+  const micBtn = document.getElementById('micBtn');
+  const recTimer = document.getElementById('recTimer');
+  const micNote = document.getElementById('micNote');
+
+  const modalOverlay = document.getElementById('modalOverlay');
+  const modalClose = document.getElementById('modalClose');
+  const modalNameInput = document.getElementById('modalNameInput');
+  const avatarGrid = document.getElementById('avatarGrid');
+  const cartoonPanel = document.getElementById('cartoonPanel');
+  const photoPanel = document.getElementById('photoPanel');
+  const cartoonPreview = document.getElementById('cartoonPreview');
+  const skinRow = document.getElementById('skinRow');
+  const hairRow = document.getElementById('hairRow');
+  const accRow = document.getElementById('accRow');
+  const shuffleBtn = document.getElementById('shuffleBtn');
+  const photoInput = document.getElementById('photoInput');
+  const photoPreview = document.getElementById('photoPreview');
+  const modalSkip = document.getElementById('modalSkip');
+  const modalSit = document.getElementById('modalSit');
+
+  // ---------- home cards ----------
+  const fireCountEls = {};
+  FIRES.forEach(f=>{
+    const card = document.createElement('button');
+    card.className = 'fire-card';
+    card.innerHTML =
+      '<span class="fc-icon">'+f.icon+'</span>' +
+      '<span class="fc-body">' +
+        '<span class="fc-name">'+f.name+'</span>' +
+        '<span class="fc-tagline">'+f.tagline+'</span>' +
+        '<span class="fc-count" data-fire="'+f.id+'">7 seats free</span>' +
+      '</span>';
+    card.addEventListener('click', ()=> enterFire(f.id));
+    fireCardsEl.appendChild(card);
+    fireCountEls[f.id] = card.querySelector('.fc-count');
+  });
+
+  // lightweight peek at seat counts for the home cards
+  (async function peekAllFires(){
+    let db = null;
+    try{ db = await claude.use('db'); }catch(e){ db = null; }
+    FIRES.forEach(f=>{
+      function fromArr(arr){
+        const taken = (arr||[]).filter(s=>s && s.occupied).length;
+        const free = SEAT_COUNT - taken;
+        fireCountEls[f.id].textContent = free === SEAT_COUNT ? '7 seats free' : (free>0 ? free+' free' : 'All seats taken');
+      }
+      if(db){
+        try{
+          db.doc('campfire/'+f.id+'_seats').onSnapshot(doc=>{
+            const data = doc && doc.data ? doc.data() : null;
+            fromArr(data && data.seats);
+          });
+          return;
+        }catch(e){}
+      }
+      try{
+        const raw = JSON.parse(safeGet('campfire_seats_v3_'+f.id) || 'null');
+        fromArr(raw);
+      }catch(e){}
+    });
+  })();
+
+  // ---------- fire chairs (built once, reused across fires) ----------
+  const chairEls = [];
+  for(let i=0;i<SEAT_COUNT;i++){
+    const angle = -90 + i * (360 / SEAT_COUNT);
+    const rad = angle * Math.PI / 180;
+    const radiusPct = 40;
+    const x = 50 + radiusPct * Math.cos(rad);
+    const y = 50 + radiusPct * Math.sin(rad);
+    const btn = document.createElement('button');
+    btn.className = 'chair free';
+    btn.style.left = x + '%';
+    btn.style.top = y + '%';
+    btn.setAttribute('aria-label', 'Empty seat, tap to sit');
+    btn.innerHTML =
+      '<div class="speech-bubble" id="bubble-'+i+'"></div>' +
+      '<span class="seat-icon-wrap"><svg><use href="#chair-icon"></use></svg></span>' +
+      '<span class="chair-label">Free</span>';
+    btn.addEventListener('click', ()=> onChairTap(i));
+    fireCircle.appendChild(btn);
+    chairEls.push(btn);
+  }
+
+  // ---------- state ----------
+  let currentFireId = null;
+  let backend = null;
+  let seats = Array.from({length:SEAT_COUNT}, ()=>({occupied:false, name:null, clientId:null, avatarType:null, avatarData:null}));
+  let messages = [];
+  let waiting = [];
+  let mySeat = null;
+  let pendingSeatIndex = null;
+  let modalAvatarType = 'none';
+  let modalCartoonOpts = null;
+  let modalPhotoData = null;
+  let isEditingSeat = false;
+  let msgFirstLoad = true;
+  const bubbleTimers = {};
+
+  function computeMySeat(){
+    const idx = seats.findIndex(s => s.occupied && s.clientId === clientId);
+    mySeat = idx === -1 ? null : idx;
+  }
+
+  function hideBubble(i){
+    const el = document.getElementById('bubble-'+i);
+    if(!el) return;
+    el.classList.remove('show');
+    if(bubbleTimers[i]){ clearTimeout(bubbleTimers[i]); delete bubbleTimers[i]; }
+  }
+
+  function showBubble(seatIndex, content){
+    const el = document.getElementById('bubble-'+seatIndex);
+    if(!el) return;
+    el.innerHTML = content;
+    el.classList.add('show');
+    chairEls[seatIndex].classList.add('speaking');
+    if(bubbleTimers[seatIndex]) clearTimeout(bubbleTimers[seatIndex]);
+    bubbleTimers[seatIndex] = setTimeout(()=>{
+      el.classList.remove('show');
+      chairEls[seatIndex].classList.remove('speaking');
+    }, BUBBLE_MS);
+  }
+
+  function renderSeats(){
+    computeMySeat();
+    let occupiedCount = 0;
+    seats.forEach((s,i)=>{
+      const el = chairEls[i];
+      const wrap = el.querySelector('.seat-icon-wrap');
+      const label = el.querySelector('.chair-label');
+      const isMine = s.occupied && s.clientId === clientId;
+      el.classList.toggle('free', !s.occupied);
+      el.classList.toggle('taken', s.occupied && !isMine);
+      el.classList.toggle('mine', isMine);
+      wrap.innerHTML = avatarMarkup(s.occupied ? s.avatarType : null, s.avatarData, !s.occupied);
+      if(s.occupied){
+        occupiedCount++;
+        label.textContent = isMine ? 'You' : (s.name || 'Bloke');
+        el.disabled = false;
+        el.setAttribute('aria-label', isMine ? 'Your seat, tap to stand up' : ((s.name||'Bloke') + '’s seat, taken'));
+      } else {
+        label.textContent = 'Free';
+        el.setAttribute('aria-label','Empty seat, tap to sit');
+        el.disabled = false;
+        hideBubble(i);
+      }
+    });
+    renderStatus(occupiedCount);
+    renderChatGate();
+  }
+
+  function renderStatus(occupiedCount){
+    statusActions.innerHTML = '';
+    if(mySeat !== null){
+      statusLine.classList.remove('full');
+      statusLine.textContent = occupiedCount === SEAT_COUNT
+        ? "You've got a seat by the fire. Every chair's full tonight."
+        : "You've got a seat by the fire.";
+      const wrap = document.createElement('div');
+      wrap.style.display = 'flex';
+      wrap.style.gap = '8px';
+      const editBtn = document.createElement('button');
+      editBtn.className = 'stand-btn';
+      editBtn.textContent = 'Edit look';
+      editBtn.addEventListener('click', ()=> openModal(mySeat, true));
+      const btn = document.createElement('button');
+      btn.className = 'stand-btn';
+      btn.textContent = 'Stand up';
+      btn.addEventListener('click', standUp);
+      wrap.appendChild(editBtn);
+      wrap.appendChild(btn);
+      statusActions.appendChild(wrap);
+      return;
+    }
+    if(occupiedCount < SEAT_COUNT){
+      statusLine.classList.remove('full');
+      const free = SEAT_COUNT - occupiedCount;
+      statusLine.textContent = free === SEAT_COUNT ? "The fire's just getting going. Take any seat." : free + (free === 1 ? " seat free." : " seats free.");
+      if(waiting.includes(clientId)) removeFromWaiting();
+      return;
+    }
+    statusLine.classList.add('full');
+    const n = waiting.length;
+    statusLine.textContent = n > 0
+      ? "🔥 All seats taken. " + n + (n===1?" bloke":" blokes") + " waiting — someone will be free soon."
+      : "🔥 All seats taken right now.";
+    const btn = document.createElement('button');
+    if(waiting.includes(clientId)){
+      btn.className = 'wait-btn'; btn.textContent = "You're on the list — leave it";
+      btn.addEventListener('click', removeFromWaiting);
+    } else {
+      btn.className = 'wait-btn'; btn.textContent = 'Wait for a seat';
+      btn.addEventListener('click', joinWaiting);
+    }
+    statusActions.appendChild(btn);
+  }
+
+  function renderChatGate(){
+    const seated = mySeat !== null;
+    chatInput.disabled = !seated;
+    sendBtn.disabled = !seated;
+    micBtn.disabled = !seated || micBlocked;
+    micNote.classList.toggle('show', micBlocked);
+    chatInput.placeholder = seated ? "Say something, or just listen…" : "Take a seat to talk…";
+  }
+
+  function renderMessages(){
+    chatEmpty.style.display = messages.length ? 'none' : 'block';
+    chatMessages.querySelectorAll('.msg').forEach(n=>n.remove());
+    messages.slice(-60).forEach(m=>{
+      const div = document.createElement('div');
+      if(m.system){
+        div.className = 'msg system';
+        div.textContent = m.text;
+      } else {
+        div.className = 'msg';
+        const t = new Date(m.ts);
+        const timeStr = isNaN(t) ? '' : t.toLocaleTimeString([], {hour:'numeric', minute:'2-digit'});
+        if(m.type === 'voice' && m.audio){
+          div.innerHTML = '<span class="who"></span><span class="voice-chip">🔊 Voice message</span><span class="when"></span>';
+          div.querySelector('.who').textContent = (m.name || 'Bloke') + ':';
+          div.querySelector('.when').textContent = timeStr;
+          div.querySelector('.voice-chip').addEventListener('click', ()=>{
+            const a = new Audio(m.audio);
+            a.play().catch(()=>{});
+          });
+        } else {
+          div.innerHTML = '<span class="who"></span><span class="body"></span><span class="when"></span>';
+          div.querySelector('.who').textContent = (m.name || 'Bloke') + ':';
+          div.querySelector('.body').textContent = m.text || '';
+          div.querySelector('.when').textContent = timeStr;
+        }
+      }
+      chatMessages.appendChild(div);
+    });
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+  }
+
+  function handleIncomingMessage(m){
+    let seatIndex = seats.findIndex(s => s.occupied && s.clientId === m.clientId);
+    if(seatIndex === -1 && typeof m.seat === 'number') seatIndex = m.seat;
+    if(seatIndex === -1 || seatIndex == null) return;
+    const name = m.name || 'Bloke';
+    const seatData = seats[seatIndex] || {};
+    const avatarHtml = '<span class="sb-avatar">'+avatarMarkup(seatData.avatarType, seatData.avatarData, false)+'</span>';
+    if(m.type === 'voice' && m.audio){
+      showBubble(seatIndex, avatarHtml+'<span class="sb-name">'+escapeHtml(name)+'</span><span class="sb-voice">🔊 voice</span>');
+      if(m.clientId !== clientId){
+        try{ const a = new Audio(m.audio); a.play().catch(()=>{}); }catch(e){}
+      }
+    } else if(m.text){
+      const shortText = m.text.length > 80 ? m.text.slice(0,77)+'…' : m.text;
+      showBubble(seatIndex, avatarHtml+'<span class="sb-name">'+escapeHtml(name)+'</span>'+escapeHtml(shortText));
+    }
+  }
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  // ---------- backend abstraction (per-fire scoped) ----------
+  function defaultSeats(){ return Array.from({length:SEAT_COUNT}, ()=>({occupied:false,name:null,clientId:null,avatarType:null,avatarData:null})); }
+
+  function makeLocalBackend(fireId){
+    const SEATS_KEY = 'campfire_seats_v3_'+fireId;
+    const MSG_KEY = 'campfire_messages_v3_'+fireId;
+    const WAIT_KEY = 'campfire_waiting_v3_'+fireId;
+
+    function readSeats(){ try{ const raw = JSON.parse(safeGet(SEATS_KEY) || 'null'); if(Array.isArray(raw) && raw.length === SEAT_COUNT) return raw; }catch(e){} return defaultSeats(); }
+    function writeSeats(s){ safeSet(SEATS_KEY, JSON.stringify(s)); }
+    function readMsgs(){ try{ return JSON.parse(safeGet(MSG_KEY) || '[]'); }catch(e){ return []; } }
+    function writeMsgs(m){ safeSet(MSG_KEY, JSON.stringify(m.slice(-60))); }
+    function readWait(){ try{ return JSON.parse(safeGet(WAIT_KEY) || '[]'); }catch(e){ return []; } }
+    function writeWait(w){ safeSet(WAIT_KEY, JSON.stringify(w)); }
+
+    let seatsLocal = readSeats();
+    let msgsLocal = readMsgs();
+    let waitLocal = readWait();
+    writeSeats(seatsLocal);
+
+    const listeners = [];
+    function notify(){ listeners.forEach(fn=>fn({seats:seatsLocal, messages:msgsLocal, waiting:waitLocal})); }
+    function onStorage(e){
+      if(e.key === SEATS_KEY){ seatsLocal = readSeats(); notify(); }
+      if(e.key === MSG_KEY){ msgsLocal = readMsgs(); notify(); }
+      if(e.key === WAIT_KEY){ waitLocal = readWait(); notify(); }
+    }
+    window.addEventListener('storage', onStorage);
+
+    return {
+      subscribe(fn){ listeners.push(fn); fn({seats:seatsLocal, messages:msgsLocal, waiting:waitLocal}); },
+      setSeat(i, data){ seatsLocal = seatsLocal.slice(); seatsLocal[i] = data; writeSeats(seatsLocal); notify(); },
+      sendMessage(msg){ msgsLocal = msgsLocal.concat([msg]).slice(-60); writeMsgs(msgsLocal); notify(); },
+      setWaiting(list){ waitLocal = list; writeWait(waitLocal); notify(); },
+      teardown(){ window.removeEventListener('storage', onStorage); }
+    };
+  }
+
+  async function makeDbBackend(fireId){
+    let db;
+    try{ db = await claude.use('db'); }catch(e){ return null; }
+    if(!db) return null;
+    try{
+      const seatsDoc = db.doc('campfire/'+fireId+'_seats');
+      const msgsCol = db.collection('campfire_messages_'+fireId);
+      const waitDoc = db.doc('campfire/'+fireId+'_waiting');
+
+      const existing = await seatsDoc.get().catch(()=>null);
+      if(!existing || !existing.exists){ await seatsDoc.set({ seats: defaultSeats() }).catch(()=>{}); }
+      const existingWait = await waitDoc.get().catch(()=>null);
+      if(!existingWait || !existingWait.exists){ await waitDoc.set({ list: [] }).catch(()=>{}); }
+
+      const listeners = [];
+      let latest = { seats:null, messages:[], waiting:[] };
+      function pushUpdate(){ if(latest.seats) listeners.forEach(fn=>fn(latest)); }
+
+      const unsub1 = seatsDoc.onSnapshot(doc=>{
+        const data = doc && doc.data ? doc.data() : null;
+        latest.seats = (data && data.seats) || defaultSeats();
+        pushUpdate();
+      });
+      const unsub2 = waitDoc.onSnapshot(doc=>{
+        const data = doc && doc.data ? doc.data() : null;
+        latest.waiting = (data && data.list) || [];
+        pushUpdate();
+      });
+      const unsub3 = msgsCol.orderBy('ts').limit(60).onSnapshot(snap=>{
+        latest.messages = (snap && snap.docs ? snap.docs.map(d=>d.data()) : []);
+        pushUpdate();
+      });
+
+      return {
+        subscribe(fn){ listeners.push(fn); if(latest.seats) fn(latest); },
+        async setSeat(i, data){
+          const cur = await seatsDoc.get().catch(()=>null);
+          const arr = (cur && cur.exists && cur.data().seats) ? cur.data().seats.slice() : defaultSeats();
+          arr[i] = data;
+          await seatsDoc.set({ seats: arr }).catch(()=>{});
+        },
+        async sendMessage(msg){ await msgsCol.add(msg).catch(()=>{}); },
+        async setWaiting(list){ await waitDoc.set({ list }).catch(()=>{}); },
+        teardown(){
+          [unsub1,unsub2,unsub3].forEach(u=>{ try{ if(typeof u === 'function') u(); }catch(e){} });
+        }
+      };
+    }catch(e){ return null; }
+  }
+
+  function bindBackend(b){
+    backend = b;
+    msgFirstLoad = true;
+    backend.subscribe(state=>{
+      seats = state.seats || seats;
+      waiting = state.waiting || waiting;
+      renderSeats();
+
+      const newMsgs = state.messages || [];
+      if(msgFirstLoad){
+        messages = newMsgs;
+        msgFirstLoad = false;
+        renderMessages();
+        return;
+      }
+      const prevLen = messages.length;
+      messages = newMsgs;
+      renderMessages();
+      if(newMsgs.length > prevLen){
+        newMsgs.slice(prevLen).forEach(m=> handleIncomingMessage(m));
+      }
+    });
+  }
+
+  async function enterFire(fireId){
+    currentFireId = fireId;
+    const meta = FIRES.find(f=>f.id===fireId);
+    fireTitle.textContent = meta.name;
+    fireTagline.textContent = meta.tagline;
+    homeScreen.style.display = 'none';
+    fireScreen.style.display = 'block';
+    window.scrollTo(0,0);
+
+    seats = defaultSeats();
+    messages = [];
+    waiting = [];
+    mySeat = null;
+    Object.keys(bubbleTimers).forEach(i=>hideBubble(i));
+    renderSeats();
+    renderMessages();
+    statusLine.textContent = 'Finding a seat for you…';
+
+    let db = null;
+    try{ db = await makeDbBackend(fireId); }catch(e){ db = null; }
+    bindBackend(db || makeLocalBackend(fireId));
+  }
+
+  function leaveFire(){
+    if(mySeat !== null) standUp();
+    if(backend && backend.teardown) backend.teardown();
+    backend = null;
+    currentFireId = null;
+    fireScreen.style.display = 'none';
+    homeScreen.style.display = 'block';
+    window.scrollTo(0,0);
+  }
+  backBtn.addEventListener('click', leaveFire);
+
+  // ---------- seat actions ----------
+  function onChairTap(i){
+    if(mySeat === i){ standUp(); return; }
+    if(mySeat !== null) return;
+    if(seats[i] && seats[i].occupied) return;
+    openModal(i);
+  }
+  function standUp(){
+    if(mySeat === null || !backend) return;
+    backend.setSeat(mySeat, { occupied:false, name:null, clientId:null, avatarType:null, avatarData:null });
+    hideBubble(mySeat);
+    mySeat = null;
+  }
+  function joinWaiting(){ if(backend && !waiting.includes(clientId)) backend.setWaiting(waiting.concat([clientId])); }
+  function removeFromWaiting(){ if(backend && waiting.includes(clientId)) backend.setWaiting(waiting.filter(id=>id!==clientId)); }
+  function sitDown(i, name, avatarType, avatarData){
+    if(!backend) return;
+    backend.setSeat(i, { occupied:true, name, clientId, avatarType, avatarData, sat_at: Date.now() });
+  }
+
+  // ---------- modal (avatar/name picker) ----------
+  function openModal(seatIndex, editMode){
+    pendingSeatIndex = seatIndex;
+    isEditingSeat = !!editMode;
+    const current = (editMode && seats[seatIndex] && seats[seatIndex].occupied) ? seats[seatIndex] : null;
+    modalNameInput.value = current ? (current.name || '') : nickname;
+    modalAvatarType = current ? (current.avatarType || 'none') : ((avatarPref && avatarPref.type) || 'none');
+    modalCartoonOpts = (modalAvatarType === 'cartoon' && current && current.avatarData) ? current.avatarData
+      : (modalAvatarType === 'cartoon' && avatarPref && avatarPref.data) ? avatarPref.data : randomCartoon();
+    modalPhotoData = current ? (modalAvatarType === 'photo' ? current.avatarData : null) : ((avatarPref && avatarPref.type === 'photo') ? avatarPref.data : null);
+    selectAvatarOption(modalAvatarType);
+    photoPreview.innerHTML = modalPhotoData ? '<img src="'+modalPhotoData+'">' : '📷';
+
+    document.getElementById('modalTitle').textContent = isEditingSeat ? 'Update how you appear' : 'Choose how you appear';
+    document.getElementById('modalSub').textContent = isEditingSeat ? 'Change your name or look any time' : 'Completely optional — no pressure at all';
+    modalSkip.textContent = isEditingSeat ? 'Cancel' : 'Skip — just sit';
+    modalSit.textContent = isEditingSeat ? 'Save' : 'Sit down';
+
+    modalOverlay.classList.add('open');
+    setTimeout(()=>modalNameInput.focus(), 50);
+  }
+  function closeModal(){ modalOverlay.classList.remove('open'); pendingSeatIndex = null; isEditingSeat = false; }
+
+  function buildSwatches(){
+    skinRow.innerHTML = '';
+    SKIN_TONES.forEach(c=>{
+      const s = document.createElement('div');
+      s.className = 'swatch'; s.style.background = c; s.dataset.hex = c;
+      s.addEventListener('click', ()=>{ modalCartoonOpts.skin = c; refreshCartoonUI(); });
+      skinRow.appendChild(s);
+    });
+    hairRow.innerHTML = '';
+    [['short','Short'],['long','Long'],['none','None']].forEach(([val,label])=>{
+      const b = document.createElement('div');
+      b.className = 'seg-btn'; b.textContent = label; b.dataset.val = val;
+      b.addEventListener('click', ()=>{ modalCartoonOpts.hairStyle = val; refreshCartoonUI(); });
+      hairRow.appendChild(b);
+    });
+    accRow.innerHTML = '';
+    [['none','Plain'],['glasses','Glasses'],['beard','Beard']].forEach(([val,label])=>{
+      const b = document.createElement('div');
+      b.className = 'seg-btn'; b.textContent = label; b.dataset.val = val;
+      b.addEventListener('click', ()=>{ modalCartoonOpts.accessory = val; refreshCartoonUI(); });
+      accRow.appendChild(b);
+    });
+  }
+  buildSwatches();
+
+  function refreshCartoonUI(){
+    cartoonPreview.innerHTML = cartoonSVG(modalCartoonOpts);
+    skinRow.querySelectorAll('.swatch').forEach(s=> s.classList.toggle('selected', s.dataset.hex === modalCartoonOpts.skin));
+    hairRow.querySelectorAll('.seg-btn').forEach(b=> b.classList.toggle('selected', b.dataset.val === modalCartoonOpts.hairStyle));
+    accRow.querySelectorAll('.seg-btn').forEach(b=> b.classList.toggle('selected', b.dataset.val === modalCartoonOpts.accessory));
+  }
+
+  function selectAvatarOption(type){
+    modalAvatarType = type;
+    avatarGrid.querySelectorAll('.avatar-opt').forEach(el=> el.classList.toggle('selected', el.dataset.type === type));
+    cartoonPanel.classList.toggle('show', type === 'cartoon');
+    photoPanel.classList.toggle('show', type === 'photo');
+    if(type === 'cartoon') refreshCartoonUI();
+  }
+  avatarGrid.querySelectorAll('.avatar-opt').forEach(el=>{
+    el.addEventListener('click', ()=> selectAvatarOption(el.dataset.type));
+  });
+  shuffleBtn.addEventListener('click', ()=>{ modalCartoonOpts = randomCartoon(); refreshCartoonUI(); });
+
+  photoInput.addEventListener('change', (e)=>{
+    const file = e.target.files && e.target.files[0];
+    if(!file) return;
+    const img = new Image();
+    const reader = new FileReader();
+    reader.onload = function(ev){
+      img.onload = function(){
+        const size = 96;
+        const canvas = document.createElement('canvas');
+        canvas.width = size; canvas.height = size;
+        const ctx = canvas.getContext('2d');
+        const side = Math.min(img.width, img.height);
+        const sx = (img.width - side) / 2;
+        const sy = (img.height - side) / 2;
+        ctx.drawImage(img, sx, sy, side, side, 0, 0, size, size);
+        modalPhotoData = canvas.toDataURL('image/jpeg', 0.6);
+        photoPreview.innerHTML = '<img src="'+modalPhotoData+'">';
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+
+  modalClose.addEventListener('click', closeModal);
+  modalOverlay.addEventListener('click', (e)=>{ if(e.target === modalOverlay) closeModal(); });
+
+  modalSkip.addEventListener('click', ()=>{
+    if(pendingSeatIndex === null) return;
+    if(isEditingSeat){ closeModal(); return; } // Cancel: leave seat untouched
+    const idx = pendingSeatIndex;
+    nickname = 'Bloke'; safeSet(NAME_KEY, '');
+    closeModal();
+    sitDown(idx, 'Bloke', 'none', null);
+  });
+  modalSit.addEventListener('click', ()=>{
+    if(pendingSeatIndex === null) return;
+    const idx = pendingSeatIndex;
+    const name = (modalNameInput.value || '').trim().slice(0,18) || 'Bloke';
+    nickname = name; safeSet(NAME_KEY, name);
+    let avatarData = null;
+    if(modalAvatarType === 'cartoon') avatarData = modalCartoonOpts;
+    if(modalAvatarType === 'photo') avatarData = modalPhotoData;
+    const finalType = (modalAvatarType === 'photo' && !modalPhotoData) ? 'none' : modalAvatarType;
+    safeSet(AVATAR_KEY, JSON.stringify({ type: finalType, data: avatarData }));
+    avatarPref = { type: finalType, data: avatarData };
+    const wasEditing = isEditingSeat;
+    closeModal();
+    if(wasEditing && backend){
+      const prevSatAt = (seats[idx] && seats[idx].sat_at) || Date.now();
+      backend.setSeat(idx, { occupied:true, name, clientId, avatarType: finalType, avatarData, sat_at: prevSatAt });
+    } else {
+      sitDown(idx, name, finalType, avatarData);
+    }
+  });
+
+  // ---------- text chat ----------
+  chatForm.addEventListener('submit', (e)=>{
+    e.preventDefault();
+    if(mySeat === null || !backend) return;
+    const text = chatInput.value.trim();
+    if(!text) return;
+    backend.sendMessage({ seat:mySeat, clientId, name: seats[mySeat] ? (seats[mySeat].name || nickname || 'Bloke') : (nickname||'Bloke'), type:'text', text, ts: Date.now() });
+    chatInput.value = '';
+  });
+
+  // ---------- voice recording (hold to talk) ----------
+  let micBlocked = !(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && typeof MediaRecorder !== 'undefined');
+  if(micBlocked) micNote.classList.add('show');
+  let mediaRecorder = null;
+  let mediaStream = null;
+  let recordChunks = [];
+  let recordStartTs = 0;
+  let recordTimerInterval = null;
+  let recordAutoStop = null;
+  let stopRequestedEarly = false;
+
+  function blobToDataURL(blob){
+    return new Promise((resolve, reject)=>{
+      const r = new FileReader();
+      r.onload = ()=> resolve(r.result);
+      r.onerror = reject;
+      r.readAsDataURL(blob);
+    });
+  }
+
+  function updateRecTimer(){
+    const secs = Math.floor((Date.now() - recordStartTs)/1000);
+    const m = Math.floor(secs/60), s = secs%60;
+    recTimer.textContent = m+':'+String(s).padStart(2,'0');
+  }
+
+  async function beginRecording(){
+    if(mySeat === null || micBlocked) return;
+    if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || typeof MediaRecorder === 'undefined'){
+      micBlocked = true; micBtn.disabled = true; return;
+    }
+    stopRequestedEarly = false;
+    try{
+      mediaStream = await navigator.mediaDevices.getUserMedia({ audio:true });
+    }catch(e){
+      micBlocked = true; micBtn.disabled = true;
+      micNote.classList.add('show');
+      const div = document.createElement('div');
+      div.className = 'msg system';
+      div.textContent = 'Microphone not available here — text still works fine.';
+      chatMessages.appendChild(div); chatMessages.scrollTop = chatMessages.scrollHeight;
+      return;
+    }
+    if(stopRequestedEarly){ mediaStream.getTracks().forEach(t=>t.stop()); mediaStream=null; return; }
+    let mimeType = '';
+    ['audio/webm;codecs=opus','audio/webm','audio/mp4'].some(t=>{
+      if(window.MediaRecorder && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t)){ mimeType = t; return true; }
+      return false;
+    });
+    try{
+      mediaRecorder = mimeType ? new MediaRecorder(mediaStream, {mimeType}) : new MediaRecorder(mediaStream);
+    }catch(e){
+      mediaRecorder = new MediaRecorder(mediaStream);
+    }
+    recordChunks = [];
+    mediaRecorder.ondataavailable = (e)=>{ if(e.data && e.data.size) recordChunks.push(e.data); };
+    mediaRecorder.onstop = async ()=>{
+      if(mediaStream){ mediaStream.getTracks().forEach(t=>t.stop()); mediaStream = null; }
+      clearInterval(recordTimerInterval); recTimer.style.display = 'none';
+      clearTimeout(recordAutoStop);
+      const duration = Date.now() - recordStartTs;
+      micBtn.classList.remove('recording');
+      if(duration < 400 || !recordChunks.length){ return; }
+      const blob = new Blob(recordChunks, {type: mimeType || 'audio/webm'});
+      try{
+        const dataUrl = await blobToDataURL(blob);
+        if(mySeat === null || !backend) return;
+        backend.sendMessage({ seat:mySeat, clientId, name: seats[mySeat] ? (seats[mySeat].name || nickname || 'Bloke') : (nickname||'Bloke'), type:'voice', audio:dataUrl, ts: Date.now() });
+      }catch(e){}
+    };
+    mediaRecorder.start();
+    recordStartTs = Date.now();
+    micBtn.classList.add('recording');
+    recTimer.style.display = 'inline-block';
+    updateRecTimer();
+    recordTimerInterval = setInterval(updateRecTimer, 250);
+    recordAutoStop = setTimeout(()=>{ stopRecording(); }, MAX_RECORD_MS);
+    if(stopRequestedEarly){ stopRecording(); }
+  }
+
+  function stopRecording(){
+    if(mediaRecorder && mediaRecorder.state === 'recording'){
+      mediaRecorder.stop();
+    } else {
+      stopRequestedEarly = true;
+    }
+  }
+
+  micBtn.addEventListener('pointerdown', (e)=>{
+    e.preventDefault();
+    if(micBtn.disabled) return;
+    beginRecording();
+  });
+  ['pointerup','pointerleave','pointercancel'].forEach(evt=>{
+    micBtn.addEventListener(evt, ()=>{ if(!micBtn.disabled) stopRecording(); });
+  });
+
+  // ---------- soft fire sound (procedural, no external audio) ----------
+  let audioCtx = null, soundNodes = null, soundOn = false;
+  function startSound(){
+    if(!audioCtx){
+      try{ audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }
+      catch(e){ return; }
+    }
+    if(audioCtx.state === 'suspended') audioCtx.resume();
+    const bufferSize = 2 * audioCtx.sampleRate;
+    const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+    const data = buffer.getChannelData(0);
+    let lastOut = 0;
+    for(let i=0;i<bufferSize;i++){ const white = Math.random()*2-1; lastOut = (lastOut + 0.02*white) / 1.02; data[i] = lastOut * 3.2; }
+    const noise = audioCtx.createBufferSource(); noise.buffer = buffer; noise.loop = true;
+    const filter = audioCtx.createBiquadFilter(); filter.type = 'lowpass'; filter.frequency.value = 700;
+    const gain = audioCtx.createGain(); gain.gain.value = 0.05;
+    noise.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination); noise.start();
+    let popTimer = null;
+    function schedulePop(){
+      const delay = 250 + Math.random()*900;
+      popTimer = setTimeout(()=>{
+        if(!soundOn) return;
+        const t = audioCtx.currentTime;
+        const popBuf = audioCtx.createBuffer(1, audioCtx.sampleRate*0.08, audioCtx.sampleRate);
+        const pd = popBuf.getChannelData(0);
+        for(let i=0;i<pd.length;i++){ pd[i] = (Math.random()*2-1) * Math.exp(-i/(pd.length*0.25)); }
+        const pop = audioCtx.createBufferSource(); pop.buffer = popBuf;
+        const pf = audioCtx.createBiquadFilter(); pf.type = 'bandpass'; pf.frequency.value = 900 + Math.random()*1200;
+        const pg = audioCtx.createGain(); pg.gain.value = 0.06 + Math.random()*0.05;
+        pop.connect(pf); pf.connect(pg); pg.connect(audioCtx.destination); pop.start(t);
+        schedulePop();
+      }, delay);
+    }
+    schedulePop();
+    soundNodes = { stop(){ try{ noise.stop(); }catch(e){} if(popTimer) clearTimeout(popTimer); } };
+  }
+  function stopSound(){ if(soundNodes){ soundNodes.stop(); soundNodes = null; } }
+  soundBtn.addEventListener('click', ()=>{
+    soundOn = !soundOn;
+    soundBtn.setAttribute('aria-pressed', String(soundOn));
+    soundBtn.textContent = soundOn ? '🔊' : '🔇';
+    safeSet(SOUND_KEY, soundOn ? '1':'0');
+    if(soundOn) startSound(); else stopSound();
+  });
+
+  renderSeats();
+  renderMessages();
+})();
+</script>
+</body>
+</html>
