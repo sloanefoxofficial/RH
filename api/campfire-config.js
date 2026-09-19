@@ -10,5 +10,11 @@ export default function handler(req, res) {
     return;
   }
   res.setHeader("Cache-Control", "no-store");
-  res.status(200).json({ url, anonKey });
+  const turnUrl = process.env.RH_TURN_URL || "";
+  const turnUsername = process.env.RH_TURN_USERNAME || "";
+  const turnCredential = process.env.RH_TURN_CREDENTIAL || "";
+  const iceServers = turnUrl && turnUsername && turnCredential
+    ? [{ urls: turnUrl, username: turnUsername, credential: turnCredential }]
+    : [];
+  res.status(200).json({ url, anonKey, iceServers });
 }
