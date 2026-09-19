@@ -178,6 +178,42 @@
   .stand-btn{ margin-top:10px; background:none; border:1px solid rgba(233,217,192,0.25); color:var(--cream-dim); padding:7px 16px; border-radius:999px; font-size:13px; cursor:pointer; }
   .stand-btn:hover{ color:var(--cream); border-color:rgba(233,217,192,0.45); }
 
+  /* ---------- private video call ---------- */
+  #callBtn:disabled{ opacity:0.38; cursor:not-allowed; }
+  .call-panel{ width:100%; margin-top:14px; padding:14px; background:rgba(255,255,255,0.035); border:1px solid rgba(233,217,192,0.12); border-radius:14px; }
+  .call-panel[hidden], .video-grid[hidden], .call-actions[hidden]{ display:none; }
+  .call-heading{ display:block; font-family:var(--serif); font-size:16px; font-weight:500; text-align:center; }
+  .call-status{ display:block; margin-top:3px; color:var(--cream-dim); font-size:12.5px; line-height:1.4; text-align:center; }
+  .call-status.error{ color:#f0b98e; }
+  .video-grid{ display:grid; grid-template-columns:minmax(0, 2fr) minmax(112px, 1fr); gap:9px; margin-top:12px; }
+  .video-frame{ position:relative; min-height:150px; overflow:hidden; border-radius:12px; background:#090604; border:1px solid rgba(233,217,192,0.12); }
+  .video-frame.local{ min-height:112px; }
+  .video-frame video{ width:100%; height:100%; min-height:inherit; display:block; object-fit:cover; background:#090604; }
+  .video-label{ position:absolute; left:8px; bottom:7px; padding:3px 7px; border-radius:999px; background:rgba(10,6,4,0.72); color:var(--cream); font-size:10.5px; }
+  .call-actions{ display:flex; align-items:center; justify-content:center; gap:8px; flex-wrap:wrap; margin-top:12px; }
+  .call-action{ background:rgba(255,255,255,0.055); border:1px solid rgba(233,217,192,0.18); color:var(--cream); border-radius:999px; padding:8px 13px; font-size:12.5px; cursor:pointer; }
+  .call-action:hover{ background:rgba(255,255,255,0.09); }
+  .call-action[aria-pressed="true"]{ color:#f0b98e; border-color:rgba(232,112,58,0.55); }
+  .call-action:disabled{ opacity:0.38; cursor:not-allowed; }
+  .call-end{ background:rgba(190,60,38,0.2); border-color:rgba(232,112,58,0.5); color:#ffd2bd; }
+  .call-modal-card{ max-width:390px; }
+  .call-person-list{ display:flex; flex-direction:column; gap:8px; margin:14px 0 4px; }
+  .call-person{ width:100%; display:flex; align-items:center; justify-content:space-between; gap:12px; border:1px solid rgba(233,217,192,0.14); border-radius:12px; padding:11px 13px; background:rgba(255,255,255,0.04); color:var(--cream); text-align:left; cursor:pointer; }
+  .call-person:hover:not(:disabled){ border-color:rgba(232,112,58,0.45); background:rgba(232,112,58,0.09); }
+  .call-person:disabled{ opacity:0.48; cursor:not-allowed; }
+  .call-person small{ color:var(--cream-dim); }
+  .call-empty{ color:var(--cream-dim); text-align:center; font-size:13px; line-height:1.45; padding:10px 4px; }
+  .incoming-actions{ display:flex; gap:9px; margin-top:18px; }
+  .incoming-actions button{ flex:1; border-radius:999px; padding:11px 14px; font-size:14px; font-weight:600; cursor:pointer; }
+  .call-reject{ background:none; border:1px solid rgba(233,217,192,0.25); color:var(--cream-dim); }
+  .call-accept{ background:var(--ember); border:1px solid var(--ember); color:#1a0f08; }
+  #incomingCallOverlay{ z-index:120; }
+  @media (max-width:480px){
+    .video-grid{ grid-template-columns:1fr; }
+    .video-frame.local{ position:absolute; width:104px; min-height:78px; right:28px; margin-top:8px; z-index:2; box-shadow:0 4px 16px rgba(0,0,0,0.45); }
+    .call-panel{ position:relative; }
+  }
+
   /* ---------- chat ---------- */
   .chat-panel{ width:100%; margin-top:22px; background:rgba(255,255,255,0.03); border:1px solid rgba(233,217,192,0.1); border-radius:14px; overflow:hidden; }
   .chat-messages{ height:170px; overflow-y:auto; padding:12px 14px; display:flex; flex-direction:column; gap:9px; }
@@ -292,6 +328,7 @@
       <p class="tagline" id="fireTagline"></p>
       <div class="header-controls">
         <button class="icon-btn" id="soundBtn" type="button" aria-pressed="false" title="Toggle fire sound">🔇</button>
+        <button class="icon-btn" id="callBtn" type="button" title="Start a private video call" aria-label="Start a private video call" disabled>📹</button>
       </div>
     </header>
 
@@ -310,6 +347,26 @@
 
     <div class="status-line" id="statusLine">Finding a seat for you…</div>
     <div id="statusActions" style="display:flex; justify-content:center;"></div>
+
+    <section class="call-panel" id="callPanel" aria-live="polite" hidden>
+      <strong class="call-heading" id="callHeading">Private video call</strong>
+      <span class="call-status" id="callStatus"></span>
+      <div class="video-grid" id="videoGrid" hidden>
+        <div class="video-frame remote">
+          <video id="remoteVideo" autoplay playsinline></video>
+          <span class="video-label" id="remoteVideoLabel">Other seat</span>
+        </div>
+        <div class="video-frame local">
+          <video id="localVideo" autoplay playsinline muted></video>
+          <span class="video-label">You</span>
+        </div>
+      </div>
+      <div class="call-actions" id="callControls" hidden>
+        <button class="call-action" id="callMuteBtn" type="button" aria-pressed="false" disabled>🎙️ Mute</button>
+        <button class="call-action" id="callCameraBtn" type="button" aria-pressed="false" disabled>📷 Camera off</button>
+        <button class="call-action call-end" id="callEndBtn" type="button">End call</button>
+      </div>
+    </section>
 
     <section class="chat-panel">
       <p class="voice-hint">🎙️ Voice messages recommended — it feels like we're actually sitting together. Text is always there too.</p>
@@ -389,6 +446,28 @@
     <div class="modal-actions">
       <button type="button" class="btn-skip" id="modalSkip">Skip — just sit</button>
       <button type="button" class="btn-sit" id="modalSit">Sit down</button>
+    </div>
+  </div>
+</div>
+
+<!-- private video call seat picker -->
+<div class="modal-overlay" id="callChooserOverlay">
+  <div class="modal-card call-modal-card" role="dialog" aria-modal="true" aria-labelledby="callChooserTitle">
+    <button class="modal-close" id="callChooserClose" aria-label="Close">✕</button>
+    <h3 id="callChooserTitle">Call someone by the fire</h3>
+    <p class="modal-sub">Choose one occupied seat. The other person can accept or decline.</p>
+    <div class="call-person-list" id="callPersonList"></div>
+  </div>
+</div>
+
+<!-- incoming private video call -->
+<div class="modal-overlay" id="incomingCallOverlay">
+  <div class="modal-card call-modal-card" role="dialog" aria-modal="true" aria-labelledby="incomingCallTitle">
+    <h3 id="incomingCallTitle">Incoming video call</h3>
+    <p class="modal-sub" id="incomingCallText">Someone by the fire would like to call.</p>
+    <div class="incoming-actions">
+      <button class="call-reject" id="callRejectBtn" type="button">Not now</button>
+      <button class="call-accept" id="callAcceptBtn" type="button">Accept</button>
     </div>
   </div>
 </div>
@@ -497,6 +576,26 @@
   const micBtn = document.getElementById('micBtn');
   const recTimer = document.getElementById('recTimer');
   const micNote = document.getElementById('micNote');
+
+  const callBtn = document.getElementById('callBtn');
+  const callPanel = document.getElementById('callPanel');
+  const callHeading = document.getElementById('callHeading');
+  const callStatus = document.getElementById('callStatus');
+  const videoGrid = document.getElementById('videoGrid');
+  const localVideo = document.getElementById('localVideo');
+  const remoteVideo = document.getElementById('remoteVideo');
+  const remoteVideoLabel = document.getElementById('remoteVideoLabel');
+  const callControls = document.getElementById('callControls');
+  const callMuteBtn = document.getElementById('callMuteBtn');
+  const callCameraBtn = document.getElementById('callCameraBtn');
+  const callEndBtn = document.getElementById('callEndBtn');
+  const callChooserOverlay = document.getElementById('callChooserOverlay');
+  const callChooserClose = document.getElementById('callChooserClose');
+  const callPersonList = document.getElementById('callPersonList');
+  const incomingCallOverlay = document.getElementById('incomingCallOverlay');
+  const incomingCallText = document.getElementById('incomingCallText');
+  const callRejectBtn = document.getElementById('callRejectBtn');
+  const callAcceptBtn = document.getElementById('callAcceptBtn');
 
   const modalOverlay = document.getElementById('modalOverlay');
   const modalClose = document.getElementById('modalClose');
@@ -648,6 +747,8 @@
     });
     renderStatus(occupiedCount);
     renderChatGate();
+    renderCallGate();
+    syncCallIdentityToSeat();
   }
 
   function renderStatus(occupiedCount){
@@ -846,6 +947,47 @@
     }catch(e){ return null; }
   }
 
+  async function makeSupabaseRoomBackend(fireId){
+    if(!callSupabase || !callUserId) return null;
+    try{
+      const roomTable = callSupabase.from('campfire_rooms');
+      const messageTable = callSupabase.from('campfire_messages');
+      const existing = await roomTable.select('fire_id,seats,waiting').eq('fire_id',fireId).maybeSingle();
+      if(existing.error) return null;
+      if(!existing.data){
+        const created = await roomTable.insert({fire_id:fireId,seats:defaultSeats(),waiting:[],updated_at:new Date().toISOString()});
+        if(created.error && created.error.code !== '23505') return null;
+      }
+      const listeners = [];
+      let latest = { seats:(existing.data && existing.data.seats) || defaultSeats(), messages:[], waiting:(existing.data && existing.data.waiting) || [] };
+      function push(){ listeners.forEach(fn=>fn(latest)); }
+      const recent = await messageTable.select('message').eq('fire_id',fireId).order('created_at',{ascending:false}).limit(60);
+      if(!recent.error && Array.isArray(recent.data)) latest.messages = recent.data.reverse().map(row=>row.message).filter(Boolean);
+      const channel = callSupabase.channel('campfire-room-'+fireId+'-'+callUserId+'-'+clientId)
+        .on('postgres_changes',{event:'*',schema:'public',table:'campfire_rooms',filter:'fire_id=eq.'+fireId},change=>{
+          const row = change.new || {};
+          latest.seats = row.seats || latest.seats; latest.waiting = row.waiting || latest.waiting; push();
+        })
+        .on('postgres_changes',{event:'INSERT',schema:'public',table:'campfire_messages',filter:'fire_id=eq.'+fireId},change=>{
+          if(change.new && change.new.message){ latest.messages = latest.messages.concat([change.new.message]).slice(-60); push(); }
+        })
+        .subscribe();
+      await new Promise(resolve=>setTimeout(resolve,250));
+      return {
+        subscribe(fn){ listeners.push(fn); fn(latest); },
+        async setSeat(i,data){
+          const current = await roomTable.select('seats,waiting').eq('fire_id',fireId).maybeSingle();
+          const arr = current.data && Array.isArray(current.data.seats) ? current.data.seats.slice() : latest.seats.slice();
+          arr[i] = data; latest.seats = arr;
+          await roomTable.update({seats:arr,updated_at:new Date().toISOString()}).eq('fire_id',fireId); push();
+        },
+        async sendMessage(msg){ await messageTable.insert({fire_id:fireId,sender_user:callUserId,message:msg}); },
+        async setWaiting(list){ latest.waiting = list; await roomTable.update({waiting:list,updated_at:new Date().toISOString()}).eq('fire_id',fireId); push(); },
+        teardown(){ try{ callSupabase.removeChannel(channel); }catch(e){} }
+      };
+    }catch(e){ return null; }
+  }
+
   function bindBackend(b){
     backend = b;
     msgFirstLoad = true;
@@ -871,6 +1013,7 @@
   }
 
   async function enterFire(fireId){
+    endActiveCall(true, true);
     currentFireId = fireId;
     const meta = FIRES.find(f=>f.id===fireId);
     fireTitle.textContent = meta.name;
@@ -889,11 +1032,14 @@
     statusLine.textContent = 'Finding a seat for you…';
 
     let db = null;
-    try{ db = await makeDbBackend(fireId); }catch(e){ db = null; }
+    try{ db = await makeSupabaseRoomBackend(fireId); }catch(e){ db = null; }
+    if(!db) try{ db = await makeDbBackend(fireId); }catch(e){ db = null; }
     bindBackend(db || makeLocalBackend(fireId));
   }
 
   function leaveFire(){
+    endActiveCall(true, true);
+    stopCallPresence();
     if(mySeat !== null) standUp();
     if(backend && backend.teardown) backend.teardown();
     backend = null;
@@ -913,6 +1059,7 @@
   }
   function standUp(){
     if(mySeat === null || !backend) return;
+    endActiveCall(true, true);
     backend.setSeat(mySeat, { occupied:false, name:null, clientId:null, avatarType:null, avatarData:null });
     hideBubble(mySeat);
     mySeat = null;
@@ -1152,6 +1299,615 @@
   ['pointerup','pointerleave','pointercancel'].forEach(evt=>{
     micBtn.addEventListener(evt, ()=>{ if(!micBtn.disabled) stopRecording(); });
   });
+
+  // ---------- private one-to-one video calls (Supabase signalling only) ----------
+  const CALL_EVENT_TTL_MS = 2 * 60 * 1000;
+  const CALL_RING_MS = 45 * 1000;
+  const CALL_ICE_SERVERS = [{ urls:[
+    'stun:stun.l.google.com:19302',
+    'stun:stun1.l.google.com:19302'
+  ] }];
+  let callSupabase = null;
+  let callChannel = null;
+  let callPresenceChannel = null;
+  let callPresenceFireId = null;
+  let callPresenceByClientId = new Map();
+  let callUserId = null;
+  let callAvailable = false;
+  let callAvailabilityResolved = false;
+  let callUnavailableReason = '';
+  let callState = 'idle';
+  let activeCallId = null;
+  let callPeerUserId = null;
+  let callPeerClientId = null;
+  let callPeerName = '';
+  let pendingIncoming = null;
+  let callRingTimer = null;
+  let peerConnection = null;
+  let localCallStream = null;
+  let remoteCallStream = null;
+  let pendingIceCandidates = [];
+  let lastPresenceKey = null;
+  let callPanelResetTimer = null;
+  const processedCallEventIds = new Set();
+
+  function callUuid(){
+    if(window.crypto && typeof window.crypto.randomUUID === 'function') return window.crypto.randomUUID();
+    const bytes = new Uint8Array(16);
+    if(window.crypto && window.crypto.getRandomValues) window.crypto.getRandomValues(bytes);
+    else for(let i=0;i<bytes.length;i++) bytes[i] = Math.floor(Math.random()*256);
+    bytes[6] = (bytes[6] & 15) | 64;
+    bytes[8] = (bytes[8] & 63) | 128;
+    const hex = Array.from(bytes, b=>b.toString(16).padStart(2,'0')).join('');
+    return hex.slice(0,8)+'-'+hex.slice(8,12)+'-'+hex.slice(12,16)+'-'+hex.slice(16,20)+'-'+hex.slice(20);
+  }
+
+  function setCallPanel(heading, text, isError, showVideos){
+    if(callPanelResetTimer){ clearTimeout(callPanelResetTimer); callPanelResetTimer = null; }
+    callPanel.hidden = false;
+    callHeading.textContent = heading || 'Private video call';
+    callStatus.textContent = text || '';
+    callStatus.classList.toggle('error', !!isError);
+    videoGrid.hidden = !showVideos;
+  }
+
+  function setCallUnavailable(message){
+    const failedChannel = callChannel;
+    callChannel = null;
+    if(failedChannel && callSupabase){ callSupabase.removeChannel(failedChannel).catch(()=>{}); }
+    stopCallPresence();
+    callAvailable = false;
+    callAvailabilityResolved = true;
+    callUnavailableReason = message || 'Private video calls are unavailable right now. Text and voice messages still work.';
+    closeCallChooser();
+    closeIncomingCall();
+    closePeerMedia();
+    callState = 'idle';
+    activeCallId = null;
+    callPeerUserId = null;
+    callPeerClientId = null;
+    pendingIncoming = null;
+    if(currentFireId) setCallPanel('Video calls unavailable', callUnavailableReason, true, false);
+    renderCallGate();
+  }
+
+  function renderCallGate(){
+    const seated = mySeat !== null;
+    const callableSeats = seats.filter(s=>s && s.occupied && s.clientId !== clientId && callPresenceByClientId.has(s.clientId));
+    callBtn.disabled = !callAvailable || !seated || callState !== 'idle' || !callableSeats.length;
+    if(!callAvailabilityResolved){
+      callBtn.title = 'Preparing private video calls…';
+    } else if(!callAvailable){
+      callBtn.title = callUnavailableReason || 'Private video calls are unavailable';
+      if(currentFireId) setCallPanel('Video calls unavailable', callUnavailableReason, true, false);
+    } else if(!seated){
+      callBtn.title = 'Take a seat before starting a video call';
+      if(callState === 'idle') callPanel.hidden = true;
+    } else if(!callableSeats.length){
+      callBtn.title = 'No other call-ready seats are occupied';
+      if(callState === 'idle') callPanel.hidden = true;
+    } else if(callState === 'idle'){
+      callBtn.title = 'Start a private video call';
+      callPanel.hidden = true;
+    } else {
+      callBtn.title = 'A video call is already in progress';
+    }
+  }
+
+  function stopCallPresence(){
+    const channel = callPresenceChannel;
+    callPresenceChannel = null;
+    callPresenceFireId = null;
+    callPresenceByClientId = new Map();
+    lastPresenceKey = null;
+    if(channel && callSupabase){
+      try{ channel.untrack(); }catch(e){}
+      callSupabase.removeChannel(channel).catch(()=>{});
+    }
+  }
+
+  function rebuildCallPresence(){
+    const next = new Map();
+    if(callPresenceChannel){
+      const state = callPresenceChannel.presenceState();
+      Object.keys(state || {}).forEach(key=>{
+        (state[key] || []).forEach(presence=>{
+          if(presence && presence.client_id && presence.user_id) next.set(presence.client_id, presence);
+        });
+      });
+    }
+    callPresenceByClientId = next;
+    renderCallGate();
+  }
+
+  function syncCallIdentityToSeat(){
+    if(!callAvailable || !callUserId || !currentFireId) return;
+    if(callPresenceFireId !== currentFireId){ ensureCallPresence(currentFireId); return; }
+    if(!callPresenceChannel) return;
+    if(mySeat === null){
+      if(lastPresenceKey){ lastPresenceKey = null; callPresenceChannel.untrack().catch(()=>{}); }
+      return;
+    }
+    const seat = seats[mySeat];
+    if(!seat || !seat.occupied || seat.clientId !== clientId) return;
+    const name = seat.name || nickname || 'Bloke';
+    const presenceKey = currentFireId+':'+mySeat+':'+name;
+    if(lastPresenceKey === presenceKey) return;
+    lastPresenceKey = presenceKey;
+    callPresenceChannel.track({
+      user_id:callUserId,
+      client_id:clientId,
+      fire_id:currentFireId,
+      seat:mySeat,
+      name
+    }).catch(()=>{});
+  }
+
+  function ensureCallPresence(fireId){
+    if(!callAvailable || !callSupabase || !callUserId || !fireId || callPresenceFireId === fireId) return;
+    stopCallPresence();
+    callPresenceFireId = fireId;
+    const channel = callSupabase.channel('campfire-call-presence-'+fireId, {
+      config:{ presence:{ key:callUserId+'-'+clientId } }
+    });
+    callPresenceChannel = channel;
+    channel
+      .on('presence', {event:'sync'}, rebuildCallPresence)
+      .subscribe(status=>{
+        if(callPresenceChannel !== channel) return;
+        if(status === 'SUBSCRIBED') syncCallIdentityToSeat();
+        else if(status === 'CHANNEL_ERROR' || status === 'TIMED_OUT'){
+          setCallUnavailable('Private video calling lost its secure room connection. Text and voice messages still work.');
+        }
+      });
+  }
+
+  function closeCallChooser(){ callChooserOverlay.classList.remove('open'); }
+  function closeIncomingCall(){ incomingCallOverlay.classList.remove('open'); }
+
+  function openCallChooser(){
+    if(callBtn.disabled) return;
+    callPersonList.innerHTML = '';
+    const candidates = seats.map((seat,index)=>({seat,index})).filter(item=>item.seat && item.seat.occupied && item.seat.clientId !== clientId);
+    if(!candidates.length){
+      callPersonList.innerHTML = '<div class="call-empty">There is nobody else seated at this fire yet.</div>';
+    } else {
+      candidates.forEach(({seat,index})=>{
+        const presence = callPresenceByClientId.get(seat.clientId);
+        const button = document.createElement('button');
+        button.className = 'call-person';
+        button.type = 'button';
+        button.disabled = !presence;
+        const name = seat.name || 'Bloke';
+        button.innerHTML = '<span></span><small></small>';
+        button.querySelector('span').textContent = name;
+        button.querySelector('small').textContent = presence ? 'Seat '+(index+1) : 'Calls unavailable';
+        button.addEventListener('click', ()=> startOutgoingCall(Object.assign({}, seat, {callUserId:presence && presence.user_id}), index));
+        callPersonList.appendChild(button);
+      });
+    }
+    callChooserOverlay.classList.add('open');
+  }
+
+  function callPayload(extra){
+    return Object.assign({
+      call_id: activeCallId,
+      sender_client_id: clientId,
+      to_client_id: callPeerClientId || null,
+      from_name: mySeat !== null && seats[mySeat] ? (seats[mySeat].name || nickname || 'Bloke') : (nickname || 'Bloke')
+    }, extra || {});
+  }
+
+  async function sendCallEvent(eventType, toUser, payload, fireId){
+    if(!callAvailable || !callSupabase || !callUserId || !toUser) throw new Error('Video calling is not connected.');
+    const now = Date.now();
+    const row = {
+      id: callUuid(),
+      fire_id: fireId || currentFireId,
+      from_user: callUserId,
+      to_user: toUser,
+      event_type: eventType,
+      payload: payload || {},
+      created_at: new Date(now).toISOString(),
+      expires_at: new Date(now + CALL_EVENT_TTL_MS).toISOString()
+    };
+    const result = await callSupabase.from('campfire_call_events').insert(row);
+    if(result.error){
+      setCallUnavailable('Private video calling could not reach its secure signalling service. Text and voice messages still work.');
+      throw result.error;
+    }
+  }
+
+  async function startOutgoingCall(seat){
+    if(callState !== 'idle' || !seat || !seat.callUserId || !currentFireId || mySeat === null) return;
+    closeCallChooser();
+    activeCallId = callUuid();
+    callPeerUserId = seat.callUserId;
+    callPeerClientId = seat.clientId || null;
+    callPeerName = seat.name || 'Bloke';
+    callState = 'ringing';
+    setCallPanel('Calling '+callPeerName, 'Waiting for them to accept…', false, false);
+    callControls.hidden = false;
+    callMuteBtn.disabled = true;
+    callCameraBtn.disabled = true;
+    renderCallGate();
+    try{
+      await sendCallEvent('invite', callPeerUserId, callPayload(), currentFireId);
+    }catch(e){
+      endActiveCall(false, false, 'The call invitation could not be sent.');
+      return;
+    }
+    clearTimeout(callRingTimer);
+    callRingTimer = setTimeout(()=>{
+      if(callState === 'ringing') endActiveCall(true, false, 'No answer this time.');
+    }, CALL_RING_MS);
+  }
+
+  function showIncomingCall(row, payload){
+    if(!currentFireId || row.fire_id !== currentFireId || mySeat === null){
+      sendCallEvent('reject', row.from_user, Object.assign({}, payload, {
+        sender_client_id:clientId,
+        to_client_id:payload.sender_client_id || null,
+        reason:'not_seated'
+      }), row.fire_id).catch(()=>{});
+      return;
+    }
+    if(callState !== 'idle' || pendingIncoming){
+      sendCallEvent('reject', row.from_user, Object.assign({}, payload, {
+        sender_client_id:clientId,
+        to_client_id:payload.sender_client_id || null,
+        reason:'busy'
+      }), row.fire_id).catch(()=>{});
+      return;
+    }
+    const callerSeat = seats.find(s=>{
+      if(!s || !s.occupied || (payload.sender_client_id && s.clientId !== payload.sender_client_id)) return false;
+      const presence = callPresenceByClientId.get(s.clientId);
+      return presence && presence.user_id === row.from_user;
+    });
+    if(!callerSeat) return;
+    pendingIncoming = {
+      callId:payload.call_id,
+      userId:row.from_user,
+      clientId:payload.sender_client_id || null,
+      name:callerSeat.name || payload.from_name || 'Someone',
+      fireId:row.fire_id
+    };
+    incomingCallText.textContent = pendingIncoming.name+' would like a private video call.';
+    incomingCallOverlay.classList.add('open');
+    clearTimeout(callRingTimer);
+    callRingTimer = setTimeout(()=> rejectIncomingCall('missed'), CALL_RING_MS);
+  }
+
+  async function acceptIncomingCall(){
+    if(!pendingIncoming || callState !== 'idle') return;
+    const invitation = pendingIncoming;
+    clearTimeout(callRingTimer);
+    closeIncomingCall();
+    activeCallId = invitation.callId;
+    callPeerUserId = invitation.userId;
+    callPeerClientId = invitation.clientId;
+    callPeerName = invitation.name;
+    pendingIncoming = null;
+    callState = 'connecting';
+    setCallPanel('Call with '+callPeerName, 'Turning on your camera and microphone…', false, false);
+    callControls.hidden = false;
+    renderCallGate();
+    try{
+      await preparePeerConnection();
+      await sendCallEvent('accept', callPeerUserId, callPayload(), invitation.fireId);
+      callStatus.textContent = 'Connecting…';
+    }catch(e){
+      try{
+        await sendCallEvent('reject', callPeerUserId, callPayload({reason:'media_unavailable'}), invitation.fireId);
+      }catch(ignore){}
+      endActiveCall(false, false, 'Camera or microphone access was not available.');
+    }
+  }
+
+  function rejectIncomingCall(reason){
+    if(!pendingIncoming) return;
+    const invitation = pendingIncoming;
+    pendingIncoming = null;
+    clearTimeout(callRingTimer);
+    closeIncomingCall();
+    sendCallEvent('reject', invitation.userId, {
+      call_id:invitation.callId,
+      sender_client_id:clientId,
+      to_client_id:invitation.clientId,
+      reason:reason || 'declined'
+    }, invitation.fireId).catch(()=>{});
+  }
+
+  async function preparePeerConnection(){
+    if(peerConnection) return peerConnection;
+    if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || typeof RTCPeerConnection === 'undefined'){
+      throw new Error('WebRTC is not supported in this browser.');
+    }
+    localCallStream = await navigator.mediaDevices.getUserMedia({ video:true, audio:true });
+    localVideo.srcObject = localCallStream;
+    remoteCallStream = new MediaStream();
+    remoteVideo.srcObject = remoteCallStream;
+    remoteVideoLabel.textContent = callPeerName || 'Other seat';
+    videoGrid.hidden = false;
+    callMuteBtn.disabled = false;
+    callCameraBtn.disabled = false;
+    callMuteBtn.setAttribute('aria-pressed','false');
+    callCameraBtn.setAttribute('aria-pressed','false');
+    callMuteBtn.textContent = '🎙️ Mute';
+    callCameraBtn.textContent = '📷 Camera off';
+
+    const pc = new RTCPeerConnection({ iceServers:CALL_ICE_SERVERS });
+    peerConnection = pc;
+    localCallStream.getTracks().forEach(track=>pc.addTrack(track, localCallStream));
+    pc.ontrack = event=>{
+      if(event.streams && event.streams[0]){
+        remoteVideo.srcObject = event.streams[0];
+      } else if(remoteCallStream && !remoteCallStream.getTracks().some(t=>t.id === event.track.id)){
+        remoteCallStream.addTrack(event.track);
+      }
+      remoteVideo.play().catch(()=>{});
+    };
+    pc.onicecandidate = event=>{
+      if(!event.candidate || !activeCallId || !callPeerUserId) return;
+      const candidate = event.candidate.toJSON ? event.candidate.toJSON() : event.candidate;
+      sendCallEvent('ice', callPeerUserId, callPayload({candidate}), currentFireId).catch(()=>{});
+    };
+    pc.onconnectionstatechange = ()=>{
+      if(pc !== peerConnection) return;
+      if(pc.connectionState === 'connected'){
+        callState = 'connected';
+        callStatus.textContent = 'Connected privately. No media is recorded.';
+        renderCallGate();
+      } else if(pc.connectionState === 'failed'){
+        endActiveCall(true, false, 'The video connection was lost.');
+      } else if(pc.connectionState === 'disconnected'){
+        callStatus.textContent = 'Connection interrupted — trying to reconnect…';
+      }
+    };
+    return pc;
+  }
+
+  async function flushPendingIce(){
+    if(!peerConnection || !peerConnection.remoteDescription) return;
+    const candidates = pendingIceCandidates.slice();
+    pendingIceCandidates = [];
+    for(const candidate of candidates){
+      try{ await peerConnection.addIceCandidate(candidate); }catch(e){}
+    }
+  }
+
+  async function handleCallEvent(row){
+    if(!row || row.to_user !== callUserId) return;
+    const expires = new Date(row.expires_at).getTime();
+    if(expires && expires <= Date.now()) return;
+    if(row.id && processedCallEventIds.has(row.id)) return;
+    if(row.id){
+      processedCallEventIds.add(row.id);
+      if(processedCallEventIds.size > 500) processedCallEventIds.delete(processedCallEventIds.values().next().value);
+    }
+    let payload = row.payload || {};
+    if(typeof payload === 'string'){
+      try{ payload = JSON.parse(payload); }catch(e){ return; }
+    }
+    if(!payload.call_id || (payload.to_client_id && payload.to_client_id !== clientId) || payload.sender_client_id === clientId) return;
+    if(row.event_type === 'invite'){
+      showIncomingCall(row, payload);
+      return;
+    }
+    if(!activeCallId || payload.call_id !== activeCallId || row.from_user !== callPeerUserId) return;
+    try{
+      if(row.event_type === 'accept' && callState === 'ringing'){
+        clearTimeout(callRingTimer);
+        callState = 'connecting';
+        setCallPanel('Call with '+callPeerName, 'Turning on your camera and microphone…', false, false);
+        await preparePeerConnection();
+        const offer = await peerConnection.createOffer();
+        await peerConnection.setLocalDescription(offer);
+        await sendCallEvent('offer', callPeerUserId, callPayload({description:peerConnection.localDescription}), currentFireId);
+        callStatus.textContent = 'Connecting…';
+      } else if(row.event_type === 'reject'){
+        const reason = payload.reason === 'busy' ? callPeerName+' is already on another call.' :
+          payload.reason === 'media_unavailable' ? callPeerName+' could not open their camera or microphone.' :
+          payload.reason === 'not_seated' ? callPeerName+' is no longer seated at this fire.' :
+          callPeerName+' declined the call.';
+        endActiveCall(false, false, reason);
+      } else if(row.event_type === 'offer'){
+        await preparePeerConnection();
+        await peerConnection.setRemoteDescription(payload.description);
+        await flushPendingIce();
+        const answer = await peerConnection.createAnswer();
+        await peerConnection.setLocalDescription(answer);
+        await sendCallEvent('answer', callPeerUserId, callPayload({description:peerConnection.localDescription}), currentFireId);
+      } else if(row.event_type === 'answer'){
+        if(!peerConnection) return;
+        await peerConnection.setRemoteDescription(payload.description);
+        await flushPendingIce();
+      } else if(row.event_type === 'ice' && payload.candidate){
+        if(peerConnection && peerConnection.remoteDescription) await peerConnection.addIceCandidate(payload.candidate);
+        else pendingIceCandidates.push(payload.candidate);
+      } else if(row.event_type === 'end'){
+        endActiveCall(false, false, 'The call ended.');
+      }
+    }catch(e){
+      endActiveCall(true, false, 'The video connection could not be established.');
+    }
+  }
+
+  function closePeerMedia(){
+    if(peerConnection){
+      peerConnection.ontrack = null;
+      peerConnection.onicecandidate = null;
+      peerConnection.onconnectionstatechange = null;
+      try{ peerConnection.close(); }catch(e){}
+      peerConnection = null;
+    }
+    if(localCallStream){ localCallStream.getTracks().forEach(track=>track.stop()); localCallStream = null; }
+    if(remoteCallStream){ remoteCallStream.getTracks().forEach(track=>track.stop()); remoteCallStream = null; }
+    localVideo.srcObject = null;
+    remoteVideo.srcObject = null;
+    pendingIceCandidates = [];
+    videoGrid.hidden = true;
+    callControls.hidden = true;
+    callMuteBtn.disabled = true;
+    callCameraBtn.disabled = true;
+  }
+
+  function cleanupSignalRows(callId){
+    if(!callSupabase || !callUserId || !callId) return;
+    callSupabase.from('campfire_call_events').delete()
+      .contains('payload', {call_id:callId})
+      .or('from_user.eq.'+callUserId+',to_user.eq.'+callUserId)
+      .then(()=>{}).catch(()=>{});
+  }
+
+  function endActiveCall(notifyPeer, quiet, message){
+    const endedCallId = activeCallId;
+    const peerUser = callPeerUserId;
+    const peerClient = callPeerClientId;
+    const fireId = currentFireId;
+    if(notifyPeer && endedCallId && peerUser && callAvailable){
+      sendCallEvent('end', peerUser, {
+        call_id:endedCallId,
+        sender_client_id:clientId,
+        to_client_id:peerClient
+      }, fireId).catch(()=>{});
+    }
+    if(pendingIncoming){
+      const invitation = pendingIncoming;
+      pendingIncoming = null;
+      if(notifyPeer && callAvailable){
+        sendCallEvent('reject', invitation.userId, {
+          call_id:invitation.callId,
+          sender_client_id:clientId,
+          to_client_id:invitation.clientId,
+          reason:'not_seated'
+        }, invitation.fireId).catch(()=>{});
+      }
+    }
+    clearTimeout(callRingTimer);
+    closeCallChooser();
+    closeIncomingCall();
+    closePeerMedia();
+    callState = 'idle';
+    activeCallId = null;
+    callPeerUserId = null;
+    callPeerClientId = null;
+    callPeerName = '';
+    if(endedCallId) setTimeout(()=>cleanupSignalRows(endedCallId), 5000);
+    if(!quiet && currentFireId){
+      setCallPanel('Private video call', message || 'Call ended.', false, false);
+      callPanelResetTimer = setTimeout(()=>{
+        if(callState === 'idle' && callAvailable) callPanel.hidden = true;
+      }, 5000);
+    } else if(callAvailable){
+      callPanel.hidden = true;
+    }
+    renderCallGate();
+  }
+
+  callBtn.addEventListener('click', openCallChooser);
+  callChooserClose.addEventListener('click', closeCallChooser);
+  callChooserOverlay.addEventListener('click', e=>{ if(e.target === callChooserOverlay) closeCallChooser(); });
+  callAcceptBtn.addEventListener('click', acceptIncomingCall);
+  callRejectBtn.addEventListener('click', ()=>rejectIncomingCall('declined'));
+  callEndBtn.addEventListener('click', ()=>endActiveCall(true, false, 'Call ended.'));
+  callMuteBtn.addEventListener('click', ()=>{
+    if(!localCallStream) return;
+    const tracks = localCallStream.getAudioTracks();
+    const muted = tracks.some(track=>track.enabled);
+    tracks.forEach(track=>{ track.enabled = !muted; });
+    callMuteBtn.setAttribute('aria-pressed', String(muted));
+    callMuteBtn.textContent = muted ? '🔇 Unmute' : '🎙️ Mute';
+  });
+  callCameraBtn.addEventListener('click', ()=>{
+    if(!localCallStream) return;
+    const tracks = localCallStream.getVideoTracks();
+    const cameraOff = tracks.some(track=>track.enabled);
+    tracks.forEach(track=>{ track.enabled = !cameraOff; });
+    callCameraBtn.setAttribute('aria-pressed', String(cameraOff));
+    callCameraBtn.textContent = cameraOff ? '📷 Camera on' : '📷 Camera off';
+  });
+
+  async function initialiseVideoCalls(){
+    if(typeof RTCPeerConnection === 'undefined' || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+      setCallUnavailable('This browser does not support private video calls. Text and voice messages still work.');
+      return;
+    }
+    try{
+      const configResponse = await fetch('/api/campfire-config', { headers:{Accept:'application/json'}, cache:'no-store' });
+      if(!configResponse.ok) throw new Error('config');
+      const config = await configResponse.json();
+      if(!config || !config.url || !config.anonKey) throw new Error('config');
+      const module = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
+      callSupabase = module.createClient(config.url, config.anonKey);
+      const sessionResult = await callSupabase.auth.getSession();
+      const session = sessionResult && sessionResult.data ? sessionResult.data.session : null;
+      if(sessionResult.error || !session || !session.user) throw new Error('auth');
+      callUserId = session.user.id;
+
+      const availability = await callSupabase.from('campfire_call_events')
+        .select('id')
+        .or('from_user.eq.'+callUserId+',to_user.eq.'+callUserId)
+        .limit(1);
+      if(availability.error) throw new Error('table');
+
+      await new Promise((resolve,reject)=>{
+        let settled = false;
+        const timeout = setTimeout(()=>{ if(!settled){ settled = true; reject(new Error('realtime')); } }, 8000);
+        const channel = callSupabase.channel('campfire-calls-'+callUserId+'-'+clientId);
+        callChannel = channel
+          .on('postgres_changes', {
+            event:'INSERT',
+            schema:'public',
+            table:'campfire_call_events',
+            filter:'to_user=eq.'+callUserId
+          }, change=>handleCallEvent(change.new))
+          .subscribe(status=>{
+            if(status === 'SUBSCRIBED' && !settled){ settled = true; clearTimeout(timeout); resolve(); }
+            if((status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') && !settled){ settled = true; clearTimeout(timeout); reject(new Error('realtime')); }
+            else if((status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') && settled && callChannel === channel){
+              setCallUnavailable('Private video calling lost its secure signalling connection. Text and voice messages still work.');
+            }
+          });
+      });
+
+      callAvailable = true;
+      callAvailabilityResolved = true;
+      callUnavailableReason = '';
+      renderCallGate();
+      syncCallIdentityToSeat();
+
+      callSupabase.from('campfire_call_events').delete()
+        .lt('expires_at', new Date().toISOString())
+        .or('from_user.eq.'+callUserId+',to_user.eq.'+callUserId)
+        .then(()=>{}).catch(()=>{});
+
+      const pending = await callSupabase.from('campfire_call_events')
+        .select('*')
+        .eq('to_user', callUserId)
+        .eq('event_type','invite')
+        .gt('expires_at', new Date().toISOString())
+        .order('created_at', {ascending:false})
+        .limit(1);
+      if(!pending.error && pending.data && pending.data[0]) handleCallEvent(pending.data[0]);
+    }catch(e){
+      if(callChannel && callSupabase){ try{ await callSupabase.removeChannel(callChannel); }catch(ignore){} }
+      callChannel = null;
+      const message = e && e.message === 'auth'
+        ? 'Sign in to use private video calls. Text and voice messages still work.'
+        : 'Private video calls are unavailable right now. Text and voice messages still work.';
+      setCallUnavailable(message);
+    }
+  }
+
+  function cleanupCallsForPageHide(){
+    endActiveCall(true, true);
+    if(callChannel && callSupabase){ callSupabase.removeChannel(callChannel).catch(()=>{}); }
+    callChannel = null;
+  }
+  window.addEventListener('pagehide', cleanupCallsForPageHide);
+  initialiseVideoCalls();
 
   // ---------- soft fire sound (procedural, no external audio) ----------
   let audioCtx = null, soundNodes = null, soundOn = false;
