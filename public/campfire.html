@@ -497,7 +497,10 @@
     { id:'common', name:"Common Fire",  icon:'🔥', tagline:"Open to everyone, side by side." }
   ];
   let selectedAccess = null;
-  try{ selectedAccess = sessionStorage.getItem('rh_campfire_access') || null; }catch(e){ selectedAccess = null; }
+  try{
+    const requestedSpace = new URLSearchParams(window.location.search).get('space');
+    selectedAccess = requestedSpace || sessionStorage.getItem('rh_campfire_access') || null;
+  }catch(e){ selectedAccess = null; }
   const VISIBLE_FIRES = FIRES.filter(f=>f.id === selectedAccess || (selectedAccess && f.id === 'common'));
 
   // ---------- identity ----------
