@@ -684,6 +684,7 @@
   // ---------- state ----------
   let currentFireId = null;
   let backend = null;
+  let campfireInitPromise = null;
   let seats = Array.from({length:SEAT_COUNT}, ()=>({occupied:false, name:null, clientId:null, avatarType:null, avatarData:null}));
   let messages = [];
   let waiting = [];
@@ -1032,9 +1033,15 @@
     statusLine.textContent = 'Finding a seat for you…';
 
     let db = null;
+    if(campfireInitPromise) try{ await campfireInitPromise; }catch(e){}
     try{ db = await makeSupabaseRoomBackend(fireId); }catch(e){ db = null; }
-    if(!db) try{ db = await makeDbBackend(fireId); }catch(e){ db = null; }
-    bindBackend(db || makeLocalBackend(fireId));
+    if(!db && !callSupabase) try{ db = await makeDbBackend(fireId); }catch(e){ db = null; }
+    if(!db){
+      statusLine.textContent = 'The shared Campfire connection is still warming up — please leave and try again in a moment.';
+      statusActions.innerHTML = '';
+      return;
+    }
+    bindBackend(db);
   }
 
   function leaveFire(){
@@ -1907,7 +1914,7 @@
     callChannel = null;
   }
   window.addEventListener('pagehide', cleanupCallsForPageHide);
-  initialiseVideoCalls();
+  campfireInitPromise = initialiseVideoCalls();
 
   // ---------- soft fire sound (procedural, no external audio) ----------
   let audioCtx = null, soundNodes = null, soundOn = false;
