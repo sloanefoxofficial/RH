@@ -419,7 +419,7 @@
   ];
   let selectedAccess = null;
   try{ selectedAccess = sessionStorage.getItem('rh_campfire_access') || null; }catch(e){ selectedAccess = null; }
-  const VISIBLE_FIRES = FIRES.filter(f=>f.id === selectedAccess);
+  const VISIBLE_FIRES = FIRES.filter(f=>f.id === selectedAccess || (selectedAccess && f.id === 'common'));
 
   // ---------- identity ----------
   function uid(){ return 'c' + Math.random().toString(36).slice(2,10) + Date.now().toString(36); }
