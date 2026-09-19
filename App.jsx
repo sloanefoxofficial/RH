@@ -1008,11 +1008,16 @@ export default function App() {
     chatsRef.current = next;
     setChats(next);
     void persistSensitiveCache("rh_chats", next);
-    if (authEnabled && supabase && sessionRef.current && vaultKeyRef.current) {
+    // Plain authenticated accounts do not have a vault key. They still need
+    // their chat saved remotely because persistSensitiveCache intentionally
+    // removes the local account cache while signed in.
+    if (authEnabled && supabase && sessionRef.current) {
       void (async () => {
-        const encrypted = await encryptJson(messages, vaultKeyRef.current, `chat_history.${slug}`);
+        const savedMessages = vaultKeyRef.current
+          ? await encryptJson(messages, vaultKeyRef.current, `chat_history.${slug}`)
+          : messages;
         await supabase.from("chat_history").upsert({
-          user_id: sessionRef.current.user.id, character: slug, messages: encrypted,
+          user_id: sessionRef.current.user.id, character: slug, messages: savedMessages,
           updated_at: new Date().toISOString(),
         });
       })();
@@ -1193,17 +1198,25 @@ export default function App() {
   // on a shared device can't survive into someone else's signed-in session.
   useEffect(() => {
     (async () => {
-      if (!authEnabled || !supabase || !session || vaultStatus !== "unlocked" || !vaultKeyRef.current) return;
+      // Vault users decrypt the rows; plain authenticated users store/read the
+      // same rows as ordinary JSON. Both modes must load chat history after a
+      // reload, otherwise the initial empty state can replace the visible chat.
+      if (!authEnabled || !supabase || !session || !["unlocked", "plain"].includes(vaultStatus)) return;
       try {
         const { data } = await supabase.from("chat_history")
           .select("character,messages").eq("user_id", session.user.id);
         const fresh = {};
         const legacyChats = [];
         for (const row of data || []) {
-          try { fresh[row.character] = await decryptJson(row.messages, vaultKeyRef.current, `chat_history.${row.character}`); }
+          try {
+            fresh[row.character] = vaultKeyRef.current
+              ? await decryptJson(row.messages, vaultKeyRef.current, `chat_history.${row.character}`)
+              : (Array.isArray(row.messages) ? row.messages : []);
+          }
           catch { if (Array.isArray(row.messages)) { fresh[row.character] = row.messages; legacyChats.push([row.character, row.messages]); } else fresh[row.character] = []; }
         }
-        for (const [character, messages] of legacyChats) void saveCharChat(character, messages);
+        // Only encrypted-vault rows that predate encryption need migration.
+        for (const [character, messages] of legacyChats) if (vaultKeyRef.current) void saveCharChat(character, messages);
         chatsRef.current = fresh;
         setChats(fresh);
       } catch {}
