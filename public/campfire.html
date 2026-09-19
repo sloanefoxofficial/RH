@@ -731,7 +731,6 @@
       try{ player.pause(); player.currentTime = 0; player.muted = false; }catch(e){}
       voiceAudioUnlocked = true;
       voiceUnlockPending = false;
-      voicePlayer = null;
       if(voicePlaybackQueue.length) playCampfireVoice();
     };
     if(ready && typeof ready.then === 'function') ready.then(finish).catch(()=>{ voiceUnlockPending = false; });
@@ -740,20 +739,20 @@
   function playCampfireVoice(dataUrl, automatic = false){
     if((automatic && !voiceAutoPlay) || (!dataUrl && !voicePlaybackQueue.length)) return;
     if(dataUrl) voicePlaybackQueue.push(dataUrl);
-    if(voicePlayer) return;
-    const next = () => {
-      const src = voicePlaybackQueue.shift();
-      if(!src){ voicePlayer = null; return; }
-      const player = new Audio();
-      voicePlayer = player;
-      player.preload = 'auto';
-      player.src = src;
-      player.onended = next;
-      player.onerror = next;
-      const attempt = player.play();
-      if(attempt && typeof attempt.catch === 'function') attempt.catch(()=>{ voicePlayer = null; voicePlaybackQueue.unshift(src); });
-    };
-    next();
+    if(!voiceAudioUnlocked || !voicePlayer || !voicePlayer.paused) return;
+    const src = voicePlaybackQueue.shift();
+    if(!src) return;
+    const player = voicePlayer;
+    player.preload = 'auto';
+    player.onended = () => playCampfireVoice();
+    player.onerror = () => { voicePlayer.pause(); voicePlaybackQueue.length = 0; };
+    player.src = src;
+    const attempt = player.play();
+    if(attempt && typeof attempt.catch === 'function') attempt.catch(()=>{
+      voicePlaybackQueue.unshift(src);
+      voiceAudioUnlocked = false;
+      try{ player.pause(); }catch(e){}
+    });
   }
 
   function hideBubble(i){
