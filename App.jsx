@@ -931,6 +931,16 @@ export default function App() {
     });
   }, [secureLocalSet, syncMemberData]);
   const saveAnswers = useCallback((a) => { setAnswers(a); void secureLocalSet("rh_answers", a); void syncMemberData({ answers: a }); }, [secureLocalSet, syncMemberData]);
+  const persistCampfireAccess = useCallback(async (value) => {
+    if (!supabase || !sessionRef.current) return;
+    const accessSpace = Number(value) === 0 ? "mens" : Number(value) === 1 ? "ladies" : null;
+    if (!accessSpace) return;
+    await supabase.from("campfire_access").insert({ user_id: sessionRef.current.user.id, access_space: accessSpace });
+  }, []);
+  useEffect(() => {
+    const value = answers?.campfire_access ?? profile?.campfireAccess;
+    if (session?.user?.id && (Number(value) === 0 || Number(value) === 1)) void persistCampfireAccess(value);
+  }, [session?.user?.id, answers?.campfire_access, profile?.campfireAccess, persistCampfireAccess]);
   const savePlan = useCallback((pl) => {
     if (pl && !pl.startedAt) pl.startedAt = Date.now();
     const cleanProgress = {};
@@ -1393,7 +1403,7 @@ export default function App() {
             onNo={() => { setOnbMode("short"); setOnbFromSignup(true); setOnbReturn("hub"); saveProfile({ ...profile, planPath: "short" }); go("onboarding"); }} />
         ) : screen === "onboarding" ? (
           <Onboarding
-            profile={profile} saveProfile={saveProfile}
+            profile={profile} saveProfile={saveProfile} persistCampfireAccess={persistCampfireAccess}
             answers={answers} saveAnswers={saveAnswers}
             savePlan={savePlan} voiceOn={voiceOn} speechLang={speechLang}
             mode={onbMode}
@@ -1507,7 +1517,7 @@ export default function App() {
         ) : screen === "admin" ? (
           <Admin isAdmin={isAdmin} guidePrompts={guidePrompts} onSaveGuidePrompt={saveGuidePrompt} onBack={back} />
         ) : screen === "profile" ? (
-          <Profile session={session} profile={profile} answers={answers} saveProfile={saveProfile} saveAnswers={saveAnswers} onReset={resetAll} onOpenMemory={() => go("memory")} onBack={back} />
+          <Profile session={session} profile={profile} answers={answers} saveProfile={saveProfile} saveAnswers={saveAnswers} persistCampfireAccess={persistCampfireAccess} onReset={resetAll} onOpenMemory={() => go("memory")} onBack={back} />
         ) : screen === "notifications" ? (
           <Notifications session={session} onBack={back} />
         ) : screen === "coordinator" ? (
@@ -3946,7 +3956,7 @@ function resizeImage(file, max, cb) {
   } catch {}
 }
 
-function Profile({ session, profile, answers, saveProfile, saveAnswers, onReset, onOpenMemory, onBack }) {
+function Profile({ session, profile, answers, saveProfile, saveAnswers, persistCampfireAccess, onReset, onOpenMemory, onBack }) {
   const [confirmReset, setConfirmReset] = useState(false);
   const [p, setP] = useState({ preferred_name: "", pronouns: "", bio: "", contact_private: "", avatar: "" });
   const [status, setStatus] = useState("");
@@ -3964,6 +3974,7 @@ function Profile({ session, profile, answers, saveProfile, saveAnswers, onReset,
     if (campfireChoice) return;
     saveAnswers({ ...(answers || {}), campfire_access: index });
     saveProfile({ campfireAccess: index });
+    void persistCampfireAccess(index);
     setCampfireStatus("Saved. This choice is now locked to protect the privacy of the spaces.");
   };
 
@@ -5793,7 +5804,7 @@ function PlanBuilding({ voiceOn, speechLang = __speechLang }) {
   );
 }
 
-function Onboarding({ profile, saveProfile, answers, saveAnswers, savePlan, voiceOn, speechLang = __speechLang, mode = "full", onBackToIntro, onSignOut, onDone }) {
+function Onboarding({ profile, saveProfile, saveAnswers, persistCampfireAccess, answers, savePlan, voiceOn, speechLang = __speechLang, mode = "full", onBackToIntro, onSignOut, onDone }) {
   const QS = mode === "short" ? QUESTIONS.filter((x) => SHORT_KEYS.includes(x.key)) : QUESTIONS;
   const [i, setI] = useState(0);
   const [local, setLocal] = useState(answers || {});
@@ -5830,6 +5841,7 @@ function Onboarding({ profile, saveProfile, answers, saveAnswers, savePlan, voic
     }
     if (q.key === "campfire_access") {
       saveProfile({ campfireAccess: merged.campfire_access ?? "" });
+      void persistCampfireAccess(merged.campfire_access);
     }
     if (q.type === "safety") {
       const idx = merged.safety;
