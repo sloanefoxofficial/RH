@@ -690,7 +690,9 @@
   }
 
   // ---------- state ----------
-  let currentFireId = null;
+  let mySeat = null;
+  let seatHeartbeat = null;
+  const SEAT_STALE_MS = 45 * 1000;
   let backend = null;
   let campfireInitPromise = null;
   let seats = Array.from({length:SEAT_COUNT}, ()=>({occupied:false, name:null, clientId:null, avatarType:null, avatarData:null}));
@@ -701,7 +703,6 @@
   let voiceAutoPlay = true;
   let voiceAudioUnlocked = false;
   let voiceUnlockPending = false;
-  let mySeat = null;
   let pendingSeatIndex = null;
   let modalAvatarType = 'none';
   let modalCartoonOpts = null;
@@ -713,6 +714,40 @@
   function computeMySeat(){
     const idx = seats.findIndex(s => s.occupied && s.clientId === clientId);
     mySeat = idx === -1 ? null : idx;
+  }
+
+  function clearSeatHeartbeat(){
+    if(seatHeartbeat){ clearInterval(seatHeartbeat); seatHeartbeat = null; }
+  }
+  function startSeatHeartbeat(){
+    clearSeatHeartbeat();
+    seatHeartbeat = setInterval(()=>{
+      if(mySeat === null || !backend || !seats[mySeat] || !seats[mySeat].occupied) return;
+      const result = backend.setSeat(mySeat, Object.assign({}, seats[mySeat], { last_seen_at: Date.now() }));
+      if(result && typeof result.catch === 'function') result.catch(()=>{});
+    }, 15000);
+  }
+  function removeMySeatOnExit(){
+    clearSeatHeartbeat();
+    if(mySeat !== null && backend){
+      const seat = mySeat;
+      mySeat = null;
+      const result = backend.setSeat(seat, { occupied:false, name:null, clientId:null, avatarType:null, avatarData:null });
+      if(result && typeof result.catch === 'function') result.catch(()=>{});
+    }
+  }
+  function expireStaleSeats(nextSeats){
+    const now = Date.now();
+    nextSeats.forEach((seat, index)=>{
+      if(!seat || !seat.occupied || seat.clientId === clientId) return;
+      const lastSeen = Number(seat.last_seen_at || seat.sat_at || 0);
+      if(lastSeen && now - lastSeen > SEAT_STALE_MS){
+        const result = backend && backend.setSeat(index, { occupied:false, name:null, clientId:null, avatarType:null, avatarData:null });
+        if(result && typeof result.catch === 'function') result.catch(()=>{});
+        nextSeats[index] = { occupied:false, name:null, clientId:null, avatarType:null, avatarData:null };
+      }
+    });
+    return nextSeats;
   }
 
   function stopVoicePlayback(){
@@ -1047,7 +1082,7 @@
     backend = b;
     msgFirstLoad = true;
     backend.subscribe(state=>{
-      seats = state.seats || seats;
+      seats = expireStaleSeats((state.seats || seats).slice());
       waiting = state.waiting || waiting;
       renderSeats();
 
@@ -1123,6 +1158,7 @@
   function standUp(){
     if(mySeat === null || !backend) return;
     endActiveCall(true, true);
+    clearSeatHeartbeat();
     backend.setSeat(mySeat, { occupied:false, name:null, clientId:null, avatarType:null, avatarData:null });
     hideBubble(mySeat);
     mySeat = null;
@@ -1131,7 +1167,9 @@
   function removeFromWaiting(){ if(backend && waiting.includes(clientId)) backend.setWaiting(waiting.filter(id=>id!==clientId)); }
   function sitDown(i, name, avatarType, avatarData){
     if(!backend) return;
-    backend.setSeat(i, { occupied:true, name, clientId, avatarType, avatarData, sat_at: Date.now() });
+    backend.setSeat(i, { occupied:true, name, clientId, avatarType, avatarData, sat_at: Date.now(), last_seen_at: Date.now() });
+    mySeat = i;
+    startSeatHeartbeat();
   }
 
   // ---------- modal (avatar/name picker) ----------
@@ -1373,7 +1411,7 @@
   // ---------- private one-to-one video calls (Supabase signalling only) ----------
   const CALL_EVENT_TTL_MS = 2 * 60 * 1000;
   const CALL_RING_MS = 45 * 1000;
-  const CALL_ICE_SERVERS = [{ urls:[
+  let CALL_ICE_SERVERS = [{ urls:[
     'stun:stun.l.google.com:19302',
     'stun:stun1.l.google.com:19302'
   ] }];
@@ -1402,6 +1440,7 @@
   let pendingIceCandidates = [];
   let lastPresenceKey = null;
   let callPanelResetTimer = null;
+  let callStatsTimer = null;
   const processedCallEventIds = new Set();
 
   function callUuid(){
@@ -1413,6 +1452,50 @@
     bytes[8] = (bytes[8] & 63) | 128;
     const hex = Array.from(bytes, b=>b.toString(16).padStart(2,'0')).join('');
     return hex.slice(0,8)+'-'+hex.slice(8,12)+'-'+hex.slice(12,16)+'-'+hex.slice(16,20)+'-'+hex.slice(20);
+  }
+
+  async function tuneCallSenders(pc){
+    for(const sender of (pc.getSenders ? pc.getSenders() : [])){
+      try{
+        const params = sender.getParameters();
+        params.encodings = params.encodings && params.encodings.length ? params.encodings : [{}];
+        const encoding = params.encodings[0];
+        if(sender.track && sender.track.kind === 'video'){
+          encoding.maxBitrate = 350000;
+          encoding.maxFramerate = 15;
+        } else if(sender.track && sender.track.kind === 'audio') {
+          encoding.maxBitrate = 32000;
+        }
+        await sender.setParameters(params);
+      }catch(e){}
+    }
+  }
+
+  function startCallStats(pc){
+    if(callStatsTimer) clearInterval(callStatsTimer);
+    callStatsTimer = setInterval(async()=>{
+      if(pc !== peerConnection || !pc.getStats) return;
+      try{
+        const report = await pc.getStats();
+        let sent = 0, lost = 0;
+        report.forEach(item=>{
+          if(item.type === 'outbound-rtp' && item.kind === 'video'){
+            sent += Number(item.packetsSent || 0);
+            lost += Number(item.packetsLost || 0);
+          }
+        });
+        if(sent + lost < 20) return;
+        const lossRatio = lost / (sent + lost);
+        for(const sender of pc.getSenders()){
+          if(!sender.track || sender.track.kind !== 'video') continue;
+          const params = sender.getParameters();
+          if(!params.encodings || !params.encodings.length) continue;
+          params.encodings[0].maxBitrate = lossRatio > 0.08 ? 180000 : 350000;
+          params.encodings[0].maxFramerate = lossRatio > 0.08 ? 10 : 15;
+          sender.setParameters(params).catch(()=>{});
+        }
+      }catch(e){}
+    }, 5000);
   }
 
   function setCallPanel(heading, text, isError, showVideos){
@@ -1711,7 +1794,10 @@
     if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || typeof RTCPeerConnection === 'undefined'){
       throw new Error('WebRTC is not supported in this browser.');
     }
-    localCallStream = await navigator.mediaDevices.getUserMedia({ video:true, audio:true });
+    localCallStream = await navigator.mediaDevices.getUserMedia({
+      video:{ width:{ideal:640, max:720}, height:{ideal:360, max:480}, frameRate:{ideal:15, max:20}, facingMode:'user' },
+      audio:{ echoCancellation:true, noiseSuppression:true, autoGainControl:true, channelCount:1 }
+    });
     localVideo.srcObject = localCallStream;
     remoteCallStream = new MediaStream();
     remoteVideo.srcObject = remoteCallStream;
@@ -1727,6 +1813,8 @@
     const pc = new RTCPeerConnection({ iceServers:CALL_ICE_SERVERS });
     peerConnection = pc;
     localCallStream.getTracks().forEach(track=>pc.addTrack(track, localCallStream));
+    await tuneCallSenders(pc);
+    startCallStats(pc);
     pc.ontrack = event=>{
       if(event.streams && event.streams[0]){
         remoteVideo.srcObject = event.streams[0];
@@ -1822,6 +1910,7 @@
   }
 
   function closePeerMedia(){
+    if(callStatsTimer){ clearInterval(callStatsTimer); callStatsTimer = null; }
     if(peerConnection){
       peerConnection.ontrack = null;
       peerConnection.onicecandidate = null;
@@ -1926,6 +2015,9 @@
       if(!configResponse.ok) throw new Error('config');
       const config = await configResponse.json();
       if(!config || !config.url || !config.anonKey) throw new Error('config');
+      if(Array.isArray(config.iceServers) && config.iceServers.length){
+        CALL_ICE_SERVERS = CALL_ICE_SERVERS.concat(config.iceServers);
+      }
       const module = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
       callSupabase = module.createClient(config.url, config.anonKey);
       const sessionResult = await callSupabase.auth.getSession();
@@ -2008,6 +2100,8 @@
     callChannel = null;
   }
   window.addEventListener('pagehide', cleanupCallsForPageHide);
+  window.addEventListener('pagehide', removeMySeatOnExit);
+  window.addEventListener('beforeunload', removeMySeatOnExit);
   campfireInitPromise = initialiseVideoCalls();
 
   // ---------- soft fire sound (procedural, no external audio) ----------
