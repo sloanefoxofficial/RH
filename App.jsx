@@ -3234,19 +3234,32 @@ function Login({ stayLoggedIn = true, onStayLoggedInChange }) {
 
   const withEmail = async () => {
     setErr(null); setNotice(null);
-    if (!email.trim() || !pw) { setErr("Please enter your email and password."); return; }
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!normalizedEmail || !pw) { setErr("Please enter your email and password."); return; }
     setBusy(true);
     try {
       if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({ email: email.trim(), password: pw });
+        const { error } = await supabase.auth.signUp({ email: normalizedEmail, password: pw });
         if (error) throw error;
         setNotice("Account created. If prompted, confirm via the email we sent, then sign in.");
         setMode("signin");
       } else {
-        const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password: pw });
+        const { error } = await supabase.auth.signInWithPassword({ email: normalizedEmail, password: pw });
         if (error) throw error;
       }
-    } catch (e) { setErr(e.message || "Something went wrong. Please try again."); }
+    } catch (e) {
+      const code = String(e?.code || e?.name || "").toLowerCase();
+      const message = String(e?.message || "").toLowerCase();
+      if (code.includes("email_not_confirmed") || message.includes("email not confirmed")) {
+        setErr("This account needs email confirmation first. Check your inbox (and spam folder), then try again.");
+      } else if (code.includes("invalid_credentials") || message.includes("invalid login credentials")) {
+        setErr("Those details didn't work. Check the email and password, or use ‘Forgot or need to set a password?’ to create a new password. Google-created accounts need to set a password before email sign-in will work.");
+      } else if (code.includes("user_not_found") || message.includes("user not found")) {
+        setErr("We couldn't find an account with that email. Check the address or choose ‘New here? Create an account’.");
+      } else {
+        setErr(e.message || "Something went wrong. Please try again.");
+      }
+    }
     finally { setBusy(false); }
   };
 
@@ -3270,7 +3283,7 @@ function Login({ stayLoggedIn = true, onStayLoggedInChange }) {
     if (!email.trim()) { setErr("Enter your email above first, then tap this again."); return; }
     setBusy(true);
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
         redirectTo: window.location.origin,
       });
       if (error) throw error;
