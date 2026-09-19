@@ -699,6 +699,8 @@
   const voicePlaybackQueue = [];
   let voicePlayer = null;
   let voiceAutoPlay = true;
+  let voiceAudioUnlocked = false;
+  let voiceUnlockPending = false;
   let mySeat = null;
   let pendingSeatIndex = null;
   let modalAvatarType = 'none';
@@ -717,9 +719,27 @@
     voicePlaybackQueue.length = 0;
     if(voicePlayer){ try{ voicePlayer.pause(); voicePlayer.src = ''; }catch(e){} voicePlayer = null; }
   }
+  function unlockCampfireVoice(){
+    if(voiceAudioUnlocked || voiceUnlockPending) return;
+    voiceUnlockPending = true;
+    const player = voicePlayer || new Audio();
+    voicePlayer = player;
+    player.muted = true;
+    player.src = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
+    const ready = player.play();
+    const finish = () => {
+      try{ player.pause(); player.currentTime = 0; player.muted = false; }catch(e){}
+      voiceAudioUnlocked = true;
+      voiceUnlockPending = false;
+      voicePlayer = null;
+      if(voicePlaybackQueue.length) playCampfireVoice();
+    };
+    if(ready && typeof ready.then === 'function') ready.then(finish).catch(()=>{ voiceUnlockPending = false; });
+    else finish();
+  }
   function playCampfireVoice(dataUrl, automatic = false){
-    if(!dataUrl || (automatic && !voiceAutoPlay)) return;
-    voicePlaybackQueue.push(dataUrl);
+    if((automatic && !voiceAutoPlay) || (!dataUrl && !voicePlaybackQueue.length)) return;
+    if(dataUrl) voicePlaybackQueue.push(dataUrl);
     if(voicePlayer) return;
     const next = () => {
       const src = voicePlaybackQueue.shift();
@@ -731,7 +751,7 @@
       player.onended = next;
       player.onerror = next;
       const attempt = player.play();
-      if(attempt && typeof attempt.catch === 'function') attempt.catch(()=>{ voicePlayer = null; });
+      if(attempt && typeof attempt.catch === 'function') attempt.catch(()=>{ voicePlayer = null; voicePlaybackQueue.unshift(src); });
     };
     next();
   }
@@ -1047,6 +1067,7 @@
   async function enterFire(fireId){
     endActiveCall(true, true);
     stopVoicePlayback();
+    unlockCampfireVoice();
     currentFireId = fireId;
     const meta = FIRES.find(f=>f.id===fireId);
     fireTitle.textContent = meta.name;
@@ -1339,10 +1360,12 @@
   micBtn.style.touchAction = 'manipulation';
   micBtn.addEventListener('click', (e)=>{
     e.preventDefault();
+    unlockCampfireVoice();
     if(micBtn.disabled) return;
     if(mediaRecorder && mediaRecorder.state === 'recording') stopRecording();
     else if(!recordingStarting) beginRecording();
   });
+  document.addEventListener('pointerdown', unlockCampfireVoice, { once: true, passive: true });
 
   // ---------- private one-to-one video calls (Supabase signalling only) ----------
   const CALL_EVENT_TTL_MS = 2 * 60 * 1000;
