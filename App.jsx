@@ -5978,7 +5978,7 @@ Respond with ONLY valid JSON, no markdown fences, exactly this shape:
           <Btn onClick={() => advance()} style={{ marginTop: 12 }}>Continue</Btn>
         </div>
       )}
-      {q.type === "single" && q.key !== "campfire_access" && (
+      {q.type === "single" && (q.key !== "campfire_access" || !campfireAlreadySet) && (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {q.opts.map((o, idx) => (
             <ChoiceRow key={o} label={o} onClick={() => next(idx)} />
