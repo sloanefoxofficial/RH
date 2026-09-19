@@ -39,7 +39,9 @@
   .screen{ width:100%; }
 
   /* ---------- home / fire selection ---------- */
-  #homeScreen header{ text-align:center; margin-bottom:26px; }
+  #homeScreen header{ text-align:center; margin-bottom:26px; position:relative; }
+  .hub-exit{ display:inline-flex; align-items:center; gap:5px; position:absolute; right:0; top:0; color:var(--cream-dim); background:rgba(255,255,255,0.04); border:1px solid rgba(233,217,192,0.14); border-radius:999px; padding:7px 11px; font-size:12px; text-decoration:none; }
+  .hub-exit:hover{ color:var(--cream); border-color:rgba(232,112,58,0.4); }
   #homeScreen h1{ font-family:var(--serif); font-weight:500; font-size:clamp(30px,8vw,42px); margin:0 0 6px; }
   #homeScreen p.tagline{ margin:0; color:var(--cream-dim); font-size:14.5px; line-height:1.5; max-width:38ch; margin-left:auto; margin-right:auto; }
   .fire-cards{ display:flex; flex-direction:column; gap:14px; }
@@ -273,6 +275,7 @@
   <!-- ================= HOME: choose a fire ================= -->
   <div class="screen" id="homeScreen">
     <header>
+      <a class="hub-exit" href="./" aria-label="Return to The Resilience Hub">← Hub</a>
       <h1>The Campfire</h1>
       <p class="tagline">Three fires, same idea: pull up a chair, come and go as you please. No booking, no agenda.</p>
     </header>
@@ -283,6 +286,7 @@
   <!-- ================= FIRE ROOM ================= -->
   <div class="screen" id="fireScreen" style="display:none">
     <header>
+      <a class="hub-exit" href="./" aria-label="Return to The Resilience Hub">← Hub</a>
       <button class="back-btn" id="backBtn">← All fires</button>
       <h1 id="fireTitle">Fire</h1>
       <p class="tagline" id="fireTagline"></p>
@@ -413,6 +417,9 @@
     { id:'ladies', name:"Ladies' Fire", icon:'🔥', tagline:"A calm circle for women to gather." },
     { id:'common', name:"Common Fire",  icon:'🔥', tagline:"Open to everyone, side by side." }
   ];
+  let selectedAccess = null;
+  try{ selectedAccess = sessionStorage.getItem('rh_campfire_access') || null; }catch(e){ selectedAccess = null; }
+  const VISIBLE_FIRES = FIRES.filter(f=>f.id === selectedAccess);
 
   // ---------- identity ----------
   function uid(){ return 'c' + Math.random().toString(36).slice(2,10) + Date.now().toString(36); }
@@ -509,7 +516,7 @@
 
   // ---------- home cards ----------
   const fireCountEls = {};
-  FIRES.forEach(f=>{
+  VISIBLE_FIRES.forEach(f=>{
     const card = document.createElement('button');
     card.className = 'fire-card';
     card.innerHTML =
@@ -523,12 +530,15 @@
     fireCardsEl.appendChild(card);
     fireCountEls[f.id] = card.querySelector('.fc-count');
   });
+  if(!VISIBLE_FIRES.length){
+    fireCardsEl.innerHTML = '<div class="fire-card" style="cursor:default;display:block;text-align:center"><span class="fc-body"><span class="fc-name">Choose your Campfire space first</span><span class="fc-tagline">Return to The Resilience Hub, complete the Campfire access choice, and then come back here.</span></span></div>';
+  }
 
   // lightweight peek at seat counts for the home cards
   (async function peekAllFires(){
     let db = null;
     try{ db = await claude.use('db'); }catch(e){ db = null; }
-    FIRES.forEach(f=>{
+    VISIBLE_FIRES.forEach(f=>{
       function fromArr(arr){
         const taken = (arr||[]).filter(s=>s && s.occupied).length;
         const free = SEAT_COUNT - taken;
