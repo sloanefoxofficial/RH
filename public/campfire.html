@@ -624,6 +624,8 @@
     VISIBLE_FIRES.forEach(f=>{
     const card = document.createElement('button');
     card.className = 'fire-card';
+    card.type = 'button';
+    card.dataset.fire = f.id;
     card.innerHTML =
       '<span class="fc-icon">'+f.icon+'</span>' +
       '<span class="fc-body">' +
@@ -631,7 +633,12 @@
         '<span class="fc-tagline">'+f.tagline+'</span>' +
         '<span class="fc-count" data-fire="'+f.id+'">7 seats free</span>' +
       '</span>';
-    card.addEventListener('click', ()=> enterFire(f.id));
+    card.onclick = ()=> {
+      // Switch views synchronously; room/backend setup continues afterward.
+      homeScreen.style.display = 'none';
+      fireScreen.style.display = 'block';
+      void enterFire(f.id);
+    };
     fireCardsEl.appendChild(card);
     fireCountEls[f.id] = card.querySelector('.fc-count');
     });
@@ -1149,9 +1156,6 @@
   }
 
   async function enterFire(fireId){
-    endActiveCall(true, true);
-    stopVoicePlayback();
-    unlockCampfireVoice();
     currentFireId = fireId;
     campfireOpenedAt = Date.now();
     const meta = FIRES.find(f=>f.id===fireId);
@@ -1160,6 +1164,11 @@
     homeScreen.style.display = 'none';
     fireScreen.style.display = 'block';
     window.scrollTo(0,0);
+
+    // Optional audio/video cleanup must never prevent entering the room.
+    try{ endActiveCall(true, true); }catch(e){}
+    try{ stopVoicePlayback(); }catch(e){}
+    try{ unlockCampfireVoice(); }catch(e){}
 
     seats = defaultSeats();
     messages = [];
