@@ -1509,7 +1509,7 @@ export default function App() {
         ) : screen === "virtualSupport" ? (
           <VirtualSupportPage onBack={back} />
         ) : screen === "campfire" ? (
-          <CampfirePage onBack={back} campfireAccess={answers?.campfire_access || profile?.campfireAccess || ""} />
+          <CampfirePage onBack={back} campfireAccess={answers?.campfire_access ?? profile?.campfireAccess ?? ""} />
         ) : screen === "chaptly" ? (
           <ChaptlyPage onBack={() => { histRef.current = []; __backDestinationLabel = "Home"; setScreen("hub"); }} />
         ) : screen === "supportUs" ? (
