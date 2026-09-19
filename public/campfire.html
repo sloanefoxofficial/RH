@@ -374,7 +374,7 @@
         <div class="chat-empty" id="chatEmpty">It's quiet by the fire right now. Take a seat, or just listen in.</div>
       </div>
       <form id="chatForm">
-        <button type="button" id="micBtn" title="Hold to talk" disabled>🎙️</button>
+        <button type="button" id="micBtn" title="Tap to start talking, tap again to stop" aria-label="Tap to start talking, tap again to stop" disabled>🎙️</button>
         <span class="rec-timer" id="recTimer" style="display:none">0:00</span>
         <input id="chatInput" placeholder="Take a seat to talk…" disabled maxlength="500" autocomplete="off">
         <button type="submit" id="sendBtn" disabled>Send</button>
@@ -696,6 +696,9 @@
   let seats = Array.from({length:SEAT_COUNT}, ()=>({occupied:false, name:null, clientId:null, avatarType:null, avatarData:null}));
   let messages = [];
   let waiting = [];
+  const voicePlaybackQueue = [];
+  let voicePlayer = null;
+  let voiceAutoPlay = true;
   let mySeat = null;
   let pendingSeatIndex = null;
   let modalAvatarType = 'none';
@@ -708,6 +711,29 @@
   function computeMySeat(){
     const idx = seats.findIndex(s => s.occupied && s.clientId === clientId);
     mySeat = idx === -1 ? null : idx;
+  }
+
+  function stopVoicePlayback(){
+    voicePlaybackQueue.length = 0;
+    if(voicePlayer){ try{ voicePlayer.pause(); voicePlayer.src = ''; }catch(e){} voicePlayer = null; }
+  }
+  function playCampfireVoice(dataUrl, automatic = false){
+    if(!dataUrl || (automatic && !voiceAutoPlay)) return;
+    voicePlaybackQueue.push(dataUrl);
+    if(voicePlayer) return;
+    const next = () => {
+      const src = voicePlaybackQueue.shift();
+      if(!src){ voicePlayer = null; return; }
+      const player = new Audio();
+      voicePlayer = player;
+      player.preload = 'auto';
+      player.src = src;
+      player.onended = next;
+      player.onerror = next;
+      const attempt = player.play();
+      if(attempt && typeof attempt.catch === 'function') attempt.catch(()=>{ voicePlayer = null; });
+    };
+    next();
   }
 
   function hideBubble(i){
@@ -831,10 +857,7 @@
           div.innerHTML = '<span class="who"></span><span class="voice-chip">🔊 Voice message</span><span class="when"></span>';
           div.querySelector('.who').textContent = (m.name || 'Bloke') + ':';
           div.querySelector('.when').textContent = timeStr;
-          div.querySelector('.voice-chip').addEventListener('click', ()=>{
-            const a = new Audio(m.audio);
-            a.play().catch(()=>{});
-          });
+          div.querySelector('.voice-chip').addEventListener('click', ()=>playCampfireVoice(m.audio));
         } else {
           div.innerHTML = '<span class="who"></span><span class="body"></span><span class="when"></span>';
           div.querySelector('.who').textContent = (m.name || 'Bloke') + ':';
@@ -857,7 +880,7 @@
     if(m.type === 'voice' && m.audio){
       showBubble(seatIndex, avatarHtml+'<span class="sb-name">'+escapeHtml(name)+'</span><span class="sb-voice">🔊 voice</span>');
       if(m.clientId !== clientId){
-        try{ const a = new Audio(m.audio); a.play().catch(()=>{}); }catch(e){}
+        playCampfireVoice(m.audio, true);
       }
     } else if(m.text){
       const shortText = m.text.length > 80 ? m.text.slice(0,77)+'…' : m.text;
@@ -1023,6 +1046,7 @@
 
   async function enterFire(fireId){
     endActiveCall(true, true);
+    stopVoicePlayback();
     currentFireId = fireId;
     const meta = FIRES.find(f=>f.id===fireId);
     fireTitle.textContent = meta.name;
@@ -1218,11 +1242,12 @@
     chatInput.value = '';
   });
 
-  // ---------- voice recording (hold to talk) ----------
+  // ---------- voice recording (tap to start / tap to stop) ----------
   let micBlocked = !(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && typeof MediaRecorder !== 'undefined');
   if(micBlocked) micNote.classList.add('show');
   let mediaRecorder = null;
   let mediaStream = null;
+  let recordingStarting = false;
   let recordChunks = [];
   let recordStartTs = 0;
   let recordTimerInterval = null;
@@ -1245,14 +1270,16 @@
   }
 
   async function beginRecording(){
-    if(mySeat === null || micBlocked) return;
+    if(mySeat === null || micBlocked || recordingStarting) return;
     if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || typeof MediaRecorder === 'undefined'){
       micBlocked = true; micBtn.disabled = true; return;
     }
+    recordingStarting = true;
     stopRequestedEarly = false;
     try{
       mediaStream = await navigator.mediaDevices.getUserMedia({ audio:true });
     }catch(e){
+      recordingStarting = false;
       micBlocked = true; micBtn.disabled = true;
       micNote.classList.add('show');
       const div = document.createElement('div');
@@ -1261,6 +1288,7 @@
       chatMessages.appendChild(div); chatMessages.scrollTop = chatMessages.scrollHeight;
       return;
     }
+    recordingStarting = false;
     if(stopRequestedEarly){ mediaStream.getTracks().forEach(t=>t.stop()); mediaStream=null; return; }
     let mimeType = '';
     ['audio/webm;codecs=opus','audio/webm','audio/mp4'].some(t=>{
@@ -1306,13 +1334,14 @@
     }
   }
 
-  micBtn.addEventListener('pointerdown', (e)=>{
+  micBtn.style.userSelect = 'none';
+  micBtn.style.webkitUserSelect = 'none';
+  micBtn.style.touchAction = 'manipulation';
+  micBtn.addEventListener('click', (e)=>{
     e.preventDefault();
     if(micBtn.disabled) return;
-    beginRecording();
-  });
-  ['pointerup','pointerleave','pointercancel'].forEach(evt=>{
-    micBtn.addEventListener(evt, ()=>{ if(!micBtn.disabled) stopRecording(); });
+    if(mediaRecorder && mediaRecorder.state === 'recording') stopRecording();
+    else if(!recordingStarting) beginRecording();
   });
 
   // ---------- private one-to-one video calls (Supabase signalling only) ----------
