@@ -569,6 +569,13 @@ export default function App() {
   const secureLocalSet = useCallback(async (name, value) => {
     await sset(name, value);
   }, []);
+  const persistSensitiveCache = useCallback(async (name, value) => {
+    if (authEnabled && sessionRef.current?.user?.id && !guestMode) {
+      try { localStorage.removeItem(name); } catch {}
+      return;
+    }
+    await secureLocalSet(name, value);
+  }, [guestMode, secureLocalSet]);
   const migrateLocalPlaintext = useCallback(async () => {
     const keys = ["rh_profile", "rh_answers", "rh_plan", "rh_progress", "rh_journal", "rh_chats", "rh_memories"];
     for (const name of keys) {
@@ -846,13 +853,14 @@ export default function App() {
         secureLocalGet("rh_progress"), secureLocalGet("rh_journal"), secureLocalGet("rh_chats"), secureLocalGet("rh_memories"),
       ]);
       const plain = vaultStatus === "plain" ? accountData : null;
-      const resolvedProfile = p || plain?.profile;
-      const resolvedAnswers = a || plain?.answers;
-      const resolvedPlan = pl || plain?.plan;
-      const resolvedProgress = pr || plain?.progress;
-      const resolvedJournal = j || plain?.journal;
-      const resolvedChats = c || plain?.chats;
-      const resolvedMemories = mem || plain?.memories;
+      const remoteFirst = Boolean(authEnabled && session?.user?.id && !guestMode && vaultStatus === "plain");
+      const resolvedProfile = remoteFirst ? plain?.profile : (p || plain?.profile);
+      const resolvedAnswers = remoteFirst ? plain?.answers : (a || plain?.answers);
+      const resolvedPlan = remoteFirst ? plain?.plan : (pl || plain?.plan);
+      const resolvedProgress = remoteFirst ? plain?.progress : (pr || plain?.progress);
+      const resolvedJournal = remoteFirst ? plain?.journal : (j || plain?.journal);
+      const resolvedChats = remoteFirst ? plain?.chats : (c || plain?.chats);
+      const resolvedMemories = remoteFirst ? plain?.memories : (mem || plain?.memories);
       if (resolvedProfile) { setProfile(resolvedProfile); if (resolvedProfile.planPath === "short" || resolvedProfile.planPath === "full") setOnbMode(resolvedProfile.planPath); }
       if (resolvedAnswers) setAnswers(resolvedAnswers);
       if (resolvedPlan) setPlan(resolvedPlan);
@@ -860,6 +868,11 @@ export default function App() {
       if (resolvedJournal) setJournal(resolvedJournal);
       if (resolvedChats) setChats(resolvedChats);
       if (Array.isArray(resolvedMemories)) setMemories(resolvedMemories);
+      if (remoteFirst) {
+        for (const key of ["rh_profile", "rh_answers", "rh_plan", "rh_progress", "rh_journal", "rh_chats", "rh_memories"]) {
+          try { localStorage.removeItem(key); } catch {}
+        }
+      }
       if (supabase) {
         try {
           const { data } = await supabase.from("game_scores").select("game,best");
@@ -925,12 +938,12 @@ export default function App() {
   const saveProfile = useCallback((p) => {
     setProfile((current) => {
       const merged = { ...(current || {}), ...(p || {}) };
-      void secureLocalSet("rh_profile", merged);
+      void persistSensitiveCache("rh_profile", merged);
       void syncMemberData({ profile: merged });
       return merged;
     });
-  }, [secureLocalSet, syncMemberData]);
-  const saveAnswers = useCallback((a) => { setAnswers(a); void secureLocalSet("rh_answers", a); void syncMemberData({ answers: a }); }, [secureLocalSet, syncMemberData]);
+  }, [persistSensitiveCache, syncMemberData]);
+  const saveAnswers = useCallback((a) => { setAnswers(a); void persistSensitiveCache("rh_answers", a); void syncMemberData({ answers: a }); }, [persistSensitiveCache, syncMemberData]);
   const persistCampfireAccess = useCallback(async (value) => {
     if (!supabase || !sessionRef.current) return;
     const accessSpace = Number(value) === 0 ? "mens" : Number(value) === 1 ? "ladies" : null;
@@ -944,13 +957,13 @@ export default function App() {
   const savePlan = useCallback((pl) => {
     if (pl && !pl.startedAt) pl.startedAt = Date.now();
     const cleanProgress = {};
-    setPlan(pl); void secureLocalSet("rh_plan", pl);
-    setProgress(cleanProgress); void secureLocalSet("rh_progress", cleanProgress);
+    setPlan(pl); void persistSensitiveCache("rh_plan", pl);
+    setProgress(cleanProgress); void persistSensitiveCache("rh_progress", cleanProgress);
     void syncMemberData({ plan: pl, progress: cleanProgress });
-  }, [secureLocalSet, syncMemberData]);
-  const saveProgress = useCallback((pr) => { setProgress(pr); void secureLocalSet("rh_progress", pr); void syncMemberData({ progress: pr }); }, [secureLocalSet, syncMemberData]);
-  const saveJournal = useCallback((j) => { setJournal(j); void secureLocalSet("rh_journal", j); void syncMemberData({ journal: j }); }, [secureLocalSet, syncMemberData]);
-  const saveChats = useCallback((c) => { setChats(c); void secureLocalSet("rh_chats", c); }, [secureLocalSet]);
+  }, [persistSensitiveCache, syncMemberData]);
+  const saveProgress = useCallback((pr) => { setProgress(pr); void persistSensitiveCache("rh_progress", pr); void syncMemberData({ progress: pr }); }, [persistSensitiveCache, syncMemberData]);
+  const saveJournal = useCallback((j) => { setJournal(j); void persistSensitiveCache("rh_journal", j); void syncMemberData({ journal: j }); }, [persistSensitiveCache, syncMemberData]);
+  const saveChats = useCallback((c) => { setChats(c); void persistSensitiveCache("rh_chats", c); }, [persistSensitiveCache]);
 
   // Keep a live ref so rapid saves build on the latest history
   const chatsRef = useRef(chats);
@@ -967,7 +980,7 @@ export default function App() {
     const clean = Array.isArray(list) ? list : memoriesRef.current;
     setMemories(clean); memoriesRef.current = clean;
     if (typeof on === "boolean") { setMemoryOn(on); memoryOnRef.current = on; }
-    void secureLocalSet("rh_memories", clean); sset("rh_memory_on", memoryOnRef.current);
+    void persistSensitiveCache("rh_memories", clean); sset("rh_memory_on", memoryOnRef.current);
     if (authEnabled && supabase && sessionRef.current && vaultKeyRef.current) {
       void (async () => {
         const encrypted = await encryptJson(clean, vaultKeyRef.current, "guide_memory.memories");
@@ -977,7 +990,7 @@ export default function App() {
         });
       })();
     }
-  }, [secureLocalSet]);
+  }, [persistSensitiveCache]);
 
   // After a conversation, quietly refresh memory in the background (best-effort,
   // never blocks the chat). Skips entirely when memory is switched off.
@@ -994,7 +1007,7 @@ export default function App() {
     const next = { ...chatsRef.current, [slug]: messages };
     chatsRef.current = next;
     setChats(next);
-    void secureLocalSet("rh_chats", next);
+    void persistSensitiveCache("rh_chats", next);
     if (authEnabled && supabase && sessionRef.current && vaultKeyRef.current) {
       void (async () => {
         const encrypted = await encryptJson(messages, vaultKeyRef.current, `chat_history.${slug}`);
@@ -1004,7 +1017,7 @@ export default function App() {
         });
       })();
     }
-  }, [secureLocalSet]);
+  }, [persistSensitiveCache]);
 
   const saveGameProgress = useCallback((game, gstate) => {
     if (!game || gstate == null) return;
@@ -1222,11 +1235,11 @@ export default function App() {
             catch { if (!isEncrypted(data[field])) { cloud[field] = data[field]; legacyCloud[field] = data[field]; } else cloud[field] = null; }
           }
           if (Object.keys(legacyCloud).length) void syncMemberData(legacyCloud);
-          if (cloud.profile) { setProfile(cloud.profile); await secureLocalSet("rh_profile", cloud.profile); }
-          if (cloud.answers) { setAnswers(cloud.answers); await secureLocalSet("rh_answers", cloud.answers); }
-          if (cloud.plan) { setPlan(cloud.plan); await secureLocalSet("rh_plan", cloud.plan); }
-          if (cloud.progress) { setProgress(cloud.progress); await secureLocalSet("rh_progress", cloud.progress); }
-          if (Array.isArray(cloud.journal)) { setJournal(cloud.journal); await secureLocalSet("rh_journal", cloud.journal); }
+          if (cloud.profile) setProfile(cloud.profile);
+          if (cloud.answers) setAnswers(cloud.answers);
+          if (cloud.plan) setPlan(cloud.plan);
+          if (cloud.progress) setProgress(cloud.progress);
+          if (Array.isArray(cloud.journal)) setJournal(cloud.journal);
           if (data.journal_pin_hash) {
             await sset(JOURNAL_PIN_STORAGE_KEY, { hash: data.journal_pin_hash, createdAt: Date.now(), accountSynced: true });
             setJournalPinSet(true); setJournalUnlocked(false);
@@ -1239,7 +1252,12 @@ export default function App() {
           const [lp, la, lpl, lpr, lj] = await Promise.all([
             secureLocalGet("rh_profile"), secureLocalGet("rh_answers"), secureLocalGet("rh_plan"), secureLocalGet("rh_progress"), secureLocalGet("rh_journal"),
           ]);
-          if (lp || la || lpl || lpr || (lj && lj.length)) await syncMemberData({ profile: lp || null, answers: la || null, plan: lpl || null, progress: lpr || {}, journal: lj || [] });
+          if (lp || la || lpl || lpr || (lj && lj.length)) {
+            await syncMemberData({ profile: lp || null, answers: la || null, plan: lpl || null, progress: lpr || {}, journal: lj || [] });
+            for (const key of ["rh_profile", "rh_answers", "rh_plan", "rh_progress", "rh_journal"]) {
+              try { localStorage.removeItem(key); } catch {}
+            }
+          }
         }
       } catch {}
     })();
