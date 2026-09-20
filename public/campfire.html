@@ -28,7 +28,7 @@
   *{ box-sizing:border-box; }
   html,body{
     margin:0; padding:0; min-height:100%;
-    background: radial-gradient(ellipse 120% 80% at 50% 15%, var(--bg-2), var(--bg-0) 70%);
+    background:#140d09;
     color:var(--cream);
     font-family:var(--sans);
     -webkit-font-smoothing:antialiased;
@@ -96,11 +96,11 @@
 
   /* ---------- fire + chairs ---------- */
   .fire-circle-wrap{ width:100%; display:flex; justify-content:center; margin:22px 0 10px; }
-  .fire-circle{ position:relative; width:min(78vw, 360px); aspect-ratio:1/1; background:#140d09; isolation:isolate; overflow:visible; }
+  .fire-circle{ position:relative; width:min(78vw, 360px); aspect-ratio:1/1; background:transparent; isolation:isolate; overflow:visible; }
   .fire-video{
     position:absolute; inset:0; width:100%; height:100%; display:block; background:#140d09;
     object-fit:cover; object-position:center center; pointer-events:none;
-    mix-blend-mode:normal; z-index:0; border-radius:2px;
+    mix-blend-mode:normal; z-index:0; border-radius:2px; transform:scale(.78);
   }
   .fire-glow{
     display:none;
@@ -118,28 +118,23 @@
   @media (prefers-reduced-motion: reduce){ .flame, .fire-glow{ animation:none !important; } }
 
   .chair{
-    position:absolute; width:19%; aspect-ratio:1/1; left:50%; top:50%; transform:translate(-50%,-50%);
+    position:absolute; width:24%; aspect-ratio:1/1; left:50%; top:50%; transform:translate(-50%,-50%);
     background:none; border:none; padding:0;
     display:flex; flex-direction:column; align-items:center; gap:6px; cursor:pointer; color:var(--cream);
   }
   .chair .seat-icon-wrap{
     width:100%; aspect-ratio:1/1; border-radius:50%; display:flex; align-items:center; justify-content:center;
-    background:rgba(20,13,9,0.55); border:1.5px solid transparent;
-    transition:border-color 0.2s, box-shadow 0.2s, transform 0.15s; overflow:hidden; position:relative;
+    background:none; border:0;
+    transition:transform 0.15s; overflow:visible; position:relative;
   }
   .chair:hover .seat-icon-wrap{ transform:scale(1.06); }
   .chair svg{ width:56%; height:56%; }
   .chair svg.seat-stump, .chair img.seat-stump{ width:100%; height:100%; transform:rotate(var(--seat-rotation, 0deg)); transform-origin:center; object-fit:contain; }
   .chair .seat-icon-wrap img, .chair .seat-icon-wrap svg.avatar-full{ width:100%; height:100%; object-fit:cover; }
-  .chair.free .seat-icon-wrap{ border-color:var(--free); box-shadow:0 0 14px 1px rgba(127,168,118,0.55); }
-  .chair.free svg{ color:var(--free-glow); }
-  .chair.free .seat-icon-wrap{ animation:seat-breathe 2.6s ease-in-out infinite; }
-  @keyframes seat-breathe{ 0%,100%{ box-shadow:0 0 10px 0 rgba(127,168,118,0.4); } 50%{ box-shadow:0 0 18px 3px rgba(127,168,118,0.65); } }
+  .chair.free .seat-icon-wrap, .chair.taken .seat-icon-wrap, .chair.mine .seat-icon-wrap{ border:0; box-shadow:none; animation:none; }
   .chair.taken svg{ color:var(--wood-light); }
-  .chair.taken .seat-icon-wrap{ border-color:rgba(233,217,192,0.1); }
-  .chair.mine .seat-icon-wrap{ border-color:var(--ember); box-shadow:0 0 14px 1px rgba(232,112,58,0.55); }
   .chair.mine svg{ color:var(--ember); }
-  .chair.speaking .seat-icon-wrap{ box-shadow:0 0 0 3px rgba(232,112,58,0.5), 0 0 16px 4px rgba(232,112,58,0.5); }
+  .chair.speaking .seat-icon-wrap{ box-shadow:none; }
   .chair-label{ font-size:11px; color:var(--cream-dim); max-width:80px; text-align:center; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-weight:600; }
   .chair.mine .chair-label{ color:var(--ember); }
   .chair:disabled{ cursor:default; }
@@ -339,6 +334,7 @@
     <div class="fire-circle-wrap">
       <div class="fire-circle" id="fireCircle">
         <video class="fire-video" autoplay loop muted playsinline preload="auto" aria-hidden="true">
+          <source src="/campfire_transparent.webm?v=1" type="video/webm">
           <source src="/virtual_campfire_animation.mp4?v=3" type="video/mp4">
         </video>
         <div class="fire-glow"></div>
