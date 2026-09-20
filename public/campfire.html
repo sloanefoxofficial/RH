@@ -97,13 +97,18 @@
   /* ---------- fire + chairs ---------- */
   .fire-circle-wrap{ width:100%; display:flex; justify-content:center; margin:22px 0 10px; }
   .fire-circle{ position:relative; width:min(86vw, 420px); aspect-ratio:1/1; }
+  .fire-video{
+    position:absolute; inset:0; width:100%; height:100%; display:block;
+    object-fit:cover; object-position:center center; pointer-events:none;
+    mix-blend-mode:screen; z-index:0;
+  }
   .fire-glow{
     position:absolute; inset:0; border-radius:50%;
     background: radial-gradient(circle at 50% 55%, rgba(232,112,58,0.30), rgba(232,112,58,0.06) 45%, transparent 70%);
-    pointer-events:none; animation: glow-pulse 3.2s ease-in-out infinite;
+    pointer-events:none; animation: glow-pulse 3.2s ease-in-out infinite; z-index:1;
   }
   @keyframes glow-pulse{ 0%,100%{ opacity:0.75; transform:scale(1); } 50%{ opacity:1; transform:scale(1.04); } }
-  .fire{ position:absolute; left:50%; top:50%; transform:translate(-50%,-46%); width:15%; height:22%; }
+  .fire{ display:none; position:absolute; left:50%; top:50%; transform:translate(-50%,-46%); width:15%; height:22%; }
   .fire .log{ position:absolute; bottom:-6%; left:50%; width:150%; height:14%; transform:translateX(-50%); background:linear-gradient(90deg,#2a1710,#4a2c18 50%,#2a1710); border-radius:40%; }
   .flame{ position:absolute; bottom:8%; left:50%; border-radius:50% 50% 50% 50% / 60% 60% 40% 40%; background:var(--ember); transform-origin:bottom center; filter:blur(0.3px); }
   .flame.f1{ width:70%; height:100%; margin-left:-35%; background:linear-gradient(0deg,#c9451a,#f5a247); animation:flick1 1.6s ease-in-out infinite; }
@@ -334,6 +339,9 @@
 
     <div class="fire-circle-wrap">
       <div class="fire-circle" id="fireCircle">
+        <video class="fire-video" autoplay loop muted playsinline preload="auto" aria-hidden="true">
+          <source src="/virtual_campfire_animation.mp4" type="video/mp4">
+        </video>
         <div class="fire-glow"></div>
         <div class="fire">
           <div class="log"></div>
