@@ -560,12 +560,12 @@
       '<path d="M19 29 Q24 32 29 29" />' + hairPath + '</svg>';
   }
   function avatarMarkup(type, data, isFree){
-    if(isFree || type === 'none' || !type) return '<img class="seat-stump" src="/campfire_stump_seat.svg" alt="">';
+    if(isFree || type === 'none' || !type) return '<img class="seat-stump" src="/campfire_tree_seat.png" alt="">';
     if(type === 'male') return simplePersonSVG('male').replace('<svg ', '<svg class="avatar-full" ');
     if(type === 'female') return simplePersonSVG('female').replace('<svg ', '<svg class="avatar-full" ');
     if(type === 'cartoon') return cartoonSVG(data).replace('<svg ', '<svg class="avatar-full" ');
     if(type === 'photo' && data) return '<img src="'+data+'" alt="">';
-    return '<img class="seat-stump" src="/campfire_stump_seat.svg" alt="">';
+    return '<img class="seat-stump" src="/campfire_tree_seat.png" alt="">';
   }
 
   // ---------- dom refs ----------
@@ -699,7 +699,7 @@
     btn.setAttribute('aria-label', 'Empty seat, tap to sit');
     btn.innerHTML =
       '<div class="speech-bubble" id="bubble-'+i+'"></div>' +
-      '<span class="seat-icon-wrap"><img class="seat-stump" src="/campfire_stump_seat.svg" alt=""></span>' +
+      '<span class="seat-icon-wrap"><img class="seat-stump" src="/campfire_tree_seat.png" alt=""></span>' +
       '<span class="chair-label">Free</span>';
     btn.addEventListener('click', ()=> onChairTap(i));
     fireCircle.appendChild(btn);
