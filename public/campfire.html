@@ -132,6 +132,9 @@
   .chair svg.seat-stump, .chair img.seat-stump{ width:100%; height:100%; transform:rotate(var(--seat-rotation, 0deg)); transform-origin:center; object-fit:contain; }
   .chair .seat-icon-wrap img, .chair .seat-icon-wrap svg.avatar-full{ width:100%; height:100%; object-fit:cover; }
   .chair.free .seat-icon-wrap, .chair.taken .seat-icon-wrap, .chair.mine .seat-icon-wrap{ border:0; box-shadow:none; animation:none; }
+  .chair.taken .seat-icon-wrap, .chair.mine .seat-icon-wrap{
+    border:1px solid #000; border-radius:50%; background:#1b120c; overflow:hidden;
+  }
   .chair.taken svg{ color:var(--wood-light); }
   .chair.mine svg{ color:var(--ember); }
   .chair.speaking .seat-icon-wrap{ box-shadow:none; }
