@@ -1,0 +1,2306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>The Campfire</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Source+Sans+3:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-0:#140d09;
+    --bg-1:#1e130c;
+    --bg-2:#2a1a10;
+    --ember:#e8703a;
+    --ember-dim:#a9511f;
+    --coal:#3a2416;
+    --wood:#6b4a30;
+    --wood-light:#8a6444;
+    --cream:#e9d9c0;
+    --cream-dim:#b6a488;
+    --free:#7fa876;
+    --free-glow:#a8cf9c;
+    --serif:'Fraunces', Georgia, serif;
+    --sans:'Source Sans 3', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+  @media (prefers-color-scheme: light){ :root:not([data-theme="light"]){ } }
+  *{ box-sizing:border-box; }
+  html,body{
+    margin:0; padding:0; min-height:100%;
+    background:#140d09;
+    color:var(--cream);
+    font-family:var(--sans);
+    -webkit-font-smoothing:antialiased;
+  }
+  a{ color:inherit; }
+  button{ font-family:inherit; }
+  .scene{ max-width:640px; margin:0 auto; padding:28px 18px 48px; display:flex; flex-direction:column; align-items:center; }
+  .screen{ width:100%; }
+
+  /* ---------- home / fire selection ---------- */
+  #homeScreen header{ text-align:center; margin-bottom:26px; position:relative; }
+  .hub-exit{ display:inline-flex; align-items:center; gap:5px; position:absolute; right:0; top:0; color:var(--cream-dim); background:rgba(255,255,255,0.04); border:1px solid rgba(233,217,192,0.14); border-radius:999px; padding:7px 11px; font-size:12px; text-decoration:none; }
+  .hub-exit:hover{ color:var(--cream); border-color:rgba(232,112,58,0.4); }
+  #homeScreen h1{ font-family:var(--serif); font-weight:500; font-size:clamp(30px,8vw,42px); margin:0 0 6px; }
+  #homeScreen p.tagline{ margin:0; color:var(--cream-dim); font-size:14.5px; line-height:1.5; max-width:38ch; margin-left:auto; margin-right:auto; }
+  .fire-cards{ display:flex; flex-direction:column; gap:14px; }
+  .fire-card{
+    display:flex; align-items:center; gap:16px;
+    background:rgba(255,255,255,0.035);
+    border:1px solid rgba(233,217,192,0.12);
+    border-radius:18px;
+    padding:18px 20px;
+    cursor:pointer;
+    text-align:left;
+    transition:background 0.15s, border-color 0.15s, transform 0.1s;
+  }
+  .fire-card:hover{ background:rgba(255,255,255,0.06); border-color:rgba(232,112,58,0.4); transform:translateY(-1px); }
+  .fire-card .fc-icon{
+    width:54px; height:54px; border-radius:50%; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center; font-size:24px;
+    background:radial-gradient(circle at 45% 40%, rgba(232,112,58,0.35), rgba(232,112,58,0.06) 70%);
+    border:1px solid rgba(232,112,58,0.3);
+  }
+  .fire-card .fc-body{ flex:1; min-width:0; }
+  .fire-card .fc-name{ display:block; font-family:var(--serif); font-size:18px; font-weight:500; color:var(--cream); margin-bottom:3px; overflow-wrap:anywhere; }
+  .fire-card .fc-tagline{ display:block; font-size:12.5px; color:var(--cream-dim); line-height:1.35; overflow-wrap:anywhere; }
+  .fire-card .fc-count{ display:block; font-size:11.5px; color:rgba(233,217,192,0.45); margin-top:5px; }
+  .rules-note{ text-align:center; color:rgba(233,217,192,0.35); font-size:12px; margin-top:22px; }
+
+  /* ---------- fire screen header ---------- */
+  #fireScreen header{ width:100%; text-align:center; margin-bottom:6px; position:relative; }
+  .back-btn{
+    position:absolute; left:0; top:2px;
+    background:rgba(255,255,255,0.04);
+    border:1px solid rgba(233,217,192,0.14);
+    color:var(--cream-dim);
+    border-radius:999px;
+    padding:7px 13px;
+    font-size:13px;
+    cursor:pointer;
+  }
+  .back-btn:hover{ color:var(--cream); }
+  #fireScreen h1{ font-family:var(--serif); font-weight:500; font-size:clamp(24px,6vw,32px); margin:0 0 3px; }
+  #fireScreen p.tagline{ margin:0 0 14px; color:var(--cream-dim); font-size:13.5px; }
+  .header-controls{ display:flex; align-items:center; justify-content:center; gap:10px; }
+  .icon-btn{
+    background:rgba(255,255,255,0.04); border:1px solid rgba(233,217,192,0.14);
+    color:var(--cream-dim); border-radius:999px; width:38px; height:38px;
+    display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:16px;
+    transition:background 0.15s, color 0.15s, border-color 0.15s;
+  }
+  .icon-btn:hover{ background:rgba(255,255,255,0.08); color:var(--cream); }
+  .icon-btn[aria-pressed="true"]{ color:var(--ember); border-color:var(--ember-dim); }
+  .icon-btn:focus-visible, button:focus-visible, input:focus-visible{ outline:2px solid var(--ember); outline-offset:2px; }
+
+  /* ---------- fire + chairs ---------- */
+  .fire-circle-wrap{ width:100%; display:flex; justify-content:center; margin:22px 0 10px; }
+  .fire-circle{ position:relative; width:min(78vw, 360px); aspect-ratio:1/1; background:transparent; isolation:isolate; overflow:visible; }
+  .fire-video{
+    position:absolute; inset:0; width:100%; height:100%; display:block; background:#140d09;
+    object-fit:cover; object-position:center center; pointer-events:none;
+    mix-blend-mode:normal; z-index:0; border-radius:2px; transform:scale(.64);
+  }
+  .fire-glow{
+    display:none;
+  }
+  @keyframes glow-pulse{ 0%,100%{ opacity:0.75; transform:scale(1); } 50%{ opacity:1; transform:scale(1.04); } }
+  .fire{ display:none; position:absolute; left:50%; top:50%; transform:translate(-50%,-46%); width:15%; height:22%; }
+  .fire .log{ position:absolute; bottom:-6%; left:50%; width:150%; height:14%; transform:translateX(-50%); background:linear-gradient(90deg,#2a1710,#4a2c18 50%,#2a1710); border-radius:40%; }
+  .flame{ position:absolute; bottom:8%; left:50%; border-radius:50% 50% 50% 50% / 60% 60% 40% 40%; background:var(--ember); transform-origin:bottom center; filter:blur(0.3px); }
+  .flame.f1{ width:70%; height:100%; margin-left:-35%; background:linear-gradient(0deg,#c9451a,#f5a247); animation:flick1 1.6s ease-in-out infinite; }
+  .flame.f2{ width:46%; height:78%; margin-left:-23%; background:linear-gradient(0deg,#e8703a,#ffd27a); animation:flick2 1.3s ease-in-out infinite; opacity:0.92; }
+  .flame.f3{ width:26%; height:50%; margin-left:-13%; background:#ffe3a1; animation:flick3 0.9s ease-in-out infinite; opacity:0.9; }
+  @keyframes flick1{ 0%,100%{ transform:scaleY(1) scaleX(1) rotate(-1deg); } 50%{ transform:scaleY(1.12) scaleX(0.94) rotate(2deg); } }
+  @keyframes flick2{ 0%,100%{ transform:scaleY(1) rotate(1deg) translateX(0); } 50%{ transform:scaleY(1.18) rotate(-2deg) translateX(2%); } }
+  @keyframes flick3{ 0%,100%{ transform:scaleY(1) translateY(0); } 50%{ transform:scaleY(1.22) translateY(-4%); } }
+  @media (prefers-reduced-motion: reduce){ .flame, .fire-glow{ animation:none !important; } }
+
+  .chair{
+    position:absolute; width:24%; aspect-ratio:1/1; left:50%; top:50%; transform:translate(-50%,-50%);
+    background:none; border:none; padding:0;
+    display:flex; flex-direction:column; align-items:center; gap:6px; cursor:pointer; color:var(--cream);
+  }
+  .chair .seat-icon-wrap{
+    width:100%; aspect-ratio:1/1; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    background:none; border:0;
+    transition:transform 0.15s; overflow:visible; position:relative;
+  }
+  .chair:hover .seat-icon-wrap{ transform:scale(1.06); }
+  .chair svg{ width:56%; height:56%; }
+  .chair svg.seat-stump, .chair img.seat-stump{ width:100%; height:100%; transform:rotate(var(--seat-rotation, 0deg)); transform-origin:center; object-fit:contain; }
+  .chair .seat-icon-wrap img, .chair .seat-icon-wrap svg.avatar-full{ width:100%; height:100%; object-fit:cover; }
+  .chair.free .seat-icon-wrap, .chair.taken .seat-icon-wrap, .chair.mine .seat-icon-wrap{ border:0; box-shadow:none; animation:none; }
+  .chair.taken .seat-icon-wrap, .chair.mine .seat-icon-wrap{
+    border:1px solid #000; border-radius:50%; background:#1b120c; overflow:hidden;
+  }
+  .chair.taken svg{ color:var(--wood-light); }
+  .chair.mine svg{ color:var(--ember); }
+  .chair.speaking .seat-icon-wrap{ box-shadow:none; }
+  .chair-label{ font-size:11px; color:var(--cream-dim); max-width:80px; text-align:center; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-weight:600; }
+  .chair.mine .chair-label{ color:var(--ember); }
+  .chair:disabled{ cursor:default; }
+  .ball-layer{ position:absolute; inset:0; z-index:8; pointer-events:none; overflow:visible; }
+  .throw-ball{
+    position:absolute; left:0; top:0; width:13px; height:13px; border-radius:50%;
+    background:#63d66b; border:1px solid #173b1b; box-shadow:0 2px 7px rgba(0,0,0,0.5), 0 0 8px rgba(99,214,107,0.75);
+    will-change:transform, opacity;
+  }
+
+  /* speech bubble */
+  .speech-bubble{
+    position:absolute; bottom:100%; left:50%; transform:translateX(-50%) translateY(4px);
+    margin-bottom:9px;
+    max-width:118px;
+    background:rgba(233,217,192,0.96);
+    color:#2a1a10;
+    border-radius:13px;
+    padding:6px 10px;
+    font-size:11px;
+    line-height:1.3;
+    text-align:center;
+    box-shadow:0 3px 10px rgba(0,0,0,0.35);
+    opacity:0; pointer-events:none;
+    transition:opacity 0.25s ease, transform 0.25s ease;
+    z-index:5;
+  }
+  .speech-bubble::after{
+    content:''; position:absolute; top:100%; left:50%; transform:translateX(-50%);
+    border:6px solid transparent; border-top-color:rgba(233,217,192,0.96);
+  }
+  .speech-bubble.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+  .speech-bubble .sb-name{ font-weight:700; display:block; margin-bottom:2px; color:var(--ember-dim); font-size:10px; }
+  .speech-bubble .sb-voice{ display:flex; align-items:center; justify-content:center; gap:4px; }
+  .speech-bubble .sb-avatar{ display:block; width:26px; height:26px; border-radius:50%; overflow:hidden; margin:0 auto 4px; background:rgba(0,0,0,0.12); }
+  .speech-bubble .sb-avatar svg, .speech-bubble .sb-avatar img{ width:100%; height:100%; object-fit:cover; color:var(--ember-dim); }
+  .mic-note{ font-size:11px; color:rgba(233,217,192,0.45); text-align:center; padding:6px 14px 0; display:none; }
+  .mic-note a{ color:var(--ember); }
+  .mic-note.show{ display:block; }
+
+  /* ---------- status ---------- */
+  .status-line{ text-align:center; font-size:14px; color:var(--cream-dim); min-height:20px; margin:8px 0 4px; }
+  .status-line.full{ color:#f0b98e; }
+  .wait-btn{ margin-top:8px; background:rgba(232,112,58,0.12); border:1px solid var(--ember-dim); color:var(--ember); padding:8px 16px; border-radius:999px; font-size:13.5px; cursor:pointer; }
+  .wait-btn:hover{ background:rgba(232,112,58,0.2); }
+  .stand-btn{ margin-top:10px; background:none; border:1px solid rgba(233,217,192,0.25); color:var(--cream-dim); padding:7px 16px; border-radius:999px; font-size:13px; cursor:pointer; }
+  .stand-btn:hover{ color:var(--cream); border-color:rgba(233,217,192,0.45); }
+
+  /* ---------- private video call ---------- */
+  #callBtn:disabled{ opacity:0.38; cursor:not-allowed; }
+  .call-panel{ width:100%; margin-top:14px; padding:14px; background:rgba(255,255,255,0.035); border:1px solid rgba(233,217,192,0.12); border-radius:14px; }
+  .call-panel[hidden], .video-grid[hidden], .call-actions[hidden]{ display:none; }
+  .call-heading{ display:block; font-family:var(--serif); font-size:16px; font-weight:500; text-align:center; }
+  .call-status{ display:block; margin-top:3px; color:var(--cream-dim); font-size:12.5px; line-height:1.4; text-align:center; }
+  .call-status.error{ color:#f0b98e; }
+  .video-grid{ display:grid; grid-template-columns:minmax(0, 2fr) minmax(112px, 1fr); gap:9px; margin-top:12px; }
+  .video-frame{ position:relative; min-height:150px; overflow:hidden; border-radius:12px; background:#090604; border:1px solid rgba(233,217,192,0.12); }
+  .video-frame.local{ min-height:112px; }
+  .video-frame video{ width:100%; height:100%; min-height:inherit; display:block; object-fit:cover; background:#090604; }
+  .video-label{ position:absolute; left:8px; bottom:7px; padding:3px 7px; border-radius:999px; background:rgba(10,6,4,0.72); color:var(--cream); font-size:10.5px; }
+  .call-actions{ display:flex; align-items:center; justify-content:center; gap:8px; flex-wrap:wrap; margin-top:12px; }
+  .call-action{ background:rgba(255,255,255,0.055); border:1px solid rgba(233,217,192,0.18); color:var(--cream); border-radius:999px; padding:8px 13px; font-size:12.5px; cursor:pointer; }
+  .call-action:hover{ background:rgba(255,255,255,0.09); }
+  .call-action[aria-pressed="true"]{ color:#f0b98e; border-color:rgba(232,112,58,0.55); }
+  .call-action:disabled{ opacity:0.38; cursor:not-allowed; }
+  .call-end{ background:rgba(190,60,38,0.2); border-color:rgba(232,112,58,0.5); color:#ffd2bd; }
+  .call-modal-card{ max-width:390px; }
+  .call-person-list{ display:flex; flex-direction:column; gap:8px; margin:14px 0 4px; }
+  .call-person{ width:100%; display:flex; align-items:center; justify-content:space-between; gap:12px; border:1px solid rgba(233,217,192,0.14); border-radius:12px; padding:11px 13px; background:rgba(255,255,255,0.04); color:var(--cream); text-align:left; cursor:pointer; }
+  .call-person:hover:not(:disabled){ border-color:rgba(232,112,58,0.45); background:rgba(232,112,58,0.09); }
+  .call-person:disabled{ opacity:0.48; cursor:not-allowed; }
+  .call-person small{ color:var(--cream-dim); }
+  .call-empty{ color:var(--cream-dim); text-align:center; font-size:13px; line-height:1.45; padding:10px 4px; }
+  .incoming-actions{ display:flex; gap:9px; margin-top:18px; }
+  .incoming-actions button{ flex:1; border-radius:999px; padding:11px 14px; font-size:14px; font-weight:600; cursor:pointer; }
+  .call-reject{ background:none; border:1px solid rgba(233,217,192,0.25); color:var(--cream-dim); }
+  .call-accept{ background:var(--ember); border:1px solid var(--ember); color:#1a0f08; }
+  #incomingCallOverlay{ z-index:120; }
+  @media (max-width:480px){
+    .video-grid{ grid-template-columns:1fr; }
+    .video-frame.local{ position:absolute; width:104px; min-height:78px; right:28px; margin-top:8px; z-index:2; box-shadow:0 4px 16px rgba(0,0,0,0.45); }
+    .call-panel{ position:relative; }
+  }
+
+  /* ---------- chat ---------- */
+  .chat-panel{ width:100%; margin-top:22px; background:rgba(255,255,255,0.03); border:1px solid rgba(233,217,192,0.1); border-radius:14px; overflow:hidden; }
+  .chat-messages{ height:170px; overflow-y:auto; padding:12px 14px; display:flex; flex-direction:column; gap:9px; }
+  .chat-empty{ margin:auto; color:rgba(233,217,192,0.35); font-size:13px; text-align:center; padding:0 20px; }
+  .msg{ font-size:14px; line-height:1.4; }
+  .msg .who{ color:var(--ember); font-weight:600; margin-right:6px; }
+  .msg .when{ color:rgba(233,217,192,0.32); font-size:11px; margin-left:6px; }
+  .msg .body{ color:var(--cream); word-wrap:break-word; }
+  .msg.system{ color:rgba(233,217,192,0.4); font-style:italic; font-size:12.5px; }
+  .voice-chip{
+    display:inline-flex; align-items:center; gap:6px;
+    background:rgba(232,112,58,0.14); border:1px solid rgba(232,112,58,0.35);
+    border-radius:999px; padding:4px 11px; cursor:pointer; color:var(--cream); font-size:13px;
+  }
+  .voice-chip:hover{ background:rgba(232,112,58,0.22); }
+
+  .voice-hint{ font-size:11.5px; color:rgba(233,217,192,0.4); padding:8px 14px 0; text-align:center; }
+
+  #chatForm{ display:flex; align-items:center; gap:8px; border-top:1px solid rgba(233,217,192,0.1); padding:9px 10px; background:rgba(0,0,0,0.15); }
+  #chatInput{ flex:1; background:rgba(255,255,255,0.05); border:1px solid rgba(233,217,192,0.14); border-radius:999px; padding:9px 14px; color:var(--cream); font-size:14px; outline:none; }
+  #chatInput:disabled{ color:rgba(233,217,192,0.3); cursor:not-allowed; }
+  #chatInput:focus{ border-color:var(--ember-dim); }
+  #chatForm button[type="submit"]{ background:var(--ember); color:#1a0f08; border:none; border-radius:999px; padding:9px 16px; font-size:13.5px; font-weight:600; cursor:pointer; }
+  #chatForm button[type="submit"]:disabled{ background:rgba(232,112,58,0.25); color:rgba(26,15,8,0.5); cursor:not-allowed; }
+  #micBtn{
+    background:rgba(232,112,58,0.14); border:1.5px solid var(--ember-dim); color:var(--ember);
+    width:40px; height:40px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:16px; flex-shrink:0;
+    position:relative; user-select:none; touch-action:none;
+    transition:transform 0.1s;
+  }
+  #micBtn.recording{ background:var(--ember); color:#1a0f08; transform:scale(1.12); animation:mic-pulse 1s ease-in-out infinite; }
+  @keyframes mic-pulse{ 0%,100%{ box-shadow:0 0 0 0 rgba(232,112,58,0.5); } 50%{ box-shadow:0 0 0 8px rgba(232,112,58,0); } }
+  #micBtn:disabled{ opacity:0.35; cursor:not-allowed; }
+  .rec-timer{ font-size:11px; color:var(--ember); min-width:30px; text-align:center; }
+
+  /* ---------- rules ---------- */
+  .rules-pinned{ width:100%; margin-top:26px; padding:18px 20px; background:rgba(255,255,255,0.025); border:1px solid rgba(233,217,192,0.08); border-radius:14px; }
+  .rules-pinned h2{ font-family:var(--serif); font-weight:500; font-size:17px; margin:0 0 12px; color:var(--cream); text-align:center; }
+  .rules-pinned ul{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:9px; }
+  .rules-pinned li{ font-size:13.5px; color:var(--cream-dim); padding-left:16px; position:relative; line-height:1.45; }
+  .rules-pinned li::before{ content:''; position:absolute; left:0; top:7px; width:5px; height:5px; border-radius:50%; background:var(--ember-dim); }
+  footer.credit{ margin-top:18px; font-size:11.5px; color:rgba(233,217,192,0.28); text-align:center; }
+
+  ::-webkit-scrollbar{ width:8px; }
+  ::-webkit-scrollbar-track{ background:transparent; }
+  ::-webkit-scrollbar-thumb{ background:rgba(233,217,192,0.15); border-radius:8px; }
+
+  /* ---------- avatar picker modal ---------- */
+  .modal-overlay{ position:fixed; inset:0; background:rgba(10,6,4,0.72); backdrop-filter:blur(2px); display:flex; align-items:flex-end; justify-content:center; z-index:100; opacity:0; pointer-events:none; transition:opacity 0.18s ease; }
+  .modal-overlay.open{ opacity:1; pointer-events:auto; }
+  @media (min-width:560px){ .modal-overlay{ align-items:center; } }
+  .modal-card{ width:100%; max-width:440px; max-height:88vh; overflow-y:auto; background:linear-gradient(180deg, var(--bg-2), var(--bg-0)); border:1px solid rgba(233,217,192,0.14); border-radius:20px 20px 0 0; padding:22px 20px 26px; transform:translateY(16px); transition:transform 0.18s ease; position:relative; }
+  @media (min-width:560px){ .modal-card{ border-radius:18px; transform:translateY(0) scale(0.98); } }
+  .modal-overlay.open .modal-card{ transform:translateY(0) scale(1); }
+  .modal-card h3{ font-family:var(--serif); font-weight:500; font-size:20px; margin:0 0 3px; text-align:center; }
+  .modal-sub{ text-align:center; color:var(--cream-dim); font-size:13px; margin:0 0 18px; }
+  .modal-label{ font-size:12.5px; color:var(--cream-dim); margin:0 0 6px; display:block; font-weight:600; letter-spacing:0.2px; }
+  .modal-name-input{ width:100%; background:rgba(255,255,255,0.05); border:1px solid rgba(233,217,192,0.16); border-radius:12px; padding:11px 14px; color:var(--cream); font-size:15px; outline:none; margin-bottom:18px; }
+  .modal-name-input:focus{ border-color:var(--ember-dim); }
+  .avatar-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:9px; margin-bottom:6px; }
+  .avatar-opt{ display:flex; flex-direction:column; align-items:center; gap:6px; background:rgba(255,255,255,0.035); border:1.5px solid rgba(233,217,192,0.12); border-radius:14px; padding:12px 6px; cursor:pointer; color:var(--cream-dim); font-size:11px; text-align:center; line-height:1.25; }
+  .avatar-opt .opt-icon{ width:38px; height:38px; border-radius:50%; background:rgba(255,255,255,0.05); display:flex; align-items:center; justify-content:center; font-size:19px; }
+  .avatar-opt.selected{ border-color:var(--ember); color:var(--cream); background:rgba(232,112,58,0.09); }
+  .avatar-opt.selected .opt-icon{ background:rgba(232,112,58,0.18); }
+  .subpanel{ margin-top:14px; padding:14px; background:rgba(255,255,255,0.03); border:1px solid rgba(233,217,192,0.1); border-radius:14px; display:none; }
+  .subpanel.show{ display:block; }
+  .swatch-row{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
+  .swatch{ width:30px; height:30px; border-radius:50%; border:2px solid transparent; cursor:pointer; flex-shrink:0; }
+  .swatch.selected{ border-color:var(--cream); box-shadow:0 0 0 2px var(--bg-0), 0 0 0 3px var(--ember); }
+  .seg-row{ display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap; }
+  .seg-btn{ flex:1; min-width:70px; background:rgba(255,255,255,0.04); border:1px solid rgba(233,217,192,0.14); color:var(--cream-dim); border-radius:10px; padding:8px 6px; font-size:12.5px; cursor:pointer; }
+  .seg-btn.selected{ border-color:var(--ember); color:var(--cream); background:rgba(232,112,58,0.12); }
+  .cartoon-preview-row{ display:flex; align-items:center; gap:14px; margin-bottom:4px; }
+  .cartoon-preview{ width:72px; height:72px; border-radius:50%; background:rgba(0,0,0,0.25); display:flex; align-items:center; justify-content:center; flex-shrink:0; border:1.5px solid rgba(233,217,192,0.15); }
+  .cartoon-preview svg{ width:100%; height:100%; }
+  .shuffle-btn{ background:rgba(255,255,255,0.05); border:1px solid rgba(233,217,192,0.18); color:var(--cream); border-radius:999px; padding:9px 16px; font-size:13px; cursor:pointer; }
+  .photo-row{ display:flex; align-items:center; gap:14px; }
+  .photo-preview{ width:72px; height:72px; border-radius:50%; background:rgba(0,0,0,0.25); border:1.5px solid rgba(233,217,192,0.15); display:flex; align-items:center; justify-content:center; overflow:hidden; flex-shrink:0; color:var(--cream-dim); font-size:22px; }
+  .photo-preview img{ width:100%; height:100%; object-fit:cover; }
+  .file-btn-label{ background:rgba(255,255,255,0.05); border:1px solid rgba(233,217,192,0.18); color:var(--cream); border-radius:999px; padding:9px 16px; font-size:13px; cursor:pointer; display:inline-block; }
+  .visibility-note{ font-size:11px; color:rgba(233,217,192,0.4); margin-top:8px; }
+  .modal-actions{ display:flex; gap:10px; margin-top:20px; }
+  .modal-actions button{ flex:1; border-radius:999px; padding:12px; font-size:14.5px; font-weight:600; cursor:pointer; border:none; }
+  .btn-skip{ background:none; border:1px solid rgba(233,217,192,0.25) !important; color:var(--cream-dim); }
+  .btn-skip:hover{ color:var(--cream); border-color:rgba(233,217,192,0.45) !important; }
+  .btn-sit{ background:var(--ember); color:#1a0f08; }
+  .modal-close{ position:absolute; top:14px; right:16px; background:none; border:none; color:var(--cream-dim); font-size:20px; cursor:pointer; line-height:1; }
+</style>
+</head>
+<body>
+
+<div class="scene">
+
+  <!-- ================= HOME: choose a fire ================= -->
+  <div class="screen" id="homeScreen">
+    <header>
+      <a class="hub-exit" href="./" aria-label="Return to The Resilience Hub">← Hub</a>
+      <h1>The Campfire</h1>
+      <p class="tagline">Three fires, same idea: pull up a chair, come and go as you please. No booking, no agenda.</p>
+    </header>
+    <div class="fire-cards" id="fireCards"><!-- injected --></div>
+    <p class="rules-note">Every fire follows the same quiet rules — see them once you're seated.</p>
+  </div>
+
+  <!-- ================= FIRE ROOM ================= -->
+  <div class="screen" id="fireScreen" style="display:none">
+    <header>
+      <a class="hub-exit" href="./" aria-label="Return to The Resilience Hub">← Hub</a>
+      <button class="back-btn" id="backBtn">← All fires</button>
+      <h1 id="fireTitle">Fire</h1>
+      <p class="tagline" id="fireTagline"></p>
+      <div class="header-controls">
+        <button class="icon-btn" id="soundBtn" type="button" aria-pressed="false" title="Toggle fire sound">🔇</button>
+        <button class="icon-btn" id="callBtn" type="button" title="Start a private video call" aria-label="Start a private video call" disabled>📹</button>
+      </div>
+    </header>
+
+    <div class="fire-circle-wrap">
+      <div class="fire-circle" id="fireCircle">
+        <video class="fire-video" autoplay loop muted playsinline preload="auto" aria-hidden="true">
+          <source src="/campfire_transparent.webm?v=1" type="video/webm">
+          <source src="/virtual_campfire_animation.mp4?v=3" type="video/mp4">
+        </video>
+        <div class="ball-layer" id="ballLayer" aria-hidden="true"></div>
+        <div class="fire-glow"></div>
+        <div class="fire">
+          <div class="log"></div>
+          <div class="flame f1"></div>
+          <div class="flame f2"></div>
+          <div class="flame f3"></div>
+        </div>
+        <!-- chairs injected by JS -->
+      </div>
+    </div>
+
+    <div class="status-line" id="statusLine">Finding a seat for you…</div>
+    <div id="statusActions" style="display:flex; justify-content:center;"></div>
+
+    <section class="call-panel" id="callPanel" aria-live="polite" hidden>
+      <strong class="call-heading" id="callHeading">Private video call</strong>
+      <span class="call-status" id="callStatus"></span>
+      <div class="video-grid" id="videoGrid" hidden>
+        <div class="video-frame remote">
+          <video id="remoteVideo" autoplay playsinline></video>
+          <span class="video-label" id="remoteVideoLabel">Other seat</span>
+        </div>
+        <div class="video-frame local">
+          <video id="localVideo" autoplay playsinline muted></video>
+          <span class="video-label">You</span>
+        </div>
+      </div>
+      <div class="call-actions" id="callControls" hidden>
+        <button class="call-action" id="callMuteBtn" type="button" aria-pressed="false" disabled>🎙️ Mute</button>
+        <button class="call-action" id="callCameraBtn" type="button" aria-pressed="false" disabled>📷 Camera off</button>
+        <button class="call-action call-end" id="callEndBtn" type="button">End call</button>
+      </div>
+    </section>
+
+    <section class="chat-panel">
+      <p class="voice-hint">🎙️ Voice messages recommended — it feels like we're actually sitting together. Text is always there too.</p>
+      <div class="chat-messages" id="chatMessages">
+        <div class="chat-empty" id="chatEmpty">It's quiet by the fire right now. Take a seat, or just listen in.</div>
+      </div>
+      <form id="chatForm">
+        <button type="button" id="micBtn" title="Tap to start talking, tap again to stop" aria-label="Tap to start talking, tap again to stop" disabled>🎙️</button>
+        <span class="rec-timer" id="recTimer" style="display:none">0:00</span>
+        <input id="chatInput" placeholder="Take a seat to talk…" disabled maxlength="500" autocomplete="off">
+        <button type="submit" id="sendBtn" disabled>Send</button>
+      </form>
+      <p class="mic-note" id="micNote">Voice isn't available in this window. <a href="https://claude.ai/artifact/D1e4SriTm8kgBaVZotwD7i" target="_blank" rel="noopener">Open the fire in your browser</a> to talk with your voice — text works everywhere.</p>
+    </section>
+
+    <div class="rules-pinned">
+      <h2>🔥 Around this fire — Full Final Rules</h2>
+      <ul>
+        <li>Pull up a chair — come and go as you please</li>
+        <li>No fixing, no unsolicited advice — just listening first. Lived-experience tips &amp; what’s worked for you are always welcome, when they’re asked for.</li>
+        <li>What's said here stays here — never share names, stories, screenshots, or details outside this space</li>
+        <li>Silent is fine — you don't have to speak</li>
+        <li>Everyone equal — no one runs it, no one leads</li>
+        <li>Anonymous welcome — no real name needed</li>
+        <li>You can use your name, a nickname, or stay "Bloke" — whatever feels right</li>
+        <li>Avatar, photo, or no image at all — your call, no pressure</li>
+        <li>Voice or text — whatever feels right. Voice recommended.</li>
+        <li>Speech bubbles show who's speaking — clear, quiet, no confusion</li>
+        <li>Be respectful — no abuse, no put-downs, no judgment. Everyone’s carrying something you can’t see.</li>
+        <li>Look out for each other — people might not be who they say they are. Keep personal details private, don’t share contact info publicly.</li>
+        <li>No hate, no politics, no pushing agendas — just real blokes sharing real stuff.</li>
+        <li>Share what’s worked for you — your own experience is the most valuable thing you can give. No “shoulds”, just “this is what helped me”.</li>
+        <li>Want to connect one-on-one safely? Use the VIDEO button at the top — pick who you want to talk to, and they have to accept. No need to share phone numbers or personal details — it’s all built right into the app for your safety.</li>
+        <li>If someone’s struggling — be kind. If you’re worried about someone, reach out privately or flag it. We’re all looking out for each other.</li>
+      </ul>
+    </div>
+
+    <footer class="credit">7 seats. When one's free, it's yours.</footer>
+  </div>
+</div>
+
+<!-- avatar / name picker modal -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-card">
+    <button class="modal-close" id="modalClose" aria-label="Close">✕</button>
+    <h3 id="modalTitle">Choose how you appear</h3>
+    <p class="modal-sub" id="modalSub">Completely optional — no pressure at all</p>
+
+    <label class="modal-label" for="modalNameInput">What should we call you?</label>
+    <input id="modalNameInput" class="modal-name-input" maxlength="18" placeholder="Bloke">
+
+    <label class="modal-label">Pick how you look</label>
+    <div class="avatar-grid" id="avatarGrid">
+      <div class="avatar-opt" data-type="male"><span class="opt-icon">🧔</span>Simple avatar</div>
+      <div class="avatar-opt" data-type="female"><span class="opt-icon">👩</span>Simple avatar</div>
+      <div class="avatar-opt" data-type="cartoon"><span class="opt-icon">🎭</span>Build a face</div>
+      <div class="avatar-opt" data-type="photo"><span class="opt-icon">📷</span>Upload photo</div>
+      <div class="avatar-opt selected" data-type="none"><span class="opt-icon">🔕</span>No image</div>
+    </div>
+
+    <div class="subpanel" id="cartoonPanel">
+      <div class="cartoon-preview-row">
+        <div class="cartoon-preview" id="cartoonPreview"></div>
+        <button type="button" class="shuffle-btn" id="shuffleBtn">🔀 Shuffle face</button>
+      </div>
+      <label class="modal-label" style="margin-top:10px;">Skin tone</label>
+      <div class="swatch-row" id="skinRow"></div>
+      <label class="modal-label">Hair</label>
+      <div class="seg-row" id="hairRow"></div>
+      <label class="modal-label">Extra</label>
+      <div class="seg-row" id="accRow"></div>
+    </div>
+
+    <div class="subpanel" id="photoPanel">
+      <div class="photo-row">
+        <div class="photo-preview" id="photoPreview">📷</div>
+        <label class="file-btn-label" for="photoInput">Choose photo</label>
+        <input type="file" id="photoInput" accept="image/*" style="display:none">
+      </div>
+      <p class="visibility-note">Visible to everyone at the fire — kept small &amp; simple.</p>
+    </div>
+
+    <div class="modal-actions">
+      <button type="button" class="btn-skip" id="modalSkip">Skip — just sit</button>
+      <button type="button" class="btn-sit" id="modalSit">Sit down</button>
+    </div>
+  </div>
+</div>
+
+<!-- private video call seat picker -->
+<div class="modal-overlay" id="callChooserOverlay">
+  <div class="modal-card call-modal-card" role="dialog" aria-modal="true" aria-labelledby="callChooserTitle">
+    <button class="modal-close" id="callChooserClose" aria-label="Close">✕</button>
+    <h3 id="callChooserTitle">Call someone by the fire</h3>
+    <p class="modal-sub">Choose one occupied seat. The other person can accept or decline.</p>
+    <div class="call-person-list" id="callPersonList"></div>
+  </div>
+</div>
+
+<!-- incoming private video call -->
+<div class="modal-overlay" id="incomingCallOverlay">
+  <div class="modal-card call-modal-card" role="dialog" aria-modal="true" aria-labelledby="incomingCallTitle">
+    <h3 id="incomingCallTitle">Incoming video call</h3>
+    <p class="modal-sub" id="incomingCallText">Someone by the fire would like to call.</p>
+    <div class="incoming-actions">
+      <button class="call-reject" id="callRejectBtn" type="button">Not now</button>
+      <button class="call-accept" id="callAcceptBtn" type="button">Accept</button>
+    </div>
+  </div>
+</div>
+
+<svg width="0" height="0" style="position:absolute">
+  <symbol id="stump-icon" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M11 17 Q24 10 37 17 L34 38 Q24 43 14 38 Z" fill="#6b4026" stroke="#d08a4d" stroke-width="1.8"/>
+    <ellipse cx="24" cy="17" rx="13" ry="6.5" fill="#9b633b" stroke="#e1a66a" stroke-width="1.8"/>
+    <path d="M18 17 Q24 13 30 17 M21 20 Q24 17 27 20" stroke="#6b4026" stroke-width="1.2" opacity="0.9"/>
+    <path d="M17 28 Q24 31 31 28 M17 33 Q24 36 31 33" stroke="#4b2a1b" stroke-width="1.3" opacity="0.8"/>
+  </symbol>
+</svg>
+
+<script>
+(function(){
+  "use strict";
+  const SEAT_COUNT = 7;
+  const NAME_KEY = "campfire_nickname_v1";
+  const CLIENT_KEY = "campfire_client_id_v1";
+  const SOUND_KEY = "campfire_sound_v1";
+  const AVATAR_KEY = "campfire_avatar_pref_v1";
+  const MAX_RECORD_MS = 12000;
+  const BUBBLE_MS = 6000;
+
+  const FIRES = [
+    { id:'mens',   name:"Men's Fire",   icon:'🔥', tagline:"For blokes to sit quiet, or talk straight." },
+    { id:'ladies', name:"Ladies' Fire", icon:'🔥', tagline:"A calm circle for women to gather." },
+    { id:'common', name:"Common Fire",  icon:'🔥', tagline:"Open to everyone, side by side." }
+  ];
+  let selectedAccess = null;
+  try{
+    const requestedSpace = new URLSearchParams(window.location.search).get('space');
+    selectedAccess = requestedSpace || sessionStorage.getItem('rh_campfire_access') || null;
+  }catch(e){ selectedAccess = null; }
+  let VISIBLE_FIRES = FIRES.filter(f=>f.id === selectedAccess || (selectedAccess && f.id === 'common'));
+
+  // ---------- identity ----------
+  function uid(){ return 'c' + Math.random().toString(36).slice(2,10) + Date.now().toString(36); }
+  function safeGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
+  function safeSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
+
+  let clientId = safeGet(CLIENT_KEY);
+  if(!clientId){ clientId = uid(); safeSet(CLIENT_KEY, clientId); }
+  let nickname = safeGet(NAME_KEY) || "";
+  let avatarPref = null;
+  try{ avatarPref = JSON.parse(safeGet(AVATAR_KEY) || 'null'); }catch(e){ avatarPref = null; }
+
+  // ---------- avatar rendering ----------
+  const SKIN_TONES = ['#8d5524','#c68642','#e0ac69','#f1c27d','#ffdbac'];
+  const HAIR_COLORS = ['#2b1c12','#5a3825','#8a5a2b','#c9a45c','#3a3a3a'];
+  const HAIR_STYLES = ['short','long','none'];
+  const ACCESSORIES = ['none','glasses','beard'];
+  function randChoice(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+  function randomCartoon(){ return { skin:randChoice(SKIN_TONES), hairColor:randChoice(HAIR_COLORS), hairStyle:randChoice(HAIR_STYLES), accessory:randChoice(ACCESSORIES) }; }
+
+  function cartoonSVG(opts){
+    opts = opts || randomCartoon();
+    const skin = opts.skin || SKIN_TONES[2];
+    const hairColor = opts.hairColor || HAIR_COLORS[0];
+    const hairStyle = opts.hairStyle || 'short';
+    const acc = opts.accessory || 'none';
+    let hair = '';
+    if(hairStyle === 'short') hair = '<path d="M14 22 Q24 4 34 22 L33 15 Q24 8 15 15 Z" fill="'+hairColor+'"/>';
+    else if(hairStyle === 'long') hair = '<path d="M12 34 Q10 10 24 8 Q38 10 36 34 L32 34 Q34 16 24 14 Q14 16 16 34 Z" fill="'+hairColor+'"/>';
+    let accessory = '';
+    if(acc === 'glasses') accessory = '<g stroke="#2b1c12" stroke-width="1.6" fill="rgba(255,255,255,0.12)"><circle cx="19" cy="24" r="4.2"/><circle cx="29" cy="24" r="4.2"/><line x1="23.2" y1="24" x2="24.8" y2="24"/></g>';
+    else if(acc === 'beard') accessory = '<path d="M15 26 Q15 38 24 39 Q33 38 33 26 L30 30 Q24 35 18 30 Z" fill="'+hairColor+'" opacity="0.85"/>';
+    return '<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">' +
+      '<circle cx="24" cy="25" r="15" fill="'+skin+'"/>' +
+      '<circle cx="19" cy="24" r="1.7" fill="#2b1c12"/>' +
+      '<circle cx="29" cy="24" r="1.7" fill="#2b1c12"/>' +
+      '<path d="M19 31 Q24 34 29 31" stroke="#2b1c12" stroke-width="1.6" fill="none" stroke-linecap="round"/>' +
+      accessory + hair + '</svg>';
+  }
+  function simplePersonSVG(kind){
+    const hairPath = kind === 'female'
+      ? '<path d="M13 21 Q24 5 35 21 Q36 30 33 33 L33 22 Q24 15 15 22 L15 33 Q12 30 13 21 Z" fill="var(--wood-light)"/>'
+      : '<path d="M15 21 Q24 9 33 21 L32 16 Q24 10 16 16 Z" fill="var(--wood-light)"/>';
+    return '<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">' +
+      '<circle cx="24" cy="24" r="15"/>' +
+      '<circle cx="19" cy="23" r="1.4" fill="currentColor" stroke="none"/>' +
+      '<circle cx="29" cy="23" r="1.4" fill="currentColor" stroke="none"/>' +
+      '<path d="M19 29 Q24 32 29 29" />' + hairPath + '</svg>';
+  }
+  function avatarMarkup(type, data, isFree){
+    if(isFree || type === 'none' || !type) return '<img class="seat-stump" src="/campfire_tree_seat.png" alt="">';
+    if(type === 'male') return simplePersonSVG('male').replace('<svg ', '<svg class="avatar-full" ');
+    if(type === 'female') return simplePersonSVG('female').replace('<svg ', '<svg class="avatar-full" ');
+    if(type === 'cartoon') return cartoonSVG(data).replace('<svg ', '<svg class="avatar-full" ');
+    if(type === 'photo' && data) return '<img src="'+data+'" alt="">';
+    return '<img class="seat-stump" src="/campfire_tree_seat.png" alt="">';
+  }
+
+  // ---------- dom refs ----------
+  const homeScreen = document.getElementById('homeScreen');
+  const fireScreen = document.getElementById('fireScreen');
+  const fireCardsEl = document.getElementById('fireCards');
+  const backBtn = document.getElementById('backBtn');
+  const fireTitle = document.getElementById('fireTitle');
+  const fireTagline = document.getElementById('fireTagline');
+  const fireCircle = document.getElementById('fireCircle');
+  const ballLayer = document.getElementById('ballLayer');
+  const statusLine = document.getElementById('statusLine');
+  const statusActions = document.getElementById('statusActions');
+  const chatMessages = document.getElementById('chatMessages');
+  const chatEmpty = document.getElementById('chatEmpty');
+  const chatForm = document.getElementById('chatForm');
+  const chatInput = document.getElementById('chatInput');
+  const sendBtn = document.getElementById('sendBtn');
+  const soundBtn = document.getElementById('soundBtn');
+  const micBtn = document.getElementById('micBtn');
+  const recTimer = document.getElementById('recTimer');
+  const micNote = document.getElementById('micNote');
+
+  const callBtn = document.getElementById('callBtn');
+  const callPanel = document.getElementById('callPanel');
+  const callHeading = document.getElementById('callHeading');
+  const callStatus = document.getElementById('callStatus');
+  const videoGrid = document.getElementById('videoGrid');
+  const localVideo = document.getElementById('localVideo');
+  const remoteVideo = document.getElementById('remoteVideo');
+  const remoteVideoLabel = document.getElementById('remoteVideoLabel');
+  const callControls = document.getElementById('callControls');
+  const callMuteBtn = document.getElementById('callMuteBtn');
+  const callCameraBtn = document.getElementById('callCameraBtn');
+  const callEndBtn = document.getElementById('callEndBtn');
+  const callChooserOverlay = document.getElementById('callChooserOverlay');
+  const callChooserClose = document.getElementById('callChooserClose');
+  const callPersonList = document.getElementById('callPersonList');
+  const incomingCallOverlay = document.getElementById('incomingCallOverlay');
+  const incomingCallText = document.getElementById('incomingCallText');
+  const callRejectBtn = document.getElementById('callRejectBtn');
+  const callAcceptBtn = document.getElementById('callAcceptBtn');
+
+  const modalOverlay = document.getElementById('modalOverlay');
+  const modalClose = document.getElementById('modalClose');
+  const modalNameInput = document.getElementById('modalNameInput');
+  const avatarGrid = document.getElementById('avatarGrid');
+  const cartoonPanel = document.getElementById('cartoonPanel');
+  const photoPanel = document.getElementById('photoPanel');
+  const cartoonPreview = document.getElementById('cartoonPreview');
+  const skinRow = document.getElementById('skinRow');
+  const hairRow = document.getElementById('hairRow');
+  const accRow = document.getElementById('accRow');
+  const shuffleBtn = document.getElementById('shuffleBtn');
+  const photoInput = document.getElementById('photoInput');
+  const photoPreview = document.getElementById('photoPreview');
+  const modalSkip = document.getElementById('modalSkip');
+  const modalSit = document.getElementById('modalSit');
+
+  // ---------- home cards ----------
+  const fireCountEls = {};
+  function renderHomeCards(){
+    fireCardsEl.innerHTML = '';
+    Object.keys(fireCountEls).forEach(key=>delete fireCountEls[key]);
+    VISIBLE_FIRES.forEach(f=>{
+    const card = document.createElement('button');
+    card.className = 'fire-card';
+    card.type = 'button';
+    card.dataset.fire = f.id;
+    card.innerHTML =
+      '<span class="fc-icon">'+f.icon+'</span>' +
+      '<span class="fc-body">' +
+        '<span class="fc-name">'+f.name+'</span>' +
+        '<span class="fc-tagline">'+f.tagline+'</span>' +
+        '<span class="fc-count" data-fire="'+f.id+'">7 seats free</span>' +
+      '</span>';
+    card.onclick = ()=> {
+      // Switch views synchronously; room/backend setup continues afterward.
+      homeScreen.style.display = 'none';
+      fireScreen.style.display = 'block';
+      void enterFire(f.id);
+    };
+    fireCardsEl.appendChild(card);
+    fireCountEls[f.id] = card.querySelector('.fc-count');
+    });
+    if(!VISIBLE_FIRES.length){
+      fireCardsEl.innerHTML = '<div class="fire-card" style="cursor:default;display:block;text-align:center"><span class="fc-body"><span class="fc-name">Connecting to your Campfire space…</span><span class="fc-tagline">Your private access is being checked securely. Please wait a moment.</span></span></div>';
+    }
+  }
+  renderHomeCards();
+
+  // lightweight peek at seat counts for the home cards
+  (async function peekAllFires(){
+    let db = null;
+    try{ db = await claude.use('db'); }catch(e){ db = null; }
+    VISIBLE_FIRES.forEach(f=>{
+      function fromArr(arr){
+        const taken = (arr||[]).filter(s=>s && s.occupied).length;
+        const free = SEAT_COUNT - taken;
+        fireCountEls[f.id].textContent = free === SEAT_COUNT ? '7 seats free' : (free>0 ? free+' free' : 'All seats taken');
+      }
+      if(db){
+        try{
+          db.doc('campfire/'+f.id+'_seats').onSnapshot(doc=>{
+            const data = doc && doc.data ? doc.data() : null;
+            fromArr(data && data.seats);
+          });
+          return;
+        }catch(e){}
+      }
+      try{
+        const raw = JSON.parse(safeGet('campfire_seats_v3_'+f.id) || 'null');
+        fromArr(raw);
+      }catch(e){}
+    });
+  })();
+
+  // ---------- fire chairs (built once, reused across fires) ----------
+  const chairEls = [];
+  // A fixed, slightly oval ring keeps the seven seats visually balanced around the fire.
+  const seatLayout = [
+    { x:50, y:12, rotation:0 },
+    { x:81, y:29, rotation:52 },
+    { x:88, y:62, rotation:104 },
+    { x:66, y:88, rotation:156 },
+    { x:34, y:88, rotation:204 },
+    { x:12, y:62, rotation:256 },
+    { x:19, y:29, rotation:308 }
+  ];
+  for(let i=0;i<SEAT_COUNT;i++){
+    const position = seatLayout[i] || seatLayout[i % seatLayout.length];
+    const btn = document.createElement('button');
+    btn.className = 'chair free';
+    btn.style.left = position.x + '%';
+    btn.style.top = position.y + '%';
+    // The stump back faces away from the fire and its seat faces inward.
+    btn.style.setProperty('--seat-rotation', position.rotation + 'deg');
+    btn.setAttribute('aria-label', 'Empty seat, tap to sit');
+    btn.innerHTML =
+      '<div class="speech-bubble" id="bubble-'+i+'"></div>' +
+      '<span class="seat-icon-wrap"><img class="seat-stump" src="/campfire_tree_seat.png" alt=""></span>' +
+      '<span class="chair-label">Free</span>';
+    btn.addEventListener('click', ()=> onChairTap(i));
+    fireCircle.appendChild(btn);
+    chairEls.push(btn);
+  }
+
+  // ---------- state ----------
+  let mySeat = null;
+  let seatHeartbeat = null;
+  const SEAT_STALE_MS = 30 * 1000;
+  let backend = null;
+  let currentFireId = null;
+  let campfireInitPromise = null;
+  let campfireOpenedAt = 0;
+  let presenceSweepTimer = null;
+  let seats = Array.from({length:SEAT_COUNT}, ()=>({occupied:false, name:null, clientId:null, avatarType:null, avatarData:null}));
+  let messages = [];
+  let waiting = [];
+  const voicePlaybackQueue = [];
+  let voicePlayer = null;
+  let voiceAutoPlay = true;
+  let voiceAudioUnlocked = false;
+  let voiceUnlockPending = false;
+  let pendingSeatIndex = null;
+  let modalAvatarType = 'none';
+  let modalCartoonOpts = null;
+  let modalPhotoData = null;
+  let isEditingSeat = false;
+  let msgFirstLoad = true;
+  let lastThrowAt = 0;
+  const bubbleTimers = {};
+
+  function computeMySeat(){
+    const idx = seats.findIndex(s => s.occupied && s.clientId === clientId);
+    mySeat = idx === -1 ? null : idx;
+  }
+
+  function clearSeatHeartbeat(){
+    if(seatHeartbeat){ clearInterval(seatHeartbeat); seatHeartbeat = null; }
+  }
+  function startSeatHeartbeat(){
+    clearSeatHeartbeat();
+    seatHeartbeat = setInterval(()=>{
+      if(mySeat === null || !backend || !seats[mySeat] || !seats[mySeat].occupied) return;
+      const result = backend.setSeat(mySeat, Object.assign({}, seats[mySeat], { last_seen_at: Date.now() }));
+      if(result && typeof result.catch === 'function') result.catch(()=>{});
+    }, 15000);
+  }
+  function startPresenceSweep(){
+    if(presenceSweepTimer) clearInterval(presenceSweepTimer);
+    presenceSweepTimer = setInterval(()=>{
+      if(!backend || !currentFireId) return;
+      seats = expireStaleSeats(seats.slice());
+      renderSeats();
+    }, 5000);
+  }
+  function stopPresenceSweep(){
+    if(presenceSweepTimer){ clearInterval(presenceSweepTimer); presenceSweepTimer = null; }
+  }
+  function removeMySeatOnExit(){
+    clearSeatHeartbeat();
+    stopPresenceSweep();
+    if(mySeat !== null && backend){
+      const seat = mySeat;
+      mySeat = null;
+      seats[seat] = { occupied:false, name:null, clientId:null, avatarType:null, avatarData:null };
+      renderSeats();
+      const result = backend.setSeat(seat, { occupied:false, name:null, clientId:null, avatarType:null, avatarData:null });
+      if(result && typeof result.catch === 'function') result.catch(()=>{});
+    }
+  }
+  function expireStaleSeats(nextSeats){
+    const now = Date.now();
+    nextSeats.forEach((seat, index)=>{
+      if(!seat || !seat.occupied || seat.clientId === clientId) return;
+      const lastSeen = Number(seat.last_seen_at || seat.sat_at || 0);
+      if(lastSeen && now - lastSeen > SEAT_STALE_MS){
+        const result = backend && backend.setSeat(index, { occupied:false, name:null, clientId:null, avatarType:null, avatarData:null });
+        if(result && typeof result.catch === 'function') result.catch(()=>{});
+        nextSeats[index] = { occupied:false, name:null, clientId:null, avatarType:null, avatarData:null };
+      }
+    });
+    return nextSeats;
+  }
+
+  function stopVoicePlayback(){
+    voicePlaybackQueue.length = 0;
+    if(voicePlayer){ try{ voicePlayer.pause(); voicePlayer.src = ''; }catch(e){} voicePlayer = null; }
+  }
+  function unlockCampfireVoice(){
+    if(voiceAudioUnlocked || voiceUnlockPending) return;
+    voiceUnlockPending = true;
+    const player = voicePlayer || new Audio();
+    voicePlayer = player;
+    player.muted = true;
+    player.src = 'data:audio/wav;base64,UklGRmQGAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YUAGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
+    const ready = player.play();
+    const finish = () => {
+      try{ player.pause(); player.currentTime = 0; player.muted = false; }catch(e){}
+      voiceAudioUnlocked = true;
+      voiceUnlockPending = false;
+      if(voicePlaybackQueue.length) playCampfireVoice();
+    };
+    if(ready && typeof ready.then === 'function') ready.then(finish).catch(()=>{ voiceUnlockPending = false; });
+    else finish();
+  }
+  function playCampfireVoice(dataUrl, automatic = false){
+    if((automatic && !voiceAutoPlay) || (!dataUrl && !voicePlaybackQueue.length)) return;
+    if(dataUrl) voicePlaybackQueue.push(dataUrl);
+    if(!voiceAudioUnlocked || !voicePlayer || !voicePlayer.paused) return;
+    const src = voicePlaybackQueue.shift();
+    if(!src) return;
+    const player = voicePlayer;
+    player.preload = 'auto';
+    player.onended = () => playCampfireVoice();
+    player.onerror = () => {
+      try{ voicePlayer.pause(); }catch(e){}
+      voiceAudioUnlocked = false;
+      voicePlaybackQueue.unshift(src);
+    };
+    player.src = src;
+    const attempt = player.play();
+    if(attempt && typeof attempt.catch === 'function') attempt.catch(()=>{
+      voicePlaybackQueue.unshift(src);
+      voiceAudioUnlocked = false;
+      try{ player.pause(); }catch(e){}
+    });
+  }
+
+  function hideBubble(i){
+    const el = document.getElementById('bubble-'+i);
+    if(!el) return;
+    el.classList.remove('show');
+    if(bubbleTimers[i]){ clearTimeout(bubbleTimers[i]); delete bubbleTimers[i]; }
+  }
+
+  function showBubble(seatIndex, content){
+    const el = document.getElementById('bubble-'+seatIndex);
+    if(!el) return;
+    el.innerHTML = content;
+    el.classList.add('show');
+    chairEls[seatIndex].classList.add('speaking');
+    if(bubbleTimers[seatIndex]) clearTimeout(bubbleTimers[seatIndex]);
+    bubbleTimers[seatIndex] = setTimeout(()=>{
+      el.classList.remove('show');
+      chairEls[seatIndex].classList.remove('speaking');
+    }, BUBBLE_MS);
+  }
+
+  function renderSeats(){
+    computeMySeat();
+    let occupiedCount = 0;
+    seats.forEach((s,i)=>{
+      const el = chairEls[i];
+      const wrap = el.querySelector('.seat-icon-wrap');
+      const label = el.querySelector('.chair-label');
+      const isMine = s.occupied && s.clientId === clientId;
+      el.classList.toggle('free', !s.occupied);
+      el.classList.toggle('taken', s.occupied && !isMine);
+      el.classList.toggle('mine', isMine);
+      wrap.innerHTML = avatarMarkup(s.occupied ? s.avatarType : null, s.avatarData, !s.occupied);
+      if(s.occupied){
+        occupiedCount++;
+        label.textContent = isMine ? 'You' : (s.name || 'Bloke');
+        el.disabled = false;
+        el.title = mySeat !== null && !isMine ? 'Throw the green ball' : '';
+        el.setAttribute('aria-label', isMine ? 'Your seat, tap to stand up' : ((s.name||'Bloke') + '’s seat, taken'));
+      } else {
+        label.textContent = 'Free';
+        el.title = '';
+        el.setAttribute('aria-label','Empty seat, tap to sit');
+        el.disabled = false;
+        hideBubble(i);
+      }
+    });
+    renderStatus(occupiedCount);
+    renderChatGate();
+    renderCallGate();
+    syncCallIdentityToSeat();
+  }
+
+  function renderStatus(occupiedCount){
+    statusActions.innerHTML = '';
+    if(mySeat !== null){
+      statusLine.classList.remove('full');
+      statusLine.textContent = occupiedCount === SEAT_COUNT
+        ? "You've got a seat by the fire. Every chair's full tonight."
+        : "You've got a seat by the fire.";
+      const wrap = document.createElement('div');
+      wrap.style.display = 'flex';
+      wrap.style.gap = '8px';
+      const editBtn = document.createElement('button');
+      editBtn.className = 'stand-btn';
+      editBtn.textContent = 'Edit look';
+      editBtn.addEventListener('click', ()=> openModal(mySeat, true));
+      const btn = document.createElement('button');
+      btn.className = 'stand-btn';
+      btn.textContent = 'Stand up';
+      btn.addEventListener('click', standUp);
+      wrap.appendChild(editBtn);
+      wrap.appendChild(btn);
+      statusActions.appendChild(wrap);
+      return;
+    }
+    if(occupiedCount < SEAT_COUNT){
+      statusLine.classList.remove('full');
+      const free = SEAT_COUNT - occupiedCount;
+      statusLine.textContent = free === SEAT_COUNT ? "The fire's just getting going. Take any seat." : free + (free === 1 ? " seat free." : " seats free.");
+      if(waiting.includes(clientId)) removeFromWaiting();
+      return;
+    }
+    statusLine.classList.add('full');
+    const n = waiting.length;
+    statusLine.textContent = n > 0
+      ? "🔥 All seats taken. " + n + (n===1?" bloke":" blokes") + " waiting — someone will be free soon."
+      : "🔥 All seats taken right now.";
+    const btn = document.createElement('button');
+    if(waiting.includes(clientId)){
+      btn.className = 'wait-btn'; btn.textContent = "You're on the list — leave it";
+      btn.addEventListener('click', removeFromWaiting);
+    } else {
+      btn.className = 'wait-btn'; btn.textContent = 'Wait for a seat';
+      btn.addEventListener('click', joinWaiting);
+    }
+    statusActions.appendChild(btn);
+  }
+
+  function renderChatGate(){
+    const seated = mySeat !== null;
+    chatInput.disabled = !seated;
+    sendBtn.disabled = !seated;
+    micBtn.disabled = !seated || micBlocked;
+    micNote.classList.toggle('show', micBlocked);
+    chatInput.placeholder = seated ? "Say something, or just listen…" : "Take a seat to talk…";
+  }
+
+  function renderMessages(){
+    const visibleMessages = messages.filter(m=>m.type !== 'throw');
+    chatEmpty.style.display = visibleMessages.length ? 'none' : 'block';
+    chatMessages.querySelectorAll('.msg').forEach(n=>n.remove());
+    visibleMessages.slice(-60).forEach(m=>{
+      const div = document.createElement('div');
+      if(m.system){
+        div.className = 'msg system';
+        div.textContent = m.text;
+      } else {
+        div.className = 'msg';
+        const t = new Date(m.ts);
+        const timeStr = isNaN(t) ? '' : t.toLocaleTimeString([], {hour:'numeric', minute:'2-digit'});
+        if(m.type === 'voice' && m.audio){
+          div.innerHTML = '<span class="who"></span><span class="voice-chip">🔊 Voice message</span><span class="when"></span>';
+          div.querySelector('.who').textContent = (m.name || 'Bloke') + ':';
+          div.querySelector('.when').textContent = timeStr;
+          div.querySelector('.voice-chip').addEventListener('click', ()=>playCampfireVoice(m.audio));
+        } else {
+          div.innerHTML = '<span class="who"></span><span class="body"></span><span class="when"></span>';
+          div.querySelector('.who').textContent = (m.name || 'Bloke') + ':';
+          div.querySelector('.body').textContent = m.text || '';
+          div.querySelector('.when').textContent = timeStr;
+        }
+      }
+      chatMessages.appendChild(div);
+    });
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+  }
+
+  function animateThrow(fromSeat, toSeat){
+    if(!Number.isInteger(fromSeat) || !Number.isInteger(toSeat) || fromSeat === toSeat) return;
+    const from = chairEls[fromSeat], to = chairEls[toSeat];
+    if(!from || !to || !ballLayer) return;
+    const layerRect = ballLayer.getBoundingClientRect();
+    const fromRect = from.getBoundingClientRect();
+    const toRect = to.getBoundingClientRect();
+    const startX = fromRect.left + fromRect.width / 2 - layerRect.left;
+    const startY = fromRect.top + fromRect.height / 2 - layerRect.top;
+    const endX = toRect.left + toRect.width / 2 - layerRect.left;
+    const endY = toRect.top + toRect.height / 2 - layerRect.top;
+    const distance = Math.hypot(endX - startX, endY - startY);
+    const duration = Math.max(520, Math.min(860, 420 + distance * 1.5));
+    const ball = document.createElement('span');
+    ball.className = 'throw-ball';
+    ball.setAttribute('aria-hidden', 'true');
+    ballLayer.appendChild(ball);
+    const startedAt = performance.now();
+    function frame(now){
+      const raw = Math.min(1, (now - startedAt) / duration);
+      const eased = raw < 0.5 ? 2 * raw * raw : 1 - Math.pow(-2 * raw + 2, 2) / 2;
+      const x = startX + (endX - startX) * eased;
+      const arc = Math.sin(Math.PI * eased) * Math.max(34, Math.min(88, distance * 0.28));
+      const y = startY + (endY - startY) * eased - arc;
+      const scale = 0.82 + Math.sin(Math.PI * eased) * 0.22;
+      ball.style.opacity = raw > 0.92 ? String(1 - (raw - 0.92) / 0.08) : '1';
+      ball.style.transform = 'translate('+(x-6.5)+'px,'+(y-6.5)+'px) scale('+scale+')';
+      if(raw < 1) requestAnimationFrame(frame);
+      else ball.remove();
+    }
+    requestAnimationFrame(frame);
+  }
+
+  function handleIncomingMessage(m){
+    if(m.type === 'throw'){
+      animateThrow(Number(m.fromSeat), Number(m.toSeat));
+      return;
+    }
+    let seatIndex = seats.findIndex(s => s.occupied && s.clientId === m.clientId);
+    if(seatIndex === -1 && typeof m.seat === 'number') seatIndex = m.seat;
+    if(seatIndex === -1 || seatIndex == null) return;
+    const name = m.name || 'Bloke';
+    const seatData = seats[seatIndex] || {};
+    const avatarHtml = '<span class="sb-avatar">'+avatarMarkup(seatData.avatarType, seatData.avatarData, false)+'</span>';
+    if(m.type === 'voice' && m.audio){
+      showBubble(seatIndex, avatarHtml+'<span class="sb-name">'+escapeHtml(name)+'</span><span class="sb-voice">🔊 voice</span>');
+      if(m.clientId !== clientId){
+        playCampfireVoice(m.audio, true);
+      }
+    } else if(m.text){
+      const shortText = m.text.length > 80 ? m.text.slice(0,77)+'…' : m.text;
+      showBubble(seatIndex, avatarHtml+'<span class="sb-name">'+escapeHtml(name)+'</span>'+escapeHtml(shortText));
+    }
+  }
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  // ---------- backend abstraction (per-fire scoped) ----------
+  function defaultSeats(){ return Array.from({length:SEAT_COUNT}, ()=>({occupied:false,name:null,clientId:null,avatarType:null,avatarData:null})); }
+
+  function makeLocalBackend(fireId, openedAt){
+    const SEATS_KEY = 'campfire_seats_v3_'+fireId;
+    const MSG_KEY = 'campfire_messages_v3_'+fireId;
+    const WAIT_KEY = 'campfire_waiting_v3_'+fireId;
+
+    function readSeats(){ try{ const raw = JSON.parse(safeGet(SEATS_KEY) || 'null'); if(Array.isArray(raw) && raw.length === SEAT_COUNT) return raw; }catch(e){} return defaultSeats(); }
+    function writeSeats(s){ safeSet(SEATS_KEY, JSON.stringify(s)); }
+    function readMsgs(){ try{ return JSON.parse(safeGet(MSG_KEY) || '[]'); }catch(e){ return []; } }
+    function writeMsgs(m){ safeSet(MSG_KEY, JSON.stringify(m.slice(-60))); }
+    function readWait(){ try{ return JSON.parse(safeGet(WAIT_KEY) || '[]'); }catch(e){ return []; } }
+    function writeWait(w){ safeSet(WAIT_KEY, JSON.stringify(w)); }
+
+    let seatsLocal = readSeats();
+    let msgsLocal = readMsgs().filter(m => !openedAt || Number(m.ts || 0) >= openedAt);
+    let waitLocal = readWait();
+    writeSeats(seatsLocal);
+
+    const listeners = [];
+    function notify(){ listeners.forEach(fn=>fn({seats:seatsLocal, messages:msgsLocal, waiting:waitLocal})); }
+    function onStorage(e){
+      if(e.key === SEATS_KEY){ seatsLocal = readSeats(); notify(); }
+      if(e.key === MSG_KEY){ msgsLocal = readMsgs().filter(m => !openedAt || Number(m.ts || 0) >= openedAt); notify(); }
+      if(e.key === WAIT_KEY){ waitLocal = readWait(); notify(); }
+    }
+    window.addEventListener('storage', onStorage);
+
+    return {
+      subscribe(fn){ listeners.push(fn); fn({seats:seatsLocal, messages:msgsLocal, waiting:waitLocal}); },
+      setSeat(i, data){ seatsLocal = seatsLocal.slice(); seatsLocal[i] = data; writeSeats(seatsLocal); notify(); },
+      sendMessage(msg){ msgsLocal = msgsLocal.concat([msg]).slice(-60); writeMsgs(msgsLocal); notify(); },
+      setWaiting(list){ waitLocal = list; writeWait(waitLocal); notify(); },
+      clearMessages(){ msgsLocal = []; writeMsgs([]); notify(); },
+      teardown(){ window.removeEventListener('storage', onStorage); }
+    };
+  }
+
+  async function makeDbBackend(fireId, openedAt){
+    let db;
+    try{ db = await claude.use('db'); }catch(e){ return null; }
+    if(!db) return null;
+    try{
+      const seatsDoc = db.doc('campfire/'+fireId+'_seats');
+      const msgsCol = db.collection('campfire_messages_'+fireId);
+      const waitDoc = db.doc('campfire/'+fireId+'_waiting');
+
+      const existing = await seatsDoc.get().catch(()=>null);
+      if(!existing || !existing.exists){ await seatsDoc.set({ seats: defaultSeats() }).catch(()=>{}); }
+      const existingWait = await waitDoc.get().catch(()=>null);
+      if(!existingWait || !existingWait.exists){ await waitDoc.set({ list: [] }).catch(()=>{}); }
+
+      const listeners = [];
+      let latest = { seats:null, messages:[], waiting:[] };
+      function pushUpdate(){ if(latest.seats) listeners.forEach(fn=>fn(latest)); }
+
+      const unsub1 = seatsDoc.onSnapshot(doc=>{
+        const data = doc && doc.data ? doc.data() : null;
+        latest.seats = (data && data.seats) || defaultSeats();
+        pushUpdate();
+      });
+      const unsub2 = waitDoc.onSnapshot(doc=>{
+        const data = doc && doc.data ? doc.data() : null;
+        latest.waiting = (data && data.list) || [];
+        pushUpdate();
+      });
+      const unsub3 = msgsCol.orderBy('ts').limit(60).onSnapshot(snap=>{
+        latest.messages = (snap && snap.docs ? snap.docs.map(d=>d.data()) : []).filter(m => !openedAt || Number(m.ts || 0) >= openedAt);
+        pushUpdate();
+      });
+
+      return {
+        subscribe(fn){ listeners.push(fn); if(latest.seats) fn(latest); },
+        async setSeat(i, data){
+          const cur = await seatsDoc.get().catch(()=>null);
+          const arr = (cur && cur.exists && cur.data().seats) ? cur.data().seats.slice() : defaultSeats();
+          arr[i] = data;
+          await seatsDoc.set({ seats: arr }).catch(()=>{});
+        },
+        async sendMessage(msg){ await msgsCol.add(msg).catch(()=>{}); },
+        async setWaiting(list){ await waitDoc.set({ list }).catch(()=>{}); },
+        clearMessages(){ latest.messages = []; push(); },
+        teardown(){
+          [unsub1,unsub2,unsub3].forEach(u=>{ try{ if(typeof u === 'function') u(); }catch(e){} });
+        }
+      };
+    }catch(e){ return null; }
+  }
+
+  let campfireSessionPromise = null;
+  async function ensureCampfireSession(){
+    if(callSupabase && callUserId) return { client:callSupabase, userId:callUserId };
+    if(campfireSessionPromise) return campfireSessionPromise;
+    campfireSessionPromise = (async()=>{
+      const configResponse = await fetch('/api/campfire-config', { headers:{Accept:'application/json'}, cache:'no-store' });
+      if(!configResponse.ok) throw new Error('Campfire configuration unavailable');
+      const config = await configResponse.json();
+      if(!config || !config.url || !config.anonKey) throw new Error('Campfire configuration incomplete');
+      const module = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
+      callSupabase = module.createClient(config.url, config.anonKey);
+      const sessionResult = await callSupabase.auth.getSession();
+      const session = sessionResult && sessionResult.data ? sessionResult.data.session : null;
+      if(sessionResult.error || !session || !session.user) throw new Error('Campfire session unavailable');
+      callUserId = session.user.id;
+      return { client:callSupabase, userId:callUserId };
+    })().catch(error=>{ campfireSessionPromise = null; throw error; });
+    return campfireSessionPromise;
+  }
+
+  async function makeSupabaseRoomBackend(fireId, openedAt){
+    if(!callSupabase || !callUserId){
+      try{ await ensureCampfireSession(); }catch(e){ return null; }
+    }
+    try{
+      const roomTable = callSupabase.from('campfire_rooms');
+      const messageTable = callSupabase.from('campfire_messages');
+      const existing = await roomTable.select('fire_id,seats,waiting').eq('fire_id',fireId).maybeSingle();
+      if(existing.error) return null;
+      if(!existing.data){
+        const created = await roomTable.insert({fire_id:fireId,seats:defaultSeats(),waiting:[],updated_at:new Date().toISOString()});
+        if(created.error && created.error.code !== '23505') return null;
+      }
+      const listeners = [];
+      let latest = { seats:(existing.data && existing.data.seats) || defaultSeats(), messages:[], waiting:(existing.data && existing.data.waiting) || [] };
+      function push(){ listeners.forEach(fn=>fn(latest)); }
+      let recentQuery = messageTable.select('message').eq('fire_id',fireId).order('created_at',{ascending:false}).limit(60);
+      if(openedAt) recentQuery = recentQuery.gte('created_at', new Date(openedAt).toISOString());
+      const recent = await recentQuery;
+      if(!recent.error && Array.isArray(recent.data)) latest.messages = recent.data.reverse().map(row=>row.message).filter(message => message && (!openedAt || Number(message.ts || 0) >= openedAt));
+      const channel = callSupabase.channel('campfire-room-'+fireId+'-'+callUserId+'-'+clientId)
+        .on('postgres_changes',{event:'*',schema:'public',table:'campfire_rooms',filter:'fire_id=eq.'+fireId},change=>{
+          const row = change.new || {};
+          latest.seats = row.seats || latest.seats; latest.waiting = row.waiting || latest.waiting; push();
+        })
+        .on('postgres_changes',{event:'INSERT',schema:'public',table:'campfire_messages',filter:'fire_id=eq.'+fireId},change=>{
+          if(change.new && change.new.message){
+            const incoming = change.new.message;
+            if(!openedAt || Number(incoming.ts || 0) >= openedAt){ latest.messages = latest.messages.concat([incoming]).slice(-60); push(); }
+          }
+        })
+        .subscribe();
+      await new Promise(resolve=>setTimeout(resolve,250));
+      return {
+        subscribe(fn){ listeners.push(fn); fn(latest); },
+        async setSeat(i,data){
+          const current = await roomTable.select('seats,waiting').eq('fire_id',fireId).maybeSingle();
+          const arr = current.data && Array.isArray(current.data.seats) ? current.data.seats.slice() : latest.seats.slice();
+          arr[i] = data; latest.seats = arr;
+          await roomTable.update({seats:arr,updated_at:new Date().toISOString()}).eq('fire_id',fireId); push();
+        },
+        async sendMessage(msg){ await messageTable.insert({fire_id:fireId,sender_user:callUserId,message:msg}); },
+        async setWaiting(list){ latest.waiting = list; await roomTable.update({waiting:list,updated_at:new Date().toISOString()}).eq('fire_id',fireId); push(); },
+        clearMessages(){ latest.messages = []; push(); },
+        teardown(){ try{ callSupabase.removeChannel(channel); }catch(e){} }
+      };
+    }catch(e){ return null; }
+  }
+
+  function bindBackend(b){
+    backend = b;
+    msgFirstLoad = true;
+    backend.subscribe(state=>{
+      seats = expireStaleSeats((state.seats || seats).slice());
+      waiting = state.waiting || waiting;
+      renderSeats();
+
+      const newMsgs = state.messages || [];
+      if(msgFirstLoad){
+        messages = newMsgs;
+        msgFirstLoad = false;
+        renderMessages();
+        return;
+      }
+      const prevLen = messages.length;
+      messages = newMsgs;
+      renderMessages();
+      if(newMsgs.length > prevLen){
+        newMsgs.slice(prevLen).forEach(m=> handleIncomingMessage(m));
+      }
+    });
+  }
+
+  async function enterFire(fireId){
+    currentFireId = fireId;
+    campfireOpenedAt = Date.now();
+    const meta = FIRES.find(f=>f.id===fireId);
+    fireTitle.textContent = meta.name;
+    fireTagline.textContent = meta.tagline;
+    homeScreen.style.display = 'none';
+    fireScreen.style.display = 'block';
+    window.scrollTo(0,0);
+
+    // Optional audio/video cleanup must never prevent entering the room.
+    try{ endActiveCall(true, true); }catch(e){}
+    try{ stopVoicePlayback(); }catch(e){}
+    try{ unlockCampfireVoice(); }catch(e){}
+
+    seats = defaultSeats();
+    messages = [];
+    waiting = [];
+    mySeat = null;
+    Object.keys(bubbleTimers).forEach(i=>hideBubble(i));
+    renderSeats();
+    renderMessages();
+    statusLine.textContent = 'Finding a seat for you…';
+
+    let db = null;
+    try{ db = await makeSupabaseRoomBackend(fireId, campfireOpenedAt); }catch(e){ db = null; }
+    if(!db) try{ db = await makeDbBackend(fireId, campfireOpenedAt); }catch(e){ db = null; }
+    if(!db) db = makeLocalBackend(fireId, campfireOpenedAt);
+    if(!db){
+      statusLine.textContent = 'The Campfire connection is still warming up — please try again in a moment.';
+      statusActions.innerHTML = '';
+      return;
+    }
+    bindBackend(db);
+    startPresenceSweep();
+  }
+
+  function leaveFire(){
+    endActiveCall(true, true);
+    stopCallPresence();
+    stopPresenceSweep();
+    removeFromWaiting();
+    if(mySeat !== null) standUp();
+    messages = [];
+    waiting = [];
+    chatInput.value = '';
+    renderMessages();
+    if(backend && backend.clearMessages) backend.clearMessages();
+    if(backend && backend.teardown) backend.teardown();
+    backend = null;
+    currentFireId = null;
+    campfireOpenedAt = 0;
+    fireScreen.style.display = 'none';
+    homeScreen.style.display = 'block';
+    window.scrollTo(0,0);
+  }
+  backBtn.addEventListener('click', leaveFire);
+
+  // ---------- seat actions ----------
+  function throwToSeat(targetSeat){
+    if(mySeat === null || !backend || targetSeat === mySeat) return;
+    if(!seats[mySeat] || !seats[mySeat].occupied || !seats[targetSeat] || !seats[targetSeat].occupied) return;
+    const now = Date.now();
+    if(now - lastThrowAt < 450) return;
+    lastThrowAt = now;
+    backend.sendMessage({ type:'throw', fromSeat:mySeat, toSeat:targetSeat, clientId, ts:now });
+  }
+  function onChairTap(i){
+    if(mySeat === i){ standUp(); return; }
+    if(mySeat !== null && seats[i] && seats[i].occupied){ throwToSeat(i); return; }
+    if(mySeat !== null) return;
+    if(seats[i] && seats[i].occupied) return;
+    openModal(i);
+  }
+  function standUp(){
+    if(mySeat === null || !backend) return;
+    endActiveCall(true, true);
+    clearSeatHeartbeat();
+    backend.setSeat(mySeat, { occupied:false, name:null, clientId:null, avatarType:null, avatarData:null });
+    hideBubble(mySeat);
+    mySeat = null;
+  }
+  function joinWaiting(){ if(backend && !waiting.includes(clientId)) backend.setWaiting(waiting.concat([clientId])); }
+  function removeFromWaiting(){ if(backend && waiting.includes(clientId)) backend.setWaiting(waiting.filter(id=>id!==clientId)); }
+  function sitDown(i, name, avatarType, avatarData){
+    if(!backend) return;
+    const now = Date.now();
+    seats[i] = { occupied:true, name, clientId, avatarType, avatarData, sat_at: now, last_seen_at: now };
+    mySeat = i;
+    renderSeats();
+    const result = backend.setSeat(i, seats[i]);
+    if(result && typeof result.catch === 'function') result.catch(()=>{});
+    startSeatHeartbeat();
+  }
+
+  // ---------- modal (avatar/name picker) ----------
+  function openModal(seatIndex, editMode){
+    pendingSeatIndex = seatIndex;
+    isEditingSeat = !!editMode;
+    const current = (editMode && seats[seatIndex] && seats[seatIndex].occupied) ? seats[seatIndex] : null;
+    modalNameInput.value = current ? (current.name || '') : nickname;
+    modalAvatarType = current ? (current.avatarType || 'none') : ((avatarPref && avatarPref.type) || 'none');
+    modalCartoonOpts = (modalAvatarType === 'cartoon' && current && current.avatarData) ? current.avatarData
+      : (modalAvatarType === 'cartoon' && avatarPref && avatarPref.data) ? avatarPref.data : randomCartoon();
+    modalPhotoData = current ? (modalAvatarType === 'photo' ? current.avatarData : null) : ((avatarPref && avatarPref.type === 'photo') ? avatarPref.data : null);
+    selectAvatarOption(modalAvatarType);
+    photoPreview.innerHTML = modalPhotoData ? '<img src="'+modalPhotoData+'">' : '📷';
+
+    document.getElementById('modalTitle').textContent = isEditingSeat ? 'Update how you appear' : 'Choose how you appear';
+    document.getElementById('modalSub').textContent = isEditingSeat ? 'Change your name or look any time' : 'Completely optional — no pressure at all';
+    modalSkip.textContent = isEditingSeat ? 'Cancel' : 'Skip — just sit';
+    modalSit.textContent = isEditingSeat ? 'Save' : 'Sit down';
+
+    modalOverlay.classList.add('open');
+    setTimeout(()=>modalNameInput.focus(), 50);
+  }
+  function closeModal(){ modalOverlay.classList.remove('open'); pendingSeatIndex = null; isEditingSeat = false; }
+
+  function buildSwatches(){
+    skinRow.innerHTML = '';
+    SKIN_TONES.forEach(c=>{
+      const s = document.createElement('div');
+      s.className = 'swatch'; s.style.background = c; s.dataset.hex = c;
+      s.addEventListener('click', ()=>{ modalCartoonOpts.skin = c; refreshCartoonUI(); });
+      skinRow.appendChild(s);
+    });
+    hairRow.innerHTML = '';
+    [['short','Short'],['long','Long'],['none','None']].forEach(([val,label])=>{
+      const b = document.createElement('div');
+      b.className = 'seg-btn'; b.textContent = label; b.dataset.val = val;
+      b.addEventListener('click', ()=>{ modalCartoonOpts.hairStyle = val; refreshCartoonUI(); });
+      hairRow.appendChild(b);
+    });
+    accRow.innerHTML = '';
+    [['none','Plain'],['glasses','Glasses'],['beard','Beard']].forEach(([val,label])=>{
+      const b = document.createElement('div');
+      b.className = 'seg-btn'; b.textContent = label; b.dataset.val = val;
+      b.addEventListener('click', ()=>{ modalCartoonOpts.accessory = val; refreshCartoonUI(); });
+      accRow.appendChild(b);
+    });
+  }
+  buildSwatches();
+
+  function refreshCartoonUI(){
+    cartoonPreview.innerHTML = cartoonSVG(modalCartoonOpts);
+    skinRow.querySelectorAll('.swatch').forEach(s=> s.classList.toggle('selected', s.dataset.hex === modalCartoonOpts.skin));
+    hairRow.querySelectorAll('.seg-btn').forEach(b=> b.classList.toggle('selected', b.dataset.val === modalCartoonOpts.hairStyle));
+    accRow.querySelectorAll('.seg-btn').forEach(b=> b.classList.toggle('selected', b.dataset.val === modalCartoonOpts.accessory));
+  }
+
+  function selectAvatarOption(type){
+    modalAvatarType = type;
+    avatarGrid.querySelectorAll('.avatar-opt').forEach(el=> el.classList.toggle('selected', el.dataset.type === type));
+    cartoonPanel.classList.toggle('show', type === 'cartoon');
+    photoPanel.classList.toggle('show', type === 'photo');
+    if(type === 'cartoon') refreshCartoonUI();
+  }
+  avatarGrid.querySelectorAll('.avatar-opt').forEach(el=>{
+    el.addEventListener('click', ()=> selectAvatarOption(el.dataset.type));
+  });
+  shuffleBtn.addEventListener('click', ()=>{ modalCartoonOpts = randomCartoon(); refreshCartoonUI(); });
+
+  photoInput.addEventListener('change', (e)=>{
+    const file = e.target.files && e.target.files[0];
+    if(!file) return;
+    const img = new Image();
+    const reader = new FileReader();
+    reader.onload = function(ev){
+      img.onload = function(){
+        const size = 96;
+        const canvas = document.createElement('canvas');
+        canvas.width = size; canvas.height = size;
+        const ctx = canvas.getContext('2d');
+        const side = Math.min(img.width, img.height);
+        const sx = (img.width - side) / 2;
+        const sy = (img.height - side) / 2;
+        ctx.drawImage(img, sx, sy, side, side, 0, 0, size, size);
+        modalPhotoData = canvas.toDataURL('image/jpeg', 0.6);
+        photoPreview.innerHTML = '<img src="'+modalPhotoData+'">';
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+
+  modalClose.addEventListener('click', closeModal);
+  modalOverlay.addEventListener('click', (e)=>{ if(e.target === modalOverlay) closeModal(); });
+
+  modalSkip.addEventListener('click', ()=>{
+    if(pendingSeatIndex === null) return;
+    if(isEditingSeat){ closeModal(); return; } // Cancel: leave seat untouched
+    const idx = pendingSeatIndex;
+    nickname = 'Bloke'; safeSet(NAME_KEY, '');
+    closeModal();
+    sitDown(idx, 'Bloke', 'none', null);
+  });
+  modalSit.addEventListener('click', ()=>{
+    if(pendingSeatIndex === null) return;
+    const idx = pendingSeatIndex;
+    const name = (modalNameInput.value || '').trim().slice(0,18) || 'Bloke';
+    nickname = name; safeSet(NAME_KEY, name);
+    let avatarData = null;
+    if(modalAvatarType === 'cartoon') avatarData = modalCartoonOpts;
+    if(modalAvatarType === 'photo') avatarData = modalPhotoData;
+    const finalType = (modalAvatarType === 'photo' && !modalPhotoData) ? 'none' : modalAvatarType;
+    safeSet(AVATAR_KEY, JSON.stringify({ type: finalType, data: avatarData }));
+    avatarPref = { type: finalType, data: avatarData };
+    const wasEditing = isEditingSeat;
+    closeModal();
+    if(wasEditing && backend){
+      const prevSatAt = (seats[idx] && seats[idx].sat_at) || Date.now();
+      backend.setSeat(idx, { occupied:true, name, clientId, avatarType: finalType, avatarData, sat_at: prevSatAt });
+    } else {
+      sitDown(idx, name, finalType, avatarData);
+    }
+  });
+
+  // ---------- text chat ----------
+  chatForm.addEventListener('submit', (e)=>{
+    e.preventDefault();
+    if(mySeat === null || !backend) return;
+    const text = chatInput.value.trim();
+    if(!text) return;
+    backend.sendMessage({ seat:mySeat, clientId, name: seats[mySeat] ? (seats[mySeat].name || nickname || 'Bloke') : (nickname||'Bloke'), type:'text', text, ts: Date.now() });
+    chatInput.value = '';
+  });
+
+  // ---------- voice recording (tap to start / tap to stop) ----------
+  let micBlocked = !(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && typeof MediaRecorder !== 'undefined');
+  if(micBlocked) micNote.classList.add('show');
+  let mediaRecorder = null;
+  let mediaStream = null;
+  let recordingStarting = false;
+  let recordChunks = [];
+  let recordStartTs = 0;
+  let recordTimerInterval = null;
+  let recordAutoStop = null;
+  let stopRequestedEarly = false;
+
+  function blobToDataURL(blob){
+    return new Promise((resolve, reject)=>{
+      const r = new FileReader();
+      r.onload = ()=> resolve(r.result);
+      r.onerror = reject;
+      r.readAsDataURL(blob);
+    });
+  }
+
+  function updateRecTimer(){
+    const secs = Math.floor((Date.now() - recordStartTs)/1000);
+    const m = Math.floor(secs/60), s = secs%60;
+    recTimer.textContent = m+':'+String(s).padStart(2,'0');
+  }
+
+  async function beginRecording(){
+    if(mySeat === null || micBlocked || recordingStarting) return;
+    if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || typeof MediaRecorder === 'undefined'){
+      micBlocked = true; micBtn.disabled = true; return;
+    }
+    recordingStarting = true;
+    stopRequestedEarly = false;
+    try{
+      mediaStream = await navigator.mediaDevices.getUserMedia({ audio:true });
+    }catch(e){
+      recordingStarting = false;
+      micBlocked = true; micBtn.disabled = true;
+      micNote.classList.add('show');
+      const div = document.createElement('div');
+      div.className = 'msg system';
+      div.textContent = 'Microphone not available here — text still works fine.';
+      chatMessages.appendChild(div); chatMessages.scrollTop = chatMessages.scrollHeight;
+      return;
+    }
+    recordingStarting = false;
+    if(stopRequestedEarly){ mediaStream.getTracks().forEach(t=>t.stop()); mediaStream=null; return; }
+    let mimeType = '';
+    [(/iPad|iPhone|iPod/.test(navigator.userAgent) ? 'audio/mp4' : 'audio/webm;codecs=opus'),'audio/webm','audio/mp4'].filter((t,i,a)=>a.indexOf(t)===i).some(t=>{
+      if(window.MediaRecorder && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t)){ mimeType = t; return true; }
+      return false;
+    });
+    try{
+      mediaRecorder = mimeType ? new MediaRecorder(mediaStream, {mimeType}) : new MediaRecorder(mediaStream);
+    }catch(e){
+      mediaRecorder = new MediaRecorder(mediaStream);
+    }
+    recordChunks = [];
+    mediaRecorder.ondataavailable = (e)=>{ if(e.data && e.data.size) recordChunks.push(e.data); };
+    mediaRecorder.onstop = async ()=>{
+      if(mediaStream){ mediaStream.getTracks().forEach(t=>t.stop()); mediaStream = null; }
+      clearInterval(recordTimerInterval); recTimer.style.display = 'none';
+      clearTimeout(recordAutoStop);
+      const duration = Date.now() - recordStartTs;
+      micBtn.classList.remove('recording');
+      if(duration < 400 || !recordChunks.length){ return; }
+      const blob = new Blob(recordChunks, {type: mimeType || 'audio/webm'});
+      try{
+        const dataUrl = await blobToDataURL(blob);
+        if(mySeat === null || !backend) return;
+        backend.sendMessage({ seat:mySeat, clientId, name: seats[mySeat] ? (seats[mySeat].name || nickname || 'Bloke') : (nickname||'Bloke'), type:'voice', audio:dataUrl, ts: Date.now() });
+      }catch(e){}
+    };
+    mediaRecorder.start();
+    recordStartTs = Date.now();
+    micBtn.classList.add('recording');
+    recTimer.style.display = 'inline-block';
+    updateRecTimer();
+    recordTimerInterval = setInterval(updateRecTimer, 250);
+    recordAutoStop = setTimeout(()=>{ stopRecording(); }, MAX_RECORD_MS);
+    if(stopRequestedEarly){ stopRecording(); }
+  }
+
+  function stopRecording(){
+    if(mediaRecorder && mediaRecorder.state === 'recording'){
+      mediaRecorder.stop();
+    } else {
+      stopRequestedEarly = true;
+    }
+  }
+
+  micBtn.style.userSelect = 'none';
+  micBtn.style.webkitUserSelect = 'none';
+  micBtn.style.touchAction = 'manipulation';
+  micBtn.addEventListener('click', (e)=>{
+    e.preventDefault();
+    unlockCampfireVoice();
+    if(micBtn.disabled) return;
+    if(mediaRecorder && mediaRecorder.state === 'recording') stopRecording();
+    else if(!recordingStarting) beginRecording();
+  });
+  document.addEventListener('pointerdown', unlockCampfireVoice, { once: true, passive: true });
+
+  // ---------- private one-to-one video calls (Supabase signalling only) ----------
+  const CALL_EVENT_TTL_MS = 2 * 60 * 1000;
+  const CALL_RING_MS = 45 * 1000;
+  let CALL_ICE_SERVERS = [{ urls:[
+    'stun:stun.l.google.com:19302',
+    'stun:stun1.l.google.com:19302'
+  ] }];
+  let callSupabase = null;
+  let callChannel = null;
+  let callReconnectTimer = null;
+  let callReconnectAttempt = 0;
+  let callPageHidden = false;
+  let callPresenceChannel = null;
+  let callPresenceFireId = null;
+  let callPresenceByClientId = new Map();
+  let callUserId = null;
+  let callAvailable = false;
+  let callAvailabilityResolved = false;
+  let callUnavailableReason = '';
+  let callState = 'idle';
+  let activeCallId = null;
+  let callPeerUserId = null;
+  let callPeerClientId = null;
+  let callPeerName = '';
+  let pendingIncoming = null;
+  let callRingTimer = null;
+  let peerConnection = null;
+  let localCallStream = null;
+  let remoteCallStream = null;
+  let pendingIceCandidates = [];
+  let lastPresenceKey = null;
+  let callPanelResetTimer = null;
+  let callStatsTimer = null;
+  const processedCallEventIds = new Set();
+
+  function callUuid(){
+    if(window.crypto && typeof window.crypto.randomUUID === 'function') return window.crypto.randomUUID();
+    const bytes = new Uint8Array(16);
+    if(window.crypto && window.crypto.getRandomValues) window.crypto.getRandomValues(bytes);
+    else for(let i=0;i<bytes.length;i++) bytes[i] = Math.floor(Math.random()*256);
+    bytes[6] = (bytes[6] & 15) | 64;
+    bytes[8] = (bytes[8] & 63) | 128;
+    const hex = Array.from(bytes, b=>b.toString(16).padStart(2,'0')).join('');
+    return hex.slice(0,8)+'-'+hex.slice(8,12)+'-'+hex.slice(12,16)+'-'+hex.slice(16,20)+'-'+hex.slice(20);
+  }
+
+  async function tuneCallSenders(pc){
+    for(const sender of (pc.getSenders ? pc.getSenders() : [])){
+      try{
+        const params = sender.getParameters();
+        params.encodings = params.encodings && params.encodings.length ? params.encodings : [{}];
+        const encoding = params.encodings[0];
+        if(sender.track && sender.track.kind === 'video'){
+          encoding.maxBitrate = 350000;
+          encoding.maxFramerate = 15;
+        } else if(sender.track && sender.track.kind === 'audio') {
+          encoding.maxBitrate = 32000;
+        }
+        await sender.setParameters(params);
+      }catch(e){}
+    }
+  }
+
+  function startCallStats(pc){
+    if(callStatsTimer) clearInterval(callStatsTimer);
+    callStatsTimer = setInterval(async()=>{
+      if(pc !== peerConnection || !pc.getStats) return;
+      try{
+        const report = await pc.getStats();
+        let sent = 0, lost = 0;
+        report.forEach(item=>{
+          if(item.type === 'outbound-rtp' && item.kind === 'video'){
+            sent += Number(item.packetsSent || 0);
+            lost += Number(item.packetsLost || 0);
+          }
+        });
+        if(sent + lost < 20) return;
+        const lossRatio = lost / (sent + lost);
+        for(const sender of pc.getSenders()){
+          if(!sender.track || sender.track.kind !== 'video') continue;
+          const params = sender.getParameters();
+          if(!params.encodings || !params.encodings.length) continue;
+          params.encodings[0].maxBitrate = lossRatio > 0.08 ? 180000 : 350000;
+          params.encodings[0].maxFramerate = lossRatio > 0.08 ? 10 : 15;
+          sender.setParameters(params).catch(()=>{});
+        }
+      }catch(e){}
+    }, 5000);
+  }
+
+  function setCallPanel(heading, text, isError, showVideos){
+    if(callPanelResetTimer){ clearTimeout(callPanelResetTimer); callPanelResetTimer = null; }
+    callPanel.hidden = false;
+    callHeading.textContent = heading || 'Private video call';
+    callStatus.textContent = text || '';
+    callStatus.classList.toggle('error', !!isError);
+    videoGrid.hidden = !showVideos;
+  }
+
+  function setCallUnavailable(message){
+    const failedChannel = callChannel;
+    callChannel = null;
+    if(failedChannel && callSupabase){ callSupabase.removeChannel(failedChannel).catch(()=>{}); }
+    stopCallPresence();
+    callAvailable = false;
+    callAvailabilityResolved = true;
+    callUnavailableReason = message || 'Private video calls are unavailable right now. Text and voice messages still work.';
+    closeCallChooser();
+    closeIncomingCall();
+    closePeerMedia();
+    callState = 'idle';
+    activeCallId = null;
+    callPeerUserId = null;
+    callPeerClientId = null;
+    pendingIncoming = null;
+    if(currentFireId) setCallPanel('Video calls unavailable', callUnavailableReason, true, false);
+    renderCallGate();
+  }
+
+  function scheduleCallReconnect(){
+    if(callPageHidden || callReconnectTimer || !callSupabase || !callUserId) return;
+    callAvailable = false;
+    callAvailabilityResolved = true;
+    callUnavailableReason = 'Video connection interrupted — reconnecting securely…';
+    renderCallGate();
+    const delay = Math.min(12000, 1500 * Math.pow(2, Math.min(callReconnectAttempt, 3)));
+    callReconnectAttempt += 1;
+    callReconnectTimer = setTimeout(()=>{
+      callReconnectTimer = null;
+      initialiseVideoCalls();
+    }, delay);
+  }
+
+  function renderCallGate(){
+    const seated = mySeat !== null;
+    const callableSeats = seats.filter(s=>s && s.occupied && s.clientId !== clientId && callPresenceByClientId.has(s.clientId));
+    callBtn.disabled = !callAvailable || !seated || callState !== 'idle' || !callableSeats.length;
+    if(!callAvailabilityResolved){
+      callBtn.title = 'Preparing private video calls…';
+    } else if(!callAvailable){
+      callBtn.title = callUnavailableReason || 'Private video calls are unavailable';
+      if(currentFireId) setCallPanel('Video calls unavailable', callUnavailableReason, true, false);
+    } else if(!seated){
+      callBtn.title = 'Take a seat before starting a video call';
+      if(callState === 'idle') callPanel.hidden = true;
+    } else if(!callableSeats.length){
+      callBtn.title = 'No other call-ready seats are occupied';
+      if(callState === 'idle') callPanel.hidden = true;
+    } else if(callState === 'idle'){
+      callBtn.title = 'Start a private video call';
+      callPanel.hidden = true;
+    } else {
+      callBtn.title = 'A video call is already in progress';
+    }
+  }
+
+  function stopCallPresence(){
+    const channel = callPresenceChannel;
+    callPresenceChannel = null;
+    callPresenceFireId = null;
+    callPresenceByClientId = new Map();
+    lastPresenceKey = null;
+    if(channel && callSupabase){
+      try{ channel.untrack(); }catch(e){}
+      callSupabase.removeChannel(channel).catch(()=>{});
+    }
+  }
+
+  function rebuildCallPresence(){
+    const next = new Map();
+    if(callPresenceChannel){
+      const state = callPresenceChannel.presenceState();
+      Object.keys(state || {}).forEach(key=>{
+        (state[key] || []).forEach(presence=>{
+          if(presence && presence.client_id && presence.user_id) next.set(presence.client_id, presence);
+        });
+      });
+    }
+    callPresenceByClientId = next;
+    renderCallGate();
+  }
+
+  function syncCallIdentityToSeat(){
+    if(!callAvailable || !callUserId || !currentFireId) return;
+    if(callPresenceFireId !== currentFireId){ ensureCallPresence(currentFireId); return; }
+    if(!callPresenceChannel) return;
+    if(mySeat === null){
+      if(lastPresenceKey){ lastPresenceKey = null; callPresenceChannel.untrack().catch(()=>{}); }
+      return;
+    }
+    const seat = seats[mySeat];
+    if(!seat || !seat.occupied || seat.clientId !== clientId) return;
+    const name = seat.name || nickname || 'Bloke';
+    const presenceKey = currentFireId+':'+mySeat+':'+name;
+    if(lastPresenceKey === presenceKey) return;
+    lastPresenceKey = presenceKey;
+    callPresenceChannel.track({
+      user_id:callUserId,
+      client_id:clientId,
+      fire_id:currentFireId,
+      seat:mySeat,
+      name
+    }).catch(()=>{});
+  }
+
+  function ensureCallPresence(fireId){
+    if(!callAvailable || !callSupabase || !callUserId || !fireId || callPresenceFireId === fireId) return;
+    stopCallPresence();
+    callPresenceFireId = fireId;
+    const channel = callSupabase.channel('campfire-call-presence-'+fireId, {
+      config:{ presence:{ key:callUserId+'-'+clientId } }
+    });
+    callPresenceChannel = channel;
+    channel
+      .on('presence', {event:'sync'}, rebuildCallPresence)
+      .subscribe(status=>{
+        if(callPresenceChannel !== channel) return;
+        if(status === 'SUBSCRIBED') syncCallIdentityToSeat();
+        else if(status === 'CHANNEL_ERROR' || status === 'TIMED_OUT'){
+          setCallUnavailable('Private video calling lost its secure room connection. Text and voice messages still work.');
+        }
+      });
+  }
+
+  function closeCallChooser(){ callChooserOverlay.classList.remove('open'); }
+  function closeIncomingCall(){ incomingCallOverlay.classList.remove('open'); }
+
+  function openCallChooser(){
+    if(callBtn.disabled) return;
+    callPersonList.innerHTML = '';
+    const candidates = seats.map((seat,index)=>({seat,index})).filter(item=>item.seat && item.seat.occupied && item.seat.clientId !== clientId);
+    if(!candidates.length){
+      callPersonList.innerHTML = '<div class="call-empty">There is nobody else seated at this fire yet.</div>';
+    } else {
+      candidates.forEach(({seat,index})=>{
+        const presence = callPresenceByClientId.get(seat.clientId);
+        const button = document.createElement('button');
+        button.className = 'call-person';
+        button.type = 'button';
+        button.disabled = !presence;
+        const name = seat.name || 'Bloke';
+        button.innerHTML = '<span></span><small></small>';
+        button.querySelector('span').textContent = name;
+        button.querySelector('small').textContent = presence ? 'Seat '+(index+1) : 'Calls unavailable';
+        button.addEventListener('click', ()=> startOutgoingCall(Object.assign({}, seat, {callUserId:presence && presence.user_id}), index));
+        callPersonList.appendChild(button);
+      });
+    }
+    callChooserOverlay.classList.add('open');
+  }
+
+  function callPayload(extra){
+    return Object.assign({
+      call_id: activeCallId,
+      sender_client_id: clientId,
+      to_client_id: callPeerClientId || null,
+      from_name: mySeat !== null && seats[mySeat] ? (seats[mySeat].name || nickname || 'Bloke') : (nickname || 'Bloke')
+    }, extra || {});
+  }
+
+  async function sendCallEvent(eventType, toUser, payload, fireId){
+    if(!callAvailable || !callSupabase || !callUserId || !toUser) throw new Error('Video calling is not connected.');
+    const now = Date.now();
+    const row = {
+      id: callUuid(),
+      fire_id: fireId || currentFireId,
+      from_user: callUserId,
+      to_user: toUser,
+      event_type: eventType,
+      payload: payload || {},
+      created_at: new Date(now).toISOString(),
+      expires_at: new Date(now + CALL_EVENT_TTL_MS).toISOString()
+    };
+    const result = await callSupabase.from('campfire_call_events').insert(row);
+    if(result.error){
+      setCallUnavailable('Private video calling could not reach its secure signalling service. Text and voice messages still work.');
+      throw result.error;
+    }
+  }
+
+  async function startOutgoingCall(seat){
+    if(callState !== 'idle' || !seat || !seat.callUserId || !currentFireId || mySeat === null) return;
+    closeCallChooser();
+    activeCallId = callUuid();
+    callPeerUserId = seat.callUserId;
+    callPeerClientId = seat.clientId || null;
+    callPeerName = seat.name || 'Bloke';
+    callState = 'ringing';
+    setCallPanel('Calling '+callPeerName, 'Waiting for them to accept…', false, false);
+    callControls.hidden = false;
+    callMuteBtn.disabled = true;
+    callCameraBtn.disabled = true;
+    renderCallGate();
+    try{
+      await sendCallEvent('invite', callPeerUserId, callPayload(), currentFireId);
+    }catch(e){
+      endActiveCall(false, false, 'The call invitation could not be sent.');
+      return;
+    }
+    clearTimeout(callRingTimer);
+    callRingTimer = setTimeout(()=>{
+      if(callState === 'ringing') endActiveCall(true, false, 'No answer this time.');
+    }, CALL_RING_MS);
+  }
+
+  function showIncomingCall(row, payload){
+    if(!currentFireId || row.fire_id !== currentFireId || mySeat === null){
+      sendCallEvent('reject', row.from_user, Object.assign({}, payload, {
+        sender_client_id:clientId,
+        to_client_id:payload.sender_client_id || null,
+        reason:'not_seated'
+      }), row.fire_id).catch(()=>{});
+      return;
+    }
+    if(callState !== 'idle' || pendingIncoming){
+      sendCallEvent('reject', row.from_user, Object.assign({}, payload, {
+        sender_client_id:clientId,
+        to_client_id:payload.sender_client_id || null,
+        reason:'busy'
+      }), row.fire_id).catch(()=>{});
+      return;
+    }
+    const callerSeat = seats.find(s=>{
+      if(!s || !s.occupied || (payload.sender_client_id && s.clientId !== payload.sender_client_id)) return false;
+      const presence = callPresenceByClientId.get(s.clientId);
+      return presence && presence.user_id === row.from_user;
+    });
+    if(!callerSeat) return;
+    pendingIncoming = {
+      callId:payload.call_id,
+      userId:row.from_user,
+      clientId:payload.sender_client_id || null,
+      name:callerSeat.name || payload.from_name || 'Someone',
+      fireId:row.fire_id
+    };
+    incomingCallText.textContent = pendingIncoming.name+' would like a private video call.';
+    incomingCallOverlay.classList.add('open');
+    clearTimeout(callRingTimer);
+    callRingTimer = setTimeout(()=> rejectIncomingCall('missed'), CALL_RING_MS);
+  }
+
+  async function acceptIncomingCall(){
+    if(!pendingIncoming || callState !== 'idle') return;
+    const invitation = pendingIncoming;
+    clearTimeout(callRingTimer);
+    closeIncomingCall();
+    activeCallId = invitation.callId;
+    callPeerUserId = invitation.userId;
+    callPeerClientId = invitation.clientId;
+    callPeerName = invitation.name;
+    pendingIncoming = null;
+    callState = 'connecting';
+    setCallPanel('Call with '+callPeerName, 'Turning on your camera and microphone…', false, false);
+    callControls.hidden = false;
+    renderCallGate();
+    try{
+      await preparePeerConnection();
+      await sendCallEvent('accept', callPeerUserId, callPayload(), invitation.fireId);
+      callStatus.textContent = 'Connecting…';
+    }catch(e){
+      try{
+        await sendCallEvent('reject', callPeerUserId, callPayload({reason:'media_unavailable'}), invitation.fireId);
+      }catch(ignore){}
+      endActiveCall(false, false, 'Camera or microphone access was not available.');
+    }
+  }
+
+  function rejectIncomingCall(reason){
+    if(!pendingIncoming) return;
+    const invitation = pendingIncoming;
+    pendingIncoming = null;
+    clearTimeout(callRingTimer);
+    closeIncomingCall();
+    sendCallEvent('reject', invitation.userId, {
+      call_id:invitation.callId,
+      sender_client_id:clientId,
+      to_client_id:invitation.clientId,
+      reason:reason || 'declined'
+    }, invitation.fireId).catch(()=>{});
+  }
+
+  async function preparePeerConnection(){
+    if(peerConnection) return peerConnection;
+    if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || typeof RTCPeerConnection === 'undefined'){
+      throw new Error('WebRTC is not supported in this browser.');
+    }
+    localCallStream = await navigator.mediaDevices.getUserMedia({
+      video:{ width:{ideal:640, max:720}, height:{ideal:360, max:480}, frameRate:{ideal:15, max:20}, facingMode:'user' },
+      audio:{ echoCancellation:true, noiseSuppression:true, autoGainControl:true, channelCount:1 }
+    });
+    localVideo.srcObject = localCallStream;
+    remoteCallStream = new MediaStream();
+    remoteVideo.srcObject = remoteCallStream;
+    remoteVideoLabel.textContent = callPeerName || 'Other seat';
+    videoGrid.hidden = false;
+    callMuteBtn.disabled = false;
+    callCameraBtn.disabled = false;
+    callMuteBtn.setAttribute('aria-pressed','false');
+    callCameraBtn.setAttribute('aria-pressed','false');
+    callMuteBtn.textContent = '🎙️ Mute';
+    callCameraBtn.textContent = '📷 Camera off';
+
+    const pc = new RTCPeerConnection({ iceServers:CALL_ICE_SERVERS });
+    peerConnection = pc;
+    localCallStream.getTracks().forEach(track=>pc.addTrack(track, localCallStream));
+    await tuneCallSenders(pc);
+    startCallStats(pc);
+    pc.ontrack = event=>{
+      if(event.streams && event.streams[0]){
+        remoteVideo.srcObject = event.streams[0];
+      } else if(remoteCallStream && !remoteCallStream.getTracks().some(t=>t.id === event.track.id)){
+        remoteCallStream.addTrack(event.track);
+      }
+      remoteVideo.play().catch(()=>{});
+    };
+    pc.onicecandidate = event=>{
+      if(!event.candidate || !activeCallId || !callPeerUserId) return;
+      const candidate = event.candidate.toJSON ? event.candidate.toJSON() : event.candidate;
+      sendCallEvent('ice', callPeerUserId, callPayload({candidate}), currentFireId).catch(()=>{});
+    };
+    pc.onconnectionstatechange = ()=>{
+      if(pc !== peerConnection) return;
+      if(pc.connectionState === 'connected'){
+        callState = 'connected';
+        callStatus.textContent = 'Connected privately. No media is recorded.';
+        renderCallGate();
+      } else if(pc.connectionState === 'failed'){
+        endActiveCall(true, false, 'The video connection was lost.');
+      } else if(pc.connectionState === 'disconnected'){
+        callStatus.textContent = 'Connection interrupted — trying to reconnect…';
+      }
+    };
+    return pc;
+  }
+
+  async function flushPendingIce(){
+    if(!peerConnection || !peerConnection.remoteDescription) return;
+    const candidates = pendingIceCandidates.slice();
+    pendingIceCandidates = [];
+    for(const candidate of candidates){
+      try{ await peerConnection.addIceCandidate(candidate); }catch(e){}
+    }
+  }
+
+  async function handleCallEvent(row){
+    if(!row || row.to_user !== callUserId) return;
+    const expires = new Date(row.expires_at).getTime();
+    if(expires && expires <= Date.now()) return;
+    if(row.id && processedCallEventIds.has(row.id)) return;
+    if(row.id){
+      processedCallEventIds.add(row.id);
+      if(processedCallEventIds.size > 500) processedCallEventIds.delete(processedCallEventIds.values().next().value);
+    }
+    let payload = row.payload || {};
+    if(typeof payload === 'string'){
+      try{ payload = JSON.parse(payload); }catch(e){ return; }
+    }
+    if(!payload.call_id || (payload.to_client_id && payload.to_client_id !== clientId) || payload.sender_client_id === clientId) return;
+    if(row.event_type === 'invite'){
+      showIncomingCall(row, payload);
+      return;
+    }
+    if(!activeCallId || payload.call_id !== activeCallId || row.from_user !== callPeerUserId) return;
+    try{
+      if(row.event_type === 'accept' && callState === 'ringing'){
+        clearTimeout(callRingTimer);
+        callState = 'connecting';
+        setCallPanel('Call with '+callPeerName, 'Turning on your camera and microphone…', false, false);
+        await preparePeerConnection();
+        const offer = await peerConnection.createOffer();
+        await peerConnection.setLocalDescription(offer);
+        await sendCallEvent('offer', callPeerUserId, callPayload({description:peerConnection.localDescription}), currentFireId);
+        callStatus.textContent = 'Connecting…';
+      } else if(row.event_type === 'reject'){
+        const reason = payload.reason === 'busy' ? callPeerName+' is already on another call.' :
+          payload.reason === 'media_unavailable' ? callPeerName+' could not open their camera or microphone.' :
+          payload.reason === 'not_seated' ? callPeerName+' is no longer seated at this fire.' :
+          callPeerName+' declined the call.';
+        endActiveCall(false, false, reason);
+      } else if(row.event_type === 'offer'){
+        await preparePeerConnection();
+        await peerConnection.setRemoteDescription(payload.description);
+        await flushPendingIce();
+        const answer = await peerConnection.createAnswer();
+        await peerConnection.setLocalDescription(answer);
+        await sendCallEvent('answer', callPeerUserId, callPayload({description:peerConnection.localDescription}), currentFireId);
+      } else if(row.event_type === 'answer'){
+        if(!peerConnection) return;
+        await peerConnection.setRemoteDescription(payload.description);
+        await flushPendingIce();
+      } else if(row.event_type === 'ice' && payload.candidate){
+        if(peerConnection && peerConnection.remoteDescription) await peerConnection.addIceCandidate(payload.candidate);
+        else pendingIceCandidates.push(payload.candidate);
+      } else if(row.event_type === 'end'){
+        endActiveCall(false, false, 'The call ended.');
+      }
+    }catch(e){
+      endActiveCall(true, false, 'The video connection could not be established.');
+    }
+  }
+
+  function closePeerMedia(){
+    if(callStatsTimer){ clearInterval(callStatsTimer); callStatsTimer = null; }
+    if(peerConnection){
+      peerConnection.ontrack = null;
+      peerConnection.onicecandidate = null;
+      peerConnection.onconnectionstatechange = null;
+      try{ peerConnection.close(); }catch(e){}
+      peerConnection = null;
+    }
+    if(localCallStream){ localCallStream.getTracks().forEach(track=>track.stop()); localCallStream = null; }
+    if(remoteCallStream){ remoteCallStream.getTracks().forEach(track=>track.stop()); remoteCallStream = null; }
+    localVideo.srcObject = null;
+    remoteVideo.srcObject = null;
+    pendingIceCandidates = [];
+    videoGrid.hidden = true;
+    callControls.hidden = true;
+    callMuteBtn.disabled = true;
+    callCameraBtn.disabled = true;
+  }
+
+  function cleanupSignalRows(callId){
+    if(!callSupabase || !callUserId || !callId) return;
+    callSupabase.from('campfire_call_events').delete()
+      .contains('payload', {call_id:callId})
+      .or('from_user.eq.'+callUserId+',to_user.eq.'+callUserId)
+      .then(()=>{}).catch(()=>{});
+  }
+
+  function endActiveCall(notifyPeer, quiet, message){
+    const endedCallId = activeCallId;
+    const peerUser = callPeerUserId;
+    const peerClient = callPeerClientId;
+    const fireId = currentFireId;
+    if(notifyPeer && endedCallId && peerUser && callAvailable){
+      sendCallEvent('end', peerUser, {
+        call_id:endedCallId,
+        sender_client_id:clientId,
+        to_client_id:peerClient
+      }, fireId).catch(()=>{});
+    }
+    if(pendingIncoming){
+      const invitation = pendingIncoming;
+      pendingIncoming = null;
+      if(notifyPeer && callAvailable){
+        sendCallEvent('reject', invitation.userId, {
+          call_id:invitation.callId,
+          sender_client_id:clientId,
+          to_client_id:invitation.clientId,
+          reason:'not_seated'
+        }, invitation.fireId).catch(()=>{});
+      }
+    }
+    clearTimeout(callRingTimer);
+    closeCallChooser();
+    closeIncomingCall();
+    closePeerMedia();
+    callState = 'idle';
+    activeCallId = null;
+    callPeerUserId = null;
+    callPeerClientId = null;
+    callPeerName = '';
+    if(endedCallId) setTimeout(()=>cleanupSignalRows(endedCallId), 5000);
+    if(!quiet && currentFireId){
+      setCallPanel('Private video call', message || 'Call ended.', false, false);
+      callPanelResetTimer = setTimeout(()=>{
+        if(callState === 'idle' && callAvailable) callPanel.hidden = true;
+      }, 5000);
+    } else if(callAvailable){
+      callPanel.hidden = true;
+    }
+    renderCallGate();
+  }
+
+  callBtn.addEventListener('click', openCallChooser);
+  callChooserClose.addEventListener('click', closeCallChooser);
+  callChooserOverlay.addEventListener('click', e=>{ if(e.target === callChooserOverlay) closeCallChooser(); });
+  callAcceptBtn.addEventListener('click', acceptIncomingCall);
+  callRejectBtn.addEventListener('click', ()=>rejectIncomingCall('declined'));
+  callEndBtn.addEventListener('click', ()=>endActiveCall(true, false, 'Call ended.'));
+  callMuteBtn.addEventListener('click', ()=>{
+    if(!localCallStream) return;
+    const tracks = localCallStream.getAudioTracks();
+    const muted = tracks.some(track=>track.enabled);
+    tracks.forEach(track=>{ track.enabled = !muted; });
+    callMuteBtn.setAttribute('aria-pressed', String(muted));
+    callMuteBtn.textContent = muted ? '🔇 Unmute' : '🎙️ Mute';
+  });
+  callCameraBtn.addEventListener('click', ()=>{
+    if(!localCallStream) return;
+    const tracks = localCallStream.getVideoTracks();
+    const cameraOff = tracks.some(track=>track.enabled);
+    tracks.forEach(track=>{ track.enabled = !cameraOff; });
+    callCameraBtn.setAttribute('aria-pressed', String(cameraOff));
+    callCameraBtn.textContent = cameraOff ? '📷 Camera on' : '📷 Camera off';
+  });
+
+  async function initialiseVideoCalls(){
+    if(typeof RTCPeerConnection === 'undefined' || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+      setCallUnavailable('This browser does not support private video calls. Text and voice messages still work.');
+      return;
+    }
+    try{
+      const configResponse = await fetch('/api/campfire-config', { headers:{Accept:'application/json'}, cache:'no-store' });
+      if(!configResponse.ok) throw new Error('config');
+      const config = await configResponse.json();
+      if(!config || !config.url || !config.anonKey) throw new Error('config');
+      if(Array.isArray(config.iceServers) && config.iceServers.length){
+        CALL_ICE_SERVERS = CALL_ICE_SERVERS.concat(config.iceServers);
+      }
+      const module = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
+      callSupabase = module.createClient(config.url, config.anonKey);
+      const sessionResult = await callSupabase.auth.getSession();
+      const session = sessionResult && sessionResult.data ? sessionResult.data.session : null;
+      if(sessionResult.error || !session || !session.user) throw new Error('auth');
+      callUserId = session.user.id;
+
+      const accessResult = await callSupabase.from('campfire_access').select('access_space').eq('user_id', callUserId).maybeSingle();
+      if(!accessResult.error && accessResult.data && (accessResult.data.access_space === 'mens' || accessResult.data.access_space === 'ladies')){
+        selectedAccess = accessResult.data.access_space;
+        VISIBLE_FIRES = FIRES.filter(f=>f.id === selectedAccess || f.id === 'common');
+        try{ sessionStorage.setItem('rh_campfire_access', selectedAccess); }catch(e){}
+        renderHomeCards();
+      }
+
+      const availability = await callSupabase.from('campfire_call_events')
+        .select('id')
+        .or('from_user.eq.'+callUserId+',to_user.eq.'+callUserId)
+        .limit(1);
+      if(availability.error) throw new Error('table');
+
+      await new Promise((resolve,reject)=>{
+        let settled = false;
+        const timeout = setTimeout(()=>{ if(!settled){ settled = true; reject(new Error('realtime')); } }, 8000);
+        const channel = callSupabase.channel('campfire-calls-'+callUserId+'-'+clientId);
+        callChannel = channel
+          .on('postgres_changes', {
+            event:'INSERT',
+            schema:'public',
+            table:'campfire_call_events',
+            filter:'to_user=eq.'+callUserId
+          }, change=>handleCallEvent(change.new))
+          .subscribe(status=>{
+            if(status === 'SUBSCRIBED' && !settled){ settled = true; clearTimeout(timeout); resolve(); }
+            if((status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') && !settled){ settled = true; clearTimeout(timeout); reject(new Error('realtime')); }
+            else if((status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') && settled && callChannel === channel){
+              callChannel = null;
+              try{ callSupabase.removeChannel(channel); }catch(e){}
+              scheduleCallReconnect();
+            }
+          });
+      });
+
+      callAvailable = true;
+      callAvailabilityResolved = true;
+      callUnavailableReason = '';
+      callReconnectAttempt = 0;
+      renderCallGate();
+      syncCallIdentityToSeat();
+
+      callSupabase.from('campfire_call_events').delete()
+        .lt('expires_at', new Date().toISOString())
+        .or('from_user.eq.'+callUserId+',to_user.eq.'+callUserId)
+        .then(()=>{}).catch(()=>{});
+
+      const pending = await callSupabase.from('campfire_call_events')
+        .select('*')
+        .eq('to_user', callUserId)
+        .eq('event_type','invite')
+        .gt('expires_at', new Date().toISOString())
+        .order('created_at', {ascending:false})
+        .limit(1);
+      if(!pending.error && pending.data && pending.data[0]) handleCallEvent(pending.data[0]);
+    }catch(e){
+      if(callChannel && callSupabase){ try{ await callSupabase.removeChannel(callChannel); }catch(ignore){} }
+      callChannel = null;
+      const message = e && e.message === 'auth'
+        ? 'Sign in to use private video calls. Text and voice messages still work.'
+        : 'Private video calls are unavailable right now. Text and voice messages still work.';
+      setCallUnavailable(message);
+      if(e && e.message === 'realtime') scheduleCallReconnect();
+    }
+  }
+
+  function cleanupCallsForPageHide(){
+    callPageHidden = true;
+    if(callReconnectTimer){ clearTimeout(callReconnectTimer); callReconnectTimer = null; }
+    endActiveCall(true, true);
+    if(callChannel && callSupabase){ callSupabase.removeChannel(callChannel).catch(()=>{}); }
+    callChannel = null;
+  }
+  window.addEventListener('pagehide', cleanupCallsForPageHide);
+  window.addEventListener('pagehide', removeMySeatOnExit);
+  window.addEventListener('beforeunload', removeMySeatOnExit);
+  campfireInitPromise = initialiseVideoCalls();
+
+  // ---------- soft fire sound (procedural, no external audio) ----------
+  let audioCtx = null, soundNodes = null, soundOn = false;
+  function startSound(){
+    if(!audioCtx){
+      try{ audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }
+      catch(e){ return; }
+    }
+    if(audioCtx.state === 'suspended') audioCtx.resume();
+    const bufferSize = 2 * audioCtx.sampleRate;
+    const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+    const data = buffer.getChannelData(0);
+    let lastOut = 0;
+    for(let i=0;i<bufferSize;i++){ const white = Math.random()*2-1; lastOut = (lastOut + 0.02*white) / 1.02; data[i] = lastOut * 3.2; }
+    const noise = audioCtx.createBufferSource(); noise.buffer = buffer; noise.loop = true;
+    const filter = audioCtx.createBiquadFilter(); filter.type = 'lowpass'; filter.frequency.value = 700;
+    const gain = audioCtx.createGain(); gain.gain.value = 0.05;
+    noise.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination); noise.start();
+    let popTimer = null;
+    function schedulePop(){
+      const delay = 250 + Math.random()*900;
+      popTimer = setTimeout(()=>{
+        if(!soundOn) return;
+        const t = audioCtx.currentTime;
+        const popBuf = audioCtx.createBuffer(1, audioCtx.sampleRate*0.08, audioCtx.sampleRate);
+        const pd = popBuf.getChannelData(0);
+        for(let i=0;i<pd.length;i++){ pd[i] = (Math.random()*2-1) * Math.exp(-i/(pd.length*0.25)); }
+        const pop = audioCtx.createBufferSource(); pop.buffer = popBuf;
+        const pf = audioCtx.createBiquadFilter(); pf.type = 'bandpass'; pf.frequency.value = 900 + Math.random()*1200;
+        const pg = audioCtx.createGain(); pg.gain.value = 0.06 + Math.random()*0.05;
+        pop.connect(pf); pf.connect(pg); pg.connect(audioCtx.destination); pop.start(t);
+        schedulePop();
+      }, delay);
+    }
+    schedulePop();
+    soundNodes = { stop(){ try{ noise.stop(); }catch(e){} if(popTimer) clearTimeout(popTimer); } };
+  }
+  function stopSound(){ if(soundNodes){ soundNodes.stop(); soundNodes = null; } }
+  soundBtn.addEventListener('click', ()=>{
+    soundOn = !soundOn;
+    soundBtn.setAttribute('aria-pressed', String(soundOn));
+    soundBtn.textContent = soundOn ? '🔊' : '🔇';
+    safeSet(SOUND_KEY, soundOn ? '1':'0');
+    if(soundOn) startSound(); else stopSound();
+  });
+
+  renderSeats();
+  renderMessages();
+})();
+</script>
+</body>
+</html>
