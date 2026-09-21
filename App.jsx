@@ -8241,7 +8241,7 @@ function CampfirePage({ onBack, campfireAccess = "" }) {
     : access === "1" || normalizedAccess === "ladies" || normalizedAccess === "ladies'" || normalizedAccess === "women" || access.startsWith("Ladies’") || access.startsWith("Ladies'") ? "ladies" : null;
   const enterCampfire = () => {
     try { sessionStorage.setItem("rh_campfire_access", allowedFire || ""); } catch {}
-    window.location.href = `/campfire.html?v=20260921-layout2&space=${encodeURIComponent(allowedFire || "")}`;
+    window.location.href = `/campfire.html?v=20260921-layout3&space=${encodeURIComponent(allowedFire || "")}`;
   };
   return <>
     <Brand right={<BackBtn onBack={onBack} />} />
