@@ -6906,6 +6906,15 @@ function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, set
           </div>
           <ExternalLink size={19} color="#28736f" style={{ flexShrink: 0 }} />
         </a>
+        <a href="https://hellodoc.com.au/contact-us/?gad_source=1&gad_campaignid=22108310618&gbraid=0AAAAApth259s3VsZGGGtF2KCkjN6JYcjX&gclid=Cj0KCQjw5bjVBhCiARIsAJzMVnSaMZne_9uFcstB6fS0ngezgD8M3m7gKZn8GxwyHs2Qk4YRH7T75G4aAj9lEALw_wcB" target="_blank" rel="noopener noreferrer" aria-label="Open HelloDoc" style={{ width: "100%", boxSizing: "border-box", background: "linear-gradient(135deg, #f0edff 0%, #ffffff 58%, #eaf7ff 100%)", border: "1px solid rgba(92,82,170,0.20)", borderRadius: 21, padding: 15, boxShadow: T.soft, cursor: "pointer", display: "flex", alignItems: "center", gap: 13, textAlign: "left", textDecoration: "none", color: T.ink }}>
+          <div style={{ width: 50, height: 50, borderRadius: 16, background: "linear-gradient(145deg, #9a91df, #e7e4ff)", display: "grid", placeItems: "center", flexShrink: 0 }}><Heart size={24} color="#5c52aa" /></div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ color: "#5c52aa", fontSize: 10, fontWeight: 900, letterSpacing: 0.9, marginBottom: 2 }}>ONLINE HEALTHCARE</div>
+            <div style={{ fontWeight: 800, fontSize: 16 }}>HelloDoc</div>
+            <div style={{ fontSize: 13, color: T.sub, lineHeight: 1.42, marginTop: 3 }}>Connect with HelloDoc for convenient online healthcare information and support.</div>
+          </div>
+          <ExternalLink size={19} color="#5c52aa" style={{ flexShrink: 0 }} />
+        </a>
         <button onClick={onOpenProgramInfo} aria-label="Open Juan’s Resilience Hub 8-week support program" style={{ width: "100%", background: "linear-gradient(135deg, #e8f6ec 0%, #ffffff 58%, #fff4e5 100%)", border: "1px solid rgba(77,159,104,0.20)", borderRadius: 21, padding: 15, boxShadow: T.soft, cursor: "pointer", display: "flex", alignItems: "center", gap: 13, textAlign: "left" }}>
           <div style={{ width: 50, height: 50, borderRadius: 16, background: "linear-gradient(145deg, #75b98a, #e3f5e8)", display: "grid", placeItems: "center", flexShrink: 0 }}><Users size={24} color={T.greenDk} /></div>
           <div style={{ flex: 1, minWidth: 0 }}>
