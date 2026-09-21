@@ -143,10 +143,12 @@
   .chair:disabled{ cursor:default; }
   .ball-layer{ position:absolute; inset:0; z-index:8; pointer-events:none; overflow:visible; }
   .throw-ball{
-    position:absolute; left:0; top:0; width:13px; height:13px; border-radius:50%;
+    position:absolute; left:0; top:0; width:30px; height:30px; border-radius:50%;
     background:#63d66b; border:1px solid #173b1b; box-shadow:0 2px 7px rgba(0,0,0,0.5), 0 0 8px rgba(99,214,107,0.75);
     will-change:transform, opacity;
   }
+  .throw-ball::after{ content:'RH'; position:absolute; inset:0; display:grid; place-items:center; color:#fff; font-size:10px; font-weight:800; letter-spacing:.2px; text-shadow:0 1px 2px rgba(0,0,0,.35); }
+  .msg.throw-notice{ color:#8fd995; font-style:normal; }
 
   /* speech bubble */
   .speech-bubble{
@@ -734,6 +736,7 @@
   let campfireInitPromise = null;
   let campfireOpenedAt = 0;
   let presenceSweepTimer = null;
+  let seatExitSignaled = false;
   let seats = Array.from({length:SEAT_COUNT}, ()=>({occupied:false, name:null, clientId:null, avatarType:null, avatarData:null}));
   let messages = [];
   let waiting = [];
@@ -779,6 +782,8 @@
     if(presenceSweepTimer){ clearInterval(presenceSweepTimer); presenceSweepTimer = null; }
   }
   function removeMySeatOnExit(){
+    if(seatExitSignaled) return;
+    seatExitSignaled = true;
     clearSeatHeartbeat();
     stopPresenceSweep();
     if(mySeat !== null && backend){
@@ -958,12 +963,15 @@
   }
 
   function renderMessages(){
-    const visibleMessages = messages.filter(m=>m.type !== 'throw');
+    const visibleMessages = messages;
     chatEmpty.style.display = visibleMessages.length ? 'none' : 'block';
     chatMessages.querySelectorAll('.msg').forEach(n=>n.remove());
     visibleMessages.slice(-60).forEach(m=>{
       const div = document.createElement('div');
-      if(m.system){
+      if(m.type === 'throw'){
+        div.className = 'msg system throw-notice';
+        div.textContent = (m.fromName || 'Bloke') + ' threw the ball to ' + (m.toName || 'Bloke');
+      } else if(m.system){
         div.className = 'msg system';
         div.textContent = m.text;
       } else {
@@ -1013,7 +1021,7 @@
       const y = startY + (endY - startY) * eased - arc;
       const scale = 0.82 + Math.sin(Math.PI * eased) * 0.22;
       ball.style.opacity = raw > 0.92 ? String(1 - (raw - 0.92) / 0.08) : '1';
-      ball.style.transform = 'translate('+(x-6.5)+'px,'+(y-6.5)+'px) scale('+scale+')';
+      ball.style.transform = 'translate('+(x-15)+'px,'+(y-15)+'px) scale('+scale+')';
       if(raw < 1) requestAnimationFrame(frame);
       else ball.remove();
     }
@@ -1296,7 +1304,11 @@
     const now = Date.now();
     if(now - lastThrowAt < 450) return;
     lastThrowAt = now;
-    backend.sendMessage({ type:'throw', fromSeat:mySeat, toSeat:targetSeat, clientId, ts:now });
+    backend.sendMessage({
+      type:'throw', fromSeat:mySeat, toSeat:targetSeat,
+      fromName: seats[mySeat].name || nickname || 'Bloke',
+      toName: seats[targetSeat].name || 'Bloke', clientId, ts:now
+    });
   }
   function onChairTap(i){
     if(mySeat === i){ standUp(); return; }
@@ -1324,6 +1336,7 @@
   function sitDown(i, name, avatarType, avatarData){
     if(!backend) return;
     const now = Date.now();
+    seatExitSignaled = false;
     seats[i] = { occupied:true, name, clientId, avatarType, avatarData, sat_at: now, last_seen_at: now };
     mySeat = i;
     renderSeats();
@@ -2260,6 +2273,7 @@
     callChannel = null;
   }
   window.addEventListener('pagehide', cleanupCallsForPageHide);
+  document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState === 'hidden') removeMySeatOnExit(); });
   window.addEventListener('pagehide', removeMySeatOnExit);
   window.addEventListener('beforeunload', removeMySeatOnExit);
   campfireInitPromise = initialiseVideoCalls();
