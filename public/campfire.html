@@ -100,7 +100,7 @@
   .fire-video{
     position:absolute; inset:0; width:100%; height:100%; display:block; background:#140d09;
     object-fit:cover; object-position:center center; pointer-events:none;
-    mix-blend-mode:normal; z-index:0; border-radius:2px; transform:scale(.78);
+    mix-blend-mode:normal; z-index:0; border-radius:2px; transform:scale(.64);
   }
   .fire-glow{
     display:none;
@@ -141,6 +141,12 @@
   .chair-label{ font-size:11px; color:var(--cream-dim); max-width:80px; text-align:center; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-weight:600; }
   .chair.mine .chair-label{ color:var(--ember); }
   .chair:disabled{ cursor:default; }
+  .ball-layer{ position:absolute; inset:0; z-index:8; pointer-events:none; overflow:visible; }
+  .throw-ball{
+    position:absolute; left:0; top:0; width:13px; height:13px; border-radius:50%;
+    background:#63d66b; border:1px solid #173b1b; box-shadow:0 2px 7px rgba(0,0,0,0.5), 0 0 8px rgba(99,214,107,0.75);
+    will-change:transform, opacity;
+  }
 
   /* speech bubble */
   .speech-bubble{
@@ -340,6 +346,7 @@
           <source src="/campfire_transparent.webm?v=1" type="video/webm">
           <source src="/virtual_campfire_animation.mp4?v=3" type="video/mp4">
         </video>
+        <div class="ball-layer" id="ballLayer" aria-hidden="true"></div>
         <div class="fire-glow"></div>
         <div class="fire">
           <div class="log"></div>
@@ -581,6 +588,7 @@
   const fireTitle = document.getElementById('fireTitle');
   const fireTagline = document.getElementById('fireTagline');
   const fireCircle = document.getElementById('fireCircle');
+  const ballLayer = document.getElementById('ballLayer');
   const statusLine = document.getElementById('statusLine');
   const statusActions = document.getElementById('statusActions');
   const chatMessages = document.getElementById('chatMessages');
@@ -689,18 +697,24 @@
 
   // ---------- fire chairs (built once, reused across fires) ----------
   const chairEls = [];
+  // A fixed, slightly oval ring keeps the seven seats visually balanced around the fire.
+  const seatLayout = [
+    { x:50, y:12, rotation:0 },
+    { x:81, y:29, rotation:52 },
+    { x:88, y:62, rotation:104 },
+    { x:66, y:88, rotation:156 },
+    { x:34, y:88, rotation:204 },
+    { x:12, y:62, rotation:256 },
+    { x:19, y:29, rotation:308 }
+  ];
   for(let i=0;i<SEAT_COUNT;i++){
-    const angle = -90 + i * (360 / SEAT_COUNT);
-    const rad = angle * Math.PI / 180;
-    const radiusPct = 40;
-    const x = 50 + radiusPct * Math.cos(rad);
-    const y = 50 + radiusPct * Math.sin(rad);
+    const position = seatLayout[i] || seatLayout[i % seatLayout.length];
     const btn = document.createElement('button');
     btn.className = 'chair free';
-    btn.style.left = x + '%';
-    btn.style.top = y + '%';
+    btn.style.left = position.x + '%';
+    btn.style.top = position.y + '%';
     // The stump back faces away from the fire and its seat faces inward.
-    btn.style.setProperty('--seat-rotation', (angle + 90) + 'deg');
+    btn.style.setProperty('--seat-rotation', position.rotation + 'deg');
     btn.setAttribute('aria-label', 'Empty seat, tap to sit');
     btn.innerHTML =
       '<div class="speech-bubble" id="bubble-'+i+'"></div>' +
@@ -734,6 +748,7 @@
   let modalPhotoData = null;
   let isEditingSeat = false;
   let msgFirstLoad = true;
+  let lastThrowAt = 0;
   const bubbleTimers = {};
 
   function computeMySeat(){
@@ -768,10 +783,12 @@
     stopPresenceSweep();
     if(mySeat !== null && backend){
       const seat = mySeat;
+      const emptySeat = { occupied:false, name:null, clientId:null, avatarType:null, avatarData:null };
       mySeat = null;
-      seats[seat] = { occupied:false, name:null, clientId:null, avatarType:null, avatarData:null };
+      seats = seats.slice();
+      seats[seat] = emptySeat;
       renderSeats();
-      const result = backend.setSeat(seat, { occupied:false, name:null, clientId:null, avatarType:null, avatarData:null });
+      const result = backend.setSeat(seat, emptySeat);
       if(result && typeof result.catch === 'function') result.catch(()=>{});
     }
   }
@@ -869,9 +886,11 @@
         occupiedCount++;
         label.textContent = isMine ? 'You' : (s.name || 'Bloke');
         el.disabled = false;
+        el.title = mySeat !== null && !isMine ? 'Throw the green ball' : '';
         el.setAttribute('aria-label', isMine ? 'Your seat, tap to stand up' : ((s.name||'Bloke') + '’s seat, taken'));
       } else {
         label.textContent = 'Free';
+        el.title = '';
         el.setAttribute('aria-label','Empty seat, tap to sit');
         el.disabled = false;
         hideBubble(i);
@@ -939,9 +958,10 @@
   }
 
   function renderMessages(){
-    chatEmpty.style.display = messages.length ? 'none' : 'block';
+    const visibleMessages = messages.filter(m=>m.type !== 'throw');
+    chatEmpty.style.display = visibleMessages.length ? 'none' : 'block';
     chatMessages.querySelectorAll('.msg').forEach(n=>n.remove());
-    messages.slice(-60).forEach(m=>{
+    visibleMessages.slice(-60).forEach(m=>{
       const div = document.createElement('div');
       if(m.system){
         div.className = 'msg system';
@@ -967,7 +987,44 @@
     chatMessages.scrollTop = chatMessages.scrollHeight;
   }
 
+  function animateThrow(fromSeat, toSeat){
+    if(!Number.isInteger(fromSeat) || !Number.isInteger(toSeat) || fromSeat === toSeat) return;
+    const from = chairEls[fromSeat], to = chairEls[toSeat];
+    if(!from || !to || !ballLayer) return;
+    const layerRect = ballLayer.getBoundingClientRect();
+    const fromRect = from.getBoundingClientRect();
+    const toRect = to.getBoundingClientRect();
+    const startX = fromRect.left + fromRect.width / 2 - layerRect.left;
+    const startY = fromRect.top + fromRect.height / 2 - layerRect.top;
+    const endX = toRect.left + toRect.width / 2 - layerRect.left;
+    const endY = toRect.top + toRect.height / 2 - layerRect.top;
+    const distance = Math.hypot(endX - startX, endY - startY);
+    const duration = Math.max(520, Math.min(860, 420 + distance * 1.5));
+    const ball = document.createElement('span');
+    ball.className = 'throw-ball';
+    ball.setAttribute('aria-hidden', 'true');
+    ballLayer.appendChild(ball);
+    const startedAt = performance.now();
+    function frame(now){
+      const raw = Math.min(1, (now - startedAt) / duration);
+      const eased = raw < 0.5 ? 2 * raw * raw : 1 - Math.pow(-2 * raw + 2, 2) / 2;
+      const x = startX + (endX - startX) * eased;
+      const arc = Math.sin(Math.PI * eased) * Math.max(34, Math.min(88, distance * 0.28));
+      const y = startY + (endY - startY) * eased - arc;
+      const scale = 0.82 + Math.sin(Math.PI * eased) * 0.22;
+      ball.style.opacity = raw > 0.92 ? String(1 - (raw - 0.92) / 0.08) : '1';
+      ball.style.transform = 'translate('+(x-6.5)+'px,'+(y-6.5)+'px) scale('+scale+')';
+      if(raw < 1) requestAnimationFrame(frame);
+      else ball.remove();
+    }
+    requestAnimationFrame(frame);
+  }
+
   function handleIncomingMessage(m){
+    if(m.type === 'throw'){
+      animateThrow(Number(m.fromSeat), Number(m.toSeat));
+      return;
+    }
     let seatIndex = seats.findIndex(s => s.occupied && s.clientId === m.clientId);
     if(seatIndex === -1 && typeof m.seat === 'number') seatIndex = m.seat;
     if(seatIndex === -1 || seatIndex == null) return;
@@ -1064,7 +1121,10 @@
         subscribe(fn){ listeners.push(fn); if(latest.seats) fn(latest); },
         async setSeat(i, data){
           const cur = await seatsDoc.get().catch(()=>null);
-          const arr = (cur && cur.exists && cur.data().seats) ? cur.data().seats.slice() : defaultSeats();
+          if(!cur || !cur.exists) return;
+          const storedSeats = cur.data && cur.data().seats;
+          const arr = Array.isArray(storedSeats) ? storedSeats.slice() : latest.seats.slice();
+          if(!Array.isArray(arr) || arr.length !== SEAT_COUNT || i < 0 || i >= SEAT_COUNT) return;
           arr[i] = data;
           await seatsDoc.set({ seats: arr }).catch(()=>{});
         },
@@ -1230,8 +1290,17 @@
   backBtn.addEventListener('click', leaveFire);
 
   // ---------- seat actions ----------
+  function throwToSeat(targetSeat){
+    if(mySeat === null || !backend || targetSeat === mySeat) return;
+    if(!seats[mySeat] || !seats[mySeat].occupied || !seats[targetSeat] || !seats[targetSeat].occupied) return;
+    const now = Date.now();
+    if(now - lastThrowAt < 450) return;
+    lastThrowAt = now;
+    backend.sendMessage({ type:'throw', fromSeat:mySeat, toSeat:targetSeat, clientId, ts:now });
+  }
   function onChairTap(i){
     if(mySeat === i){ standUp(); return; }
+    if(mySeat !== null && seats[i] && seats[i].occupied){ throwToSeat(i); return; }
     if(mySeat !== null) return;
     if(seats[i] && seats[i].occupied) return;
     openModal(i);
@@ -1240,9 +1309,15 @@
     if(mySeat === null || !backend) return;
     endActiveCall(true, true);
     clearSeatHeartbeat();
-    backend.setSeat(mySeat, { occupied:false, name:null, clientId:null, avatarType:null, avatarData:null });
-    hideBubble(mySeat);
+    const seat = mySeat;
+    const emptySeat = { occupied:false, name:null, clientId:null, avatarType:null, avatarData:null };
     mySeat = null;
+    seats = seats.slice();
+    seats[seat] = emptySeat;
+    hideBubble(seat);
+    renderSeats();
+    const result = backend.setSeat(seat, emptySeat);
+    if(result && typeof result.catch === 'function') result.catch(()=>{});
   }
   function joinWaiting(){ if(backend && !waiting.includes(clientId)) backend.setWaiting(waiting.concat([clientId])); }
   function removeFromWaiting(){ if(backend && waiting.includes(clientId)) backend.setWaiting(waiting.filter(id=>id!==clientId)); }
