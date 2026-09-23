@@ -506,6 +506,22 @@ export default function App() {
   const [consented, setConsented] = useState(false);
   const [toolkitInitial, setToolkitInitial] = useState(null);
   const [session, setSession] = useState(null);
+  useEffect(() => {
+    if (!session?.user?.id || !supabase || !pushSupported()) return undefined;
+    let cancelled = false;
+    (async () => {
+      try {
+        const reg = await navigator.serviceWorker.getRegistration();
+        const sub = reg && (await reg.pushManager.getSubscription());
+        const json = sub?.toJSON?.();
+        if (cancelled || !json?.endpoint || !json?.keys?.p256dh || !json?.keys?.auth) return;
+        await supabase.from("push_subscriptions").upsert({
+          user_id: session.user.id, endpoint: json.endpoint, p256dh: json.keys.p256dh, auth: json.keys.auth,
+        }, { onConflict: "endpoint" });
+      } catch {}
+    })();
+    return () => { cancelled = true; };
+  }, [session?.user?.id]);
   const [stayLoggedIn, setStayLoggedIn] = useState(() => {
     try { const raw = localStorage.getItem("rh_stay_logged_in"); return raw === null ? true : JSON.parse(raw) !== false; }
     catch { return true; }
