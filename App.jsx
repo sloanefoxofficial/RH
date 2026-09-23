@@ -1345,7 +1345,7 @@ export default function App() {
   // Message Juan screen for a reply, instead of just opening to the Hub.
   const goRef = useRef(go);
   goRef.current = go;
-  const DEEP_LINK_SCREENS = ["notifications", "coordinator", "admin", "adminMessages", "adminBugReports", "adminAppointments"];
+  const DEEP_LINK_SCREENS = ["notifications", "coordinator", "admin", "adminIntakes", "adminMessages", "adminBugReports", "adminAppointments"];
   useEffect(() => {
     // Case 1: the app was already open in a background tab — the service
     // worker posts the target screen directly, no reload needed.
@@ -1569,6 +1569,8 @@ export default function App() {
           <ChaptlyPage onBack={() => { histRef.current = []; __backDestinationLabel = "Home"; setScreen("hub"); }} />
         ) : screen === "supportUs" ? (
           <SupportUsPage onOpenMerch={() => go("merch")} onOpenCarlosLibrary={() => go("carlosLibrary")} onBack={back} />
+        ) : screen === "adminIntakes" ? (
+          isAdmin ? <AdminIntakes onBack={back} /> : <Admin isAdmin={isAdmin} guidePrompts={guidePrompts} onSaveGuidePrompt={saveGuidePrompt} onBack={back} />
         ) : screen === "admin" ? (
           <Admin isAdmin={isAdmin} guidePrompts={guidePrompts} onSaveGuidePrompt={saveGuidePrompt} onBack={back} />
         ) : screen === "profile" ? (
@@ -8240,7 +8242,7 @@ function ProgramIntake({ session, profile, onBack, onReturnToProgram }) {
         setSubmitted(true);
         fetch("/api/push", {
           method: "POST", headers: await pushHeaders(), keepalive: true,
-          body: JSON.stringify({ toAdmins: true, title: "New intake form submitted", body: "A client has submitted a new program intake form for review.", target: "admin", url: "/?open=admin" }),
+          body: JSON.stringify({ toAdmins: true, title: "New intake form submitted", body: "A client has submitted a new program intake form for review.", target: "adminIntakes", url: "/?open=adminIntakes" }),
         }).catch(() => {});
       } else setStatus("Draft saved. You can come back and finish it later.");
     } catch (error) { setStatus(error.message || "We couldn't save your intake form just now."); }
