@@ -2276,7 +2276,7 @@ function useVoice(voiceOn) {
             if (index === 0) {
               const firstResult = await Promise.race([
                 audioPromise.then((value) => ({ kind: "audio", value })),
-                new Promise((resolve) => setTimeout(() => resolve({ kind: "timeout" }), 700)),
+                new Promise((resolve) => setTimeout(() => resolve({ kind: "timeout" }), 2200)),
               ]);
               if (firstResult.kind === "timeout") {
                 audioPromise.catch(() => {});
