@@ -2018,6 +2018,7 @@ function primeAudio() {
         try { a.pause(); a.currentTime = 0; a.removeAttribute("src"); a.load(); } catch {}
         a.onplay = keep.onplay; a.onended = keep.onended; a.onerror = keep.onerror;
         __primePromise = null;
+        if (ok) __audioUnlocked = true;
         resolve(ok);
       };
       a.onplay = null;
@@ -2316,9 +2317,23 @@ function useVoice(voiceOn) {
             if (index + 1 < chunks.length) browserSpeak(chunk, char, () => playChunk(index + 1, chunkPromises[index + 1]));
             else { setSpeaking(false); browserSpeak(chunk, char, onDone); }
           };
-          try { audio.src = url; audio.currentTime = 0; await audio.play(); return; }
+          try {
+            audio.src = url;
+            audio.currentTime = 0;
+            try { audio.load(); } catch {}
+            await audio.play();
+            return;
+          }
           catch {
-            try { await primeAudio(); if (stale()) return; audio.src = url; audio.currentTime = 0; await audio.play(); return; }
+            try {
+              if (!__audioUnlocked) await primeAudio();
+              if (stale()) return;
+              audio.src = url;
+              audio.currentTime = 0;
+              try { audio.load(); } catch {}
+              await audio.play();
+              return;
+            }
             catch { if (!stale()) browserSpeak(chunk, char, index + 1 < chunks.length ? () => playChunk(index + 1, chunkPromises[index + 1]) : onDone); }
           }
         };
