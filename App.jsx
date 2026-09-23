@@ -1572,7 +1572,7 @@ export default function App() {
         ) : screen === "mensGroup" ? (
           <MensGroup onBack={back} />
         ) : screen === "programInfo" ? (
-          <ProgramInfo voiceOn={voiceOn} speechLang={speechLang} onBack={back} onMessageJuan={() => go("coordinator")} onBookAppointment={() => go("bookAppointment")} />
+          <ProgramInfo voiceOn={voiceOn} speechLang={speechLang} onBack={back} onMessageJuan={() => go("coordinator")} onOpenIntake={() => go("intake")} onBookAppointment={() => go("bookAppointment")} />
         ) : screen === "bookAppointment" ? (
           <BookAppointment onBack={back} />
         ) : screen === "memory" ? (
@@ -7029,11 +7029,6 @@ function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, set
           <div style={{ flex: 1, minWidth: 0, position: "relative", display: "flex", flexDirection: "column", justifyContent: "center" }}><div style={{ fontWeight: 800, fontSize: 18, color: "#2f687a" }}>Support Directory</div><div style={{ fontSize: 13, color: "#607c86", lineHeight: 1.45, marginTop: 3 }}>Food, crisis support, recovery, local services, activities, and people to connect with</div></div>
           <ChevronRight size={24} color="#3f7e9e" style={{ position: "relative", flexShrink: 0 }} />
         </button>
-        <button onClick={onOpenIntake} aria-label="Open the program intake form" style={{ width: "100%", background: "linear-gradient(135deg, #eef8ed 0%, #ffffff 55%, #fff3df 100%)", border: "1px solid rgba(77,159,104,0.24)", borderRadius: 24, padding: 18, boxShadow: "0 10px 24px rgba(77,159,104,0.12)", cursor: "pointer", display: "flex", alignItems: "center", gap: 14, textAlign: "left", position: "relative", overflow: "hidden" }}>
-          <div style={{ width: 62, height: 62, borderRadius: 20, background: "linear-gradient(145deg, #62ad79, #e7f5e8)", display: "grid", placeItems: "center", flexShrink: 0, boxShadow: "0 8px 16px rgba(77,159,104,0.18)", position: "relative" }}><FileText size={31} color="#fff" /></div>
-          <div style={{ flex: 1, minWidth: 0, position: "relative" }}><div style={{ color: T.greenDk, fontSize: 10, fontWeight: 900, letterSpacing: 0.9, marginBottom: 2 }}>8-WEEK PROGRAM</div><div style={{ fontWeight: 800, fontSize: 18, color: T.ink }}>Complete your intake form</div><div style={{ fontSize: 13, color: T.sub, lineHeight: 1.45, marginTop: 3 }}>Register for the program and save your answers to finish before your intake appointment.</div></div>
-          <ChevronRight size={24} color={T.greenDk} style={{ position: "relative", flexShrink: 0 }} />
-        </button>
         <button onClick={onOpenSupportUs} aria-label="Open Support Us" style={{ width: "100%", background: "linear-gradient(135deg, #fff0f0 0%, #fffaf7 56%, #f5eaf0 100%)", border: "1px solid rgba(201,79,79,0.18)", borderRadius: 22, padding: 16, boxShadow: "0 9px 21px rgba(201,79,79,0.10)", cursor: "pointer", display: "flex", alignItems: "center", gap: 13, textAlign: "left", position: "relative", overflow: "hidden" }}>
           <div style={{ position: "absolute", width: 120, height: 120, borderRadius: "50%", right: -42, top: -50, background: "rgba(255,255,255,0.48)" }} />
           <div style={{ width: 56, height: 56, borderRadius: 18, background: "linear-gradient(145deg, #e5484d, #f38a73)", display: "grid", placeItems: "center", flexShrink: 0, boxShadow: "0 7px 15px rgba(201,79,79,0.18)", position: "relative" }}><Heart size={28} color="#fff" fill="#fff" /></div>
@@ -7884,7 +7879,7 @@ function FounderVideoSection() {
   );
 }
 
-function ProgramInfo({ voiceOn, speechLang, onBack, onMessageJuan, onBookAppointment }) {
+function ProgramInfo({ voiceOn, speechLang, onBack, onMessageJuan, onOpenIntake, onBookAppointment }) {
   const juanProgramIntro = "Hi, I'm Juan, the founder of The Resilience Hub. This program is free and built around you: we listen to where you're at, shape practical support at your pace, and help connect you with the right people. If you need help at any point, use Message Juan to reach the real me, talk with one of the AI guides, or use Help Now for urgent human support.";
   const spokenJuanProgramIntro = spokenIntro("program", juanProgramIntro, speechLang);
   const { speak: speakJuanProgramIntro, stop: stopJuanProgramIntro, prefetch: prefetchJuanProgramIntro } = useVoice(voiceOn);
@@ -7986,8 +7981,7 @@ function ProgramInfo({ voiceOn, speechLang, onBack, onMessageJuan, onBookAppoint
 
       <ProgramInfoSection title="Join The Program">
         <p style={{ fontSize: 13, color: T.sub, margin: "0 0 14px", lineHeight: 1.5 }}>
-          Everything you need to get started: download and fill out your intake forms ahead of time, then request a
-          time for your first appointment — Juan will call or text to lock it in.
+          Everything you need to get started: complete your intake form in the app or download the forms ahead of time, then request a time for your first appointment — Juan will call or text to lock it in.
         </p>
         <div style={{ fontSize: 12, fontWeight: 700, color: T.greenDk, textTransform: "uppercase", letterSpacing: 0.4, margin: "0 0 8px" }}>
           Intake forms
@@ -8009,7 +8003,8 @@ function ProgramInfo({ voiceOn, speechLang, onBack, onMessageJuan, onBookAppoint
             </button>
           ))}
         </div>
-        <div style={{ marginTop: 16 }}>
+        <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 9 }}>
+          <Btn onClick={onOpenIntake}>Complete Program Intake Form</Btn>
           <Btn onClick={onBookAppointment}>Book Intake Appointment</Btn>
         </div>
       </ProgramInfoSection>
