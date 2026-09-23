@@ -2258,6 +2258,7 @@ function useVoice(voiceOn) {
     if (char && char.voiceId) {
       const chunks = splitForTts(text);
       const first = chunks[0] || text;
+      const firstVoiceWait = String(char.voiceId).startsWith("fish:") ? 7000 : 2200;
       try {
         // Start the first short request immediately. The remaining response no
         // longer blocks the first spoken sentence; the next chunk is warmed in
@@ -2277,7 +2278,7 @@ function useVoice(voiceOn) {
             if (index === 0) {
               const firstResult = await Promise.race([
                 audioPromise.then((value) => ({ kind: "audio", value })),
-                new Promise((resolve) => setTimeout(() => resolve({ kind: "timeout" }), 2200)),
+                new Promise((resolve) => setTimeout(() => resolve({ kind: "timeout" }), firstVoiceWait)),
               ]);
               if (firstResult.kind === "timeout") {
                 audioPromise.catch(() => {});
