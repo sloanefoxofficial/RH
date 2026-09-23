@@ -11,7 +11,7 @@ export default async function handler(req, res) {
     res.status(500).json({ error: "Server is missing GEMINI_API_KEY" });
     return;
   }
-  const model = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+  const model = process.env.GEMINI_MODEL || "gemini-3.6-flash";
   try {
     const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : req.body || {};
     const { system, max_tokens } = body;
