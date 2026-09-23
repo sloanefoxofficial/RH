@@ -3540,6 +3540,41 @@ function AdminActivity({ onBack }) {
   );
 }
 
+function AdminIntakes({ onBack }) {
+  const [rows, setRows] = useState(null);
+  const [selected, setSelected] = useState(null);
+  const [filter, setFilter] = useState("all");
+  const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
+  const load = useCallback(async () => {
+    setError("");
+    if (!supabase) { setRows([]); return; }
+    const { data, error: loadError } = await supabase.from("program_intakes").select("id,form_version,status,data,consent_name,signature,signed_date,agreement_accepted_at,medical_sharing_consent,submitted_at,updated_at").order("updated_at", { ascending: false });
+    if (loadError) setError(loadError.message || "Unable to load intake submissions.");
+    setRows(data || []);
+  }, []);
+  useEffect(() => { load(); }, [load]);
+  const updateStatus = async (row, status) => {
+    setSaving(true); setError("");
+    const { error: updateError } = await supabase.from("program_intakes").update({ status, updated_at: new Date().toISOString() }).eq("id", row.id);
+    if (updateError) setError(updateError.message || "Unable to update status.");
+    else { const next = { ...row, status }; setRows((current) => (current || []).map((item) => item.id === row.id ? next : item)); setSelected(next); }
+    setSaving(false);
+  };
+  const visible = (rows || []).filter((row) => filter === "all" || row.status === filter);
+  const display = (value) => Array.isArray(value) ? value.join(", ") : value === true ? "Yes" : value === false ? "No" : (value || "—");
+  const groups = [
+    ["Personal details", ["full_name", "date_of_birth", "gender", "address", "phone", "email", "preferred_contact"]],
+    ["Emergency contacts", ["emergency_primary_name", "emergency_primary_relationship", "emergency_primary_phone", "emergency_secondary_name", "emergency_secondary_relationship", "emergency_secondary_phone"]],
+    ["Referral, WDO & legal", ["referral_source", "wdo_participant", "revenue_nsw_ref", "legal_obligations", "legal_details"]],
+    ["Health & clinical background", ["gp_name", "medical_clinic", "mental_health_plan", "medical_conditions", "current_support_meds", "allergies_special_care"]],
+    ["Situation, goals & strengths", ["housing_status", "employment_status", "goals", "enjoys", "comfortable", "values", "skills", "strengths", "problem_response", "support_style", "main_goal", "wanted_to_do", "support_needed"]],
+  ];
+  const labels = { full_name: "Full name", date_of_birth: "Date of birth", gender: "Gender", address: "Address", phone: "Phone", email: "Email", preferred_contact: "Preferred contact", emergency_primary_name: "Primary contact", emergency_primary_relationship: "Primary relationship", emergency_primary_phone: "Primary phone", emergency_secondary_name: "Secondary contact", emergency_secondary_relationship: "Secondary relationship", emergency_secondary_phone: "Secondary phone", referral_source: "Referral source", wdo_participant: "WDO participant", revenue_nsw_ref: "Revenue NSW reference", legal_obligations: "Legal obligations", legal_details: "Legal details", gp_name: "GP", medical_clinic: "Medical clinic", mental_health_plan: "Mental Health Plan", medical_conditions: "Medical conditions", current_support_meds: "Current support / medications", allergies_special_care: "Allergies / special care", housing_status: "Housing status", employment_status: "Employment status", goals: "Program goals", enjoys: "Enjoys", comfortable: "Comfortable", values: "Values", skills: "Skills", strengths: "Strengths", problem_response: "Problem response", support_style: "Works best", main_goal: "Main goal", wanted_to_do: "Wants to do", support_needed: "Support needed" };
+  if (selected) return <><Brand right={<BackBtn onBack={() => setSelected(null)} label="Intakes" />} /><div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6, marginBottom: 5 }}><FileText size={18} color={T.green} /><h2 style={{ fontSize: 18, margin: 0, flex: 1 }}>{selected.data?.full_name || selected.consent_name || "Intake submission"}</h2></div><div style={{ color: T.sub, fontSize: 12.5, marginBottom: 12 }}>Updated {new Date(selected.updated_at).toLocaleString()} · {selected.submitted_at ? `Submitted ${new Date(selected.submitted_at).toLocaleString()}` : "Draft"}</div><div style={{ display: "flex", gap: 7, marginBottom: 14, flexWrap: "wrap" }}>{["draft", "submitted", "reviewing", "completed"].map((status) => <button key={status} type="button" disabled={saving} onClick={() => updateStatus(selected, status)} style={{ border: `1px solid ${selected.status === status ? T.green : T.line}`, background: selected.status === status ? "#e7f5eb" : T.card, color: selected.status === status ? T.greenDk : T.ink, borderRadius: 999, padding: "8px 11px", fontSize: 12, fontWeight: 750, cursor: "pointer", textTransform: "capitalize" }}>{status}</button>)}</div>{groups.map(([title, keys]) => <div key={title} style={{ background: T.card, borderRadius: 16, padding: 14, boxShadow: T.soft, marginBottom: 10 }}><div style={{ color: T.greenDk, fontWeight: 850, marginBottom: 9 }}>{title}</div>{keys.map((key) => <div key={key} style={{ borderBottom: `1px solid ${T.line}`, padding: "7px 0", fontSize: 13, lineHeight: 1.45 }}><div style={{ color: T.sub, fontSize: 11.5, fontWeight: 750 }}>{labels[key]}</div><div style={{ whiteSpace: "pre-wrap" }}>{display(selected.data?.[key])}</div></div>)}</div>)}<div style={{ background: T.card, borderRadius: 16, padding: 14, boxShadow: T.soft, marginBottom: 20 }}><div style={{ color: T.greenDk, fontWeight: 850, marginBottom: 9 }}>Consents &amp; sign-off</div><div style={{ fontSize: 13, lineHeight: 1.55 }}>Program agreement accepted: {selected.agreement_accepted_at ? new Date(selected.agreement_accepted_at).toLocaleString() : "No"}<br />Privacy consent: {selected.data?.privacy_consent ? "Yes" : "No"}<br />Participant name: {selected.consent_name || "—"}<br />Typed signature: {selected.signature || "—"}<br />Signed date: {selected.signed_date || "—"}<br />Medical-sharing consent: {selected.medical_sharing_consent ? display(selected.medical_sharing_consent.types) : "Not selected"}</div></div></>;
+  return <><Brand right={<BackBtn onBack={onBack} label="Admin" />} /><div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6, marginBottom: 5 }}><FileText size={18} color={T.green} /><h2 style={{ fontSize: 18, margin: 0, flex: 1 }}>Intake submissions</h2><button type="button" onClick={load} style={{ border: `1px solid ${T.line}`, background: T.card, borderRadius: 999, padding: "7px 10px", color: T.greenDk, fontWeight: 750, cursor: "pointer" }}>Refresh</button></div><p style={{ color: T.sub, fontSize: 12.5, lineHeight: 1.45, margin: "0 0 12px" }}>Authorised admin view. Intake answers contain sensitive personal and health information.</p><div style={{ display: "flex", gap: 7, overflowX: "auto", paddingBottom: 9 }}>{["all", "submitted", "reviewing", "completed", "draft"].map((status) => <button key={status} type="button" onClick={() => setFilter(status)} style={{ border: `1px solid ${filter === status ? T.green : T.line}`, background: filter === status ? "#e7f5eb" : T.card, color: filter === status ? T.greenDk : T.ink, borderRadius: 999, padding: "8px 11px", fontSize: 12, fontWeight: 750, cursor: "pointer", textTransform: "capitalize", whiteSpace: "nowrap" }}>{status}</button>)}</div>{error && <div style={{ background: "#fff0f0", color: "#a4453c", borderRadius: 12, padding: 11, fontSize: 12.5, marginBottom: 10 }}>{error}</div>}{rows === null ? <div style={{ color: T.sub, fontSize: 13 }}>Loading…</div> : visible.length === 0 ? <div style={{ background: T.card, borderRadius: 16, padding: 16, color: T.sub, fontSize: 13 }}>No {filter === "all" ? "intake records" : filter + " intakes"} yet.</div> : <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>{visible.map((row) => <button key={row.id} type="button" onClick={() => setSelected(row)} style={{ width: "100%", background: T.card, border: "none", borderRadius: 16, padding: 14, boxShadow: T.soft, textAlign: "left", cursor: "pointer" }}><div style={{ display: "flex", alignItems: "center", gap: 8 }}><div style={{ flex: 1, fontWeight: 800 }}>{row.data?.full_name || row.consent_name || "Unnamed client"}</div><ChevronRight size={18} color={T.sub} /></div><div style={{ color: T.sub, fontSize: 12, marginTop: 5 }}>{row.status} · {row.submitted_at ? new Date(row.submitted_at).toLocaleDateString() : "Draft updated " + new Date(row.updated_at).toLocaleDateString()}</div></button>)}</div>}</>;
+}
+
 function Admin({ isAdmin, guidePrompts, onSaveGuidePrompt, onBack }) {
   const [view, setView] = useState(null);       // null | "members" | "activity" | "safety" | "welcome" | "guides" | "notify"
   const [member, setMember] = useState(null);   // a selected member row
@@ -3557,10 +3592,12 @@ function Admin({ isAdmin, guidePrompts, onSaveGuidePrompt, onBack }) {
   if (member) return <MemberDetail member={member} onBack={() => setMember(null)} />;
   if (view === "members") return <MembersDirectory onOpen={(m) => setMember(m)} onBack={() => setView(null)} />;
   if (view === "activity") return <AdminActivity onBack={() => setView(null)} />;
+  if (view === "intakes") return <AdminIntakes onBack={() => setView(null)} />;
   if (view === "bugreports") return <AdminBugReports onBack={() => setView(null)} />;
   if (view === "appointments") return <AdminAppointments onBack={() => setView(null)} />;
 
   const tools = [
+    { key: "intakes", Icon: FileText, tint: "#e9f5ee", ic: "#2c7d50", title: "Intake submissions", sub: "Review client registration forms and update their status" },
     { key: "activity", Icon: Radio, tint: "#e9f5ee", ic: "#2c7d50", title: "Activity & usage", sub: "Admin-only active count, sessions and peak periods" },
     { key: "safety", Icon: LifeBuoy, tint: "#fbe4e4", ic: "#c94f4f", title: "Safety & crisis settings", sub: "Crisis numbers, disclaimers, safety rules" },
     { key: "welcome", Icon: Sparkles, tint: "#fbf1d6", ic: "#c9a227", title: "Welcome message", sub: "What Rex says to brand-new members" },
