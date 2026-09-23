@@ -8136,6 +8136,33 @@ function SupportUsPage({ onOpenMerch, onOpenCarlosLibrary, onBack }) {
 }
 
 function ResourcesPage({ onOpenSafety, onOpenMensShed, onBack }) {
+  const [resourceQuery, setResourceQuery] = useState("");
+  const searchAliases = {
+    crisis: ["lifeline", "emergency", "suicide", "unsafe", "urgent", "danger", "safety"],
+    emergency: ["crisis", "000", "ambulance", "police", "fire", "urgent", "danger"],
+    doctor: ["gp", "medical", "health", "telehealth", "nurse", "clinic", "hospital"],
+    gp: ["doctor", "medical", "health", "telehealth", "clinic"],
+    medical: ["doctor", "gp", "health", "telehealth", "nurse", "clinic"],
+    counselling: ["counseling", "therapy", "mental", "psychologist", "support", "wellbeing"],
+    counseling: ["counselling", "therapy", "mental", "psychologist", "support", "wellbeing"],
+    mental: ["counselling", "counseling", "psychologist", "wellbeing", "anxiety", "depression"],
+    housing: ["homeless", "accommodation", "shelter", "rent", "tenancy", "clothing", "essentials"],
+    homeless: ["housing", "accommodation", "shelter", "rent", "tenancy"],
+    food: ["meals", "groceries", "pantry", "voucher", "foodbank"],
+    money: ["bills", "financial", "finance", "legal", "debt", "income", "centrelink"],
+    bills: ["money", "financial", "finance", "debt", "income", "legal"],
+    addiction: ["alcohol", "drug", "rehab", "detox", "recovery", "substance", "overdose"],
+    alcohol: ["addiction", "drug", "rehab", "detox", "recovery", "substance"],
+    drugs: ["addiction", "alcohol", "rehab", "detox", "recovery", "substance"],
+    family: ["children", "youth", "carer", "domestic", "relationship", "parenting"],
+    children: ["family", "youth", "kids", "parenting", "carer"],
+    youth: ["young", "children", "kids", "family"],
+    community: ["connection", "group", "mateship", "social", "support"],
+    local: ["fairfield", "liverpool", "western", "sydney", "bonnyrigg", "villawood", "nsw"],
+  };
+  const ignoredSearchWords = new Set(["a", "an", "and", "for", "find", "get", "help", "i", "in", "me", "near", "of", "the", "to", "with"]);
+  const hasSearch = resourceQuery.trim().length > 0;
+  let matchedAny = false;
   useEffect(() => {
     // Each visit should begin at the Resources hero and table of contents,
     // rather than inheriting the scroll position from the previous screen.
@@ -8143,8 +8170,13 @@ function ResourcesPage({ onOpenSafety, onOpenMensShed, onBack }) {
     requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "auto" }));
   }, []);
   const jump = (id) => document.getElementById(id)?.scrollIntoView({ behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
-  const sectionLabel = (id, Icon, title, sub, color) => <div id={id} style={{ scrollMarginTop: 18, margin: "28px 0 11px", padding: "10px 11px 11px", borderRadius: 17, background: `linear-gradient(135deg, ${color}0d 0%, rgba(255,255,255,0.72) 78%)`, border: `1px solid ${color}22`, boxShadow: "0 5px 14px rgba(37,78,54,0.05)" }}><div style={{ display: "flex", alignItems: "center", gap: 9, color, fontSize: 18, fontWeight: 900, letterSpacing: 0.1 }}><span style={{ width: 37, height: 37, borderRadius: 13, background: `${color}1b`, display: "grid", placeItems: "center", boxShadow: `inset 0 0 0 1px ${color}18` }}><Icon size={19} color={color} /></span>{title}</div><div style={{ fontSize: 12.5, color: T.sub, margin: "6px 0 0 46px", lineHeight: 1.4 }}>{sub}</div></div>;
+  const sectionLabel = (id, Icon, title, sub, color) => hasSearch ? null : <div id={id} style={{ scrollMarginTop: 18, margin: "28px 0 11px", padding: "10px 11px 11px", borderRadius: 17, background: `linear-gradient(135deg, ${color}0d 0%, rgba(255,255,255,0.72) 78%)`, border: `1px solid ${color}22`, boxShadow: "0 5px 14px rgba(37,78,54,0.05)" }}><div style={{ display: "flex", alignItems: "center", gap: 9, color, fontSize: 18, fontWeight: 900, letterSpacing: 0.1 }}><span style={{ width: 37, height: 37, borderRadius: 13, background: `${color}1b`, display: "grid", placeItems: "center", boxShadow: `inset 0 0 0 1px ${color}18` }}><Icon size={19} color={color} /></span>{title}</div><div style={{ fontSize: 12.5, color: T.sub, margin: "6px 0 0 46px", lineHeight: 1.4 }}>{sub}</div></div>;
   const resourceCard = ({ Icon, image, imageAlt, tint, color, eyebrow, title, children, href, phone, email, onClick, actionLabel }) => {
+    const searchableText = `${eyebrow} ${title} ${children} ${phone || ""} ${email || ""}`.toLowerCase();
+    const searchWords = resourceQuery.toLowerCase().split(/[^a-z0-9]+/).filter((word) => word && !ignoredSearchWords.has(word));
+    const matches = !hasSearch || searchWords.length === 0 || searchWords.every((word) => searchableText.includes(word) || (searchAliases[word] || []).some((alias) => searchableText.includes(alias)));
+    if (!matches) return null;
+    matchedAny = true;
     const opensExternal = /^https?:\/\//i.test(href || "");
     const body = <><div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}><div style={{ width: 44, height: 44, borderRadius: 14, background: tint, display: "grid", placeItems: "center", overflow: "hidden", flexShrink: 0, padding: image ? 4 : 0 }}>{image ? <img src={image} alt={imageAlt || title} style={{ width: "100%", height: "100%", objectFit: "contain", borderRadius: 10 }} /> : <Icon size={22} color={color} />}</div><div style={{ flex: 1, minWidth: 0 }}><div style={{ color, fontSize: 10, fontWeight: 900, letterSpacing: 0.9, textTransform: "uppercase", marginBottom: 3 }}>{eyebrow}</div><div style={{ fontWeight: 800, fontSize: 16, color: T.ink }}>{title}</div><div style={{ fontSize: 13, color: T.sub, lineHeight: 1.48, marginTop: 5 }}>{children}</div></div>{(href || onClick) && (opensExternal ? <ExternalLink size={18} color={color} style={{ flexShrink: 0, marginTop: 12 }} /> : <ChevronRight size={19} color={T.sub} style={{ flexShrink: 0, marginTop: 12 }} />)}</div>{(phone || email || actionLabel) && <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginTop: 11 }}><span style={{ padding: "7px 10px", borderRadius: 999, background: "rgba(255,255,255,0.78)", color: T.ink, fontWeight: 750, fontSize: 11.5 }}>{phone ? `Phone: ${phone}` : email ? `Email: ${email}` : actionLabel}</span></div>}</>;
 
@@ -8164,6 +8196,15 @@ function ResourcesPage({ onOpenSafety, onOpenMensShed, onBack }) {
         <h1 style={{ position: "relative", fontSize: 28, lineHeight: 1.12, margin: "9px 0 7px", color: T.greenDk }}>Support Directory</h1>
         <div style={{ position: "relative", display: "flex", alignItems: "flex-start", gap: 7, padding: "9px 10px", margin: "0 0 10px", borderRadius: 12, background: "rgba(255,255,255,0.64)", border: "1px solid rgba(77,159,104,0.14)", color: T.sub, fontSize: 11.5, lineHeight: 1.42 }}><Shield size={15} color={T.greenDk} style={{ flexShrink: 0, marginTop: 1 }} /><span>All listed services are recommendations only. We do not run or manage them. Always check directly with each provider for current details.</span></div>
         <p style={{ position: "relative", fontSize: 13.5, color: T.sub, lineHeight: 1.55, margin: 0 }}>A clear starting place for practical services, community connections, recovery support, safety, and everyday help. Information and availability can change, so check before travelling.</p>
+        <div style={{ position: "relative", marginTop: 14 }}>
+          <label htmlFor="resource-directory-search" style={{ display: "block", fontSize: 12.5, fontWeight: 800, color: T.greenDk, marginBottom: 6 }}>What kind of help are you looking for?</label>
+          <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+            <Search size={18} color={T.sub} style={{ position: "absolute", left: 13, pointerEvents: "none" }} />
+            <input id="resource-directory-search" type="search" value={resourceQuery} onChange={(event) => setResourceQuery(event.target.value)} placeholder="Try: housing, food, doctor, crisis, bills…" aria-describedby="resource-search-hint" style={{ width: "100%", boxSizing: "border-box", border: `1px solid ${T.line}`, borderRadius: 14, padding: "11px 42px 11px 40px", background: "rgba(255,255,255,0.9)", color: T.ink, fontSize: 14, outline: "none", boxShadow: "0 4px 12px rgba(37,78,54,0.05)" }} />
+            {hasSearch && <button type="button" onClick={() => setResourceQuery("")} aria-label="Clear resource search" style={{ position: "absolute", right: 9, width: 28, height: 28, border: "none", borderRadius: 999, background: "#edf5ef", color: T.greenDk, display: "grid", placeItems: "center", cursor: "pointer" }}><X size={15} /></button>}
+          </div>
+          <div id="resource-search-hint" style={{ marginTop: 6, color: T.sub, fontSize: 11.5 }}>Searches service names and descriptions, including related words and common terms.</div>
+        </div>
         <div id="resources-toc" style={{ position: "relative", scrollMarginTop: 18, marginTop: 16, padding: 13, borderRadius: 17, background: "rgba(255,255,255,0.68)", border: "1px solid rgba(77,159,104,0.14)" }}>
           <div style={{ fontWeight: 800, color: T.greenDk, fontSize: 13.5, marginBottom: 8 }}>On this page</div>
           <div style={{ display: "grid", gap: 5 }}>{toc.map(([id, label]) => <button key={id} onClick={() => jump(id)} style={{ border: "none", background: "none", padding: "4px 0", textAlign: "left", color: T.ink, fontSize: 12.5, cursor: "pointer", display: "flex", alignItems: "center", gap: 7 }}><ChevronRight size={14} color={T.green} />{label}</button>)}</div>
@@ -8237,6 +8278,7 @@ function ResourcesPage({ onOpenSafety, onOpenMensShed, onBack }) {
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {resourceCard({ Icon: LifeBuoy, tint: "#f3ecd6", color: "#a47c1f", eyebrow: "The Resilience Hub", title: "Stay Safe", onClick: onOpenSafety, children: "Substance safety, overdose information, and support lines. Open the in-app safety guide whenever you need it.", actionLabel: "Open in-app safety guide" })}
       </div>
+      {hasSearch && !matchedAny && <div role="status" style={{ margin: "20px 0 4px", padding: "18px 15px", borderRadius: 17, background: "#fffaf0", border: "1px solid #eadfbd", color: T.ink, textAlign: "center", lineHeight: 1.5 }}><div style={{ fontWeight: 800 }}>No exact matches yet</div><div style={{ color: T.sub, fontSize: 13, marginTop: 4 }}>Try a broader word such as <strong>support</strong>, <strong>health</strong>, <strong>housing</strong>, or <strong>community</strong>.</div></div>}
       <div style={{ margin: "18px 2px 0", fontSize: 11.5, color: T.sub, lineHeight: 1.5 }}>Please check each organisation’s current hours, eligibility, fees, and availability before travelling. If there is immediate danger, call <a href="tel:000" style={{ color: T.greenDk, fontWeight: 800 }}>000</a>.</div>
       <Disclaimer />
     </>
