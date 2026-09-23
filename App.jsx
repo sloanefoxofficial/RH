@@ -1539,7 +1539,7 @@ export default function App() {
         ) : screen === "resources" ? (
           <ResourcesPage onOpenSafety={() => openTool("safety")} onOpenMensShed={() => go("mensShed")} onBack={back} />
         ) : screen === "intake" ? (
-          <ProgramIntake session={session} profile={profile} onBack={back} />
+          <ProgramIntake session={session} profile={profile} onBack={back} onReturnToProgram={() => { histRef.current = []; __backDestinationLabel = "Home"; setScreen("programInfo"); setTimeout(() => document.getElementById("program-join-the-program")?.scrollIntoView({ behavior: "smooth", block: "start" }), 80); }} />
         ) : screen === "virtualSupport" ? (
           <VirtualSupportPage onBack={back} />
         ) : screen === "campfire" ? (
@@ -8175,7 +8175,7 @@ function SupportUsPage({ onOpenMerch, onOpenCarlosLibrary, onBack }) {
   );
 }
 
-function ProgramIntake({ session, profile, onBack }) {
+function ProgramIntake({ session, profile, onBack, onReturnToProgram }) {
   const userId = session?.user?.id || "guest";
   const draftKey = `rh_program_intake_draft_${userId}`;
   const blank = {
@@ -8188,6 +8188,7 @@ function ProgramIntake({ session, profile, onBack }) {
   const [agreement, setAgreement] = useState(false);
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
   useEffect(() => { try { localStorage.setItem(draftKey, JSON.stringify(form)); } catch {} }, [draftKey, form]);
   useEffect(() => {
     if (!supabase || !session?.user?.id) return;
@@ -8209,11 +8210,26 @@ function ProgramIntake({ session, profile, onBack }) {
       const payload = { id: session.user.id, data: { ...form, agreement, privacy_consent: consent }, status: submit ? "submitted" : "draft", consent_name: submit ? form.participant_name_printed : null, signature: submit ? form.signature : null, signed_date: submit ? form.signed_date : null, agreement_accepted_at: submit && agreement ? new Date().toISOString() : null, medical_sharing_consent: submit ? { gp: form.sharing_gp, clinic: form.sharing_clinic, types: form.sharing_types || [] } : null, submitted_at: submit ? new Date().toISOString() : null, updated_at: new Date().toISOString() };
       const { error } = await supabase.from("program_intakes").upsert(payload);
       if (error) throw error;
-      setStatus(submit ? "Your intake form has been submitted. You can still bring additional information to your appointment." : "Draft saved. You can come back and finish it later.");
-      if (submit) try { localStorage.removeItem(draftKey); } catch {}
+      if (submit) {
+        try { localStorage.removeItem(draftKey); } catch {}
+        setSubmitted(true);
+        fetch("/api/push", {
+          method: "POST", headers: await pushHeaders(), keepalive: true,
+          body: JSON.stringify({ toAdmins: true, title: "New intake form submitted", body: "A client has submitted a new program intake form for review.", target: "admin", url: "/?open=admin" }),
+        }).catch(() => {});
+      } else setStatus("Draft saved. You can come back and finish it later.");
     } catch (error) { setStatus(error.message || "We couldn't save your intake form just now."); }
     finally { setBusy(false); }
   };
+  if (submitted) return <>
+    <Brand right={<BackBtn onBack={onBack} label="Program" />} />
+    <div style={{ background: "linear-gradient(135deg, #eaf7ed 0%, #ffffff 62%, #fff5e8 100%)", border: "1px solid rgba(77,159,104,0.18)", borderRadius: 24, padding: "30px 20px 24px", boxShadow: T.soft, marginTop: 18, textAlign: "center" }}>
+      <div style={{ width: 72, height: 72, borderRadius: "50%", background: "#e5f5e8", display: "grid", placeItems: "center", margin: "0 auto 16px", boxShadow: "0 8px 18px rgba(77,159,104,0.16)" }}><CheckCircle2 size={46} color={T.greenDk} strokeWidth={2.2} /></div>
+      <h1 style={{ fontSize: 23, lineHeight: 1.25, margin: "0 0 13px", color: T.ink }}>Thank you for submitting your intake form online.</h1>
+      <p style={{ color: T.sub, fontSize: 14, lineHeight: 1.65, margin: 0 }}>We are thrilled to have you with us, and Juan will be in touch very soon to discuss your next steps. Alternatively, you can book your initial appointment online from the previous page.</p>
+      <button type="button" onClick={onReturnToProgram} style={{ marginTop: 22, border: "none", background: "none", color: T.greenDk, textDecoration: "underline", textUnderlineOffset: 3, fontSize: 14, fontWeight: 800, cursor: "pointer" }}>Return to the program</button>
+    </div>
+  </>;
   return <>
     <Brand right={<BackBtn onBack={onBack} />} />
     <div style={{ background: "linear-gradient(135deg, #e5f5ea 0%, #f8fcf9 54%, #fff0e4 100%)", borderRadius: 24, padding: "21px 18px", marginTop: 7, boxShadow: T.soft, border: `1px solid ${T.line}` }}><div style={{ color: T.greenDk, fontSize: 11, fontWeight: 900, letterSpacing: 1 }}>THE RESILIENCE HUB · RH-FORM-01 v2.1</div><h1 style={{ margin: "8px 0 7px", color: T.greenDk, fontSize: 27, lineHeight: 1.12 }}>Program intake form</h1><p style={{ margin: 0, color: T.sub, fontSize: 13.5, lineHeight: 1.5 }}>This form registers you for the 8-week Recovery &amp; Resilience Program. Save a draft and finish it in your own time; you can bring extra information to your intake appointment.</p></div>
