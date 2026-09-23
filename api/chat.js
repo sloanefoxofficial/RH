@@ -61,16 +61,25 @@ export default async function handler(req, res) {
       generationConfig: { maxOutputTokens: max_tokens || 1000 },
       ...(system ? { systemInstruction: { parts: [{ text: system }] } } : {}),
     };
-    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
-    const r = await fetch(endpoint, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(requestBody),
-    });
-    const data = await r.json();
-    if (!r.ok) {
-      const msg = data?.error?.message || "Model error";
-      res.status(r.status).json({ error: msg });
+    const models = [...new Set([model, "gemini-3.5-flash", "gemini-3.8-flash"])]
+      .filter(Boolean);
+    let data = null;
+    let lastError = null;
+    for (const candidate of models) {
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(candidate)}:generateContent?key=${encodeURIComponent(apiKey)}`;
+      const r = await fetch(endpoint, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(requestBody),
+      });
+      data = await r.json();
+      if (r.ok) break;
+      lastError = { status: r.status, message: data?.error?.message || "Model error" };
+      // Busy/limited models can be bypassed by trying the next free Flash model.
+      if (![404, 429, 500, 503].includes(r.status)) break;
+    }
+    if (lastError && (!data?.candidates || !data.candidates.length)) {
+      res.status(lastError.status).json({ error: lastError.message });
       return;
     }
     const text = (data?.candidates?.[0]?.content?.parts || [])
