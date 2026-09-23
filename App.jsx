@@ -2271,7 +2271,21 @@ function useVoice(voiceOn) {
           if (stale()) return;
           const chunk = chunks[index] || text;
           let url;
-          try { url = await (urlPromise || fetchTtsUrl(chunk, char.voiceId)); }
+          try {
+            const audioPromise = urlPromise || fetchTtsUrl(chunk, char.voiceId);
+            if (index === 0) {
+              const firstResult = await Promise.race([
+                audioPromise.then((value) => ({ kind: "audio", value })),
+                new Promise((resolve) => setTimeout(() => resolve({ kind: "timeout" }), 700)),
+              ]);
+              if (firstResult.kind === "timeout") {
+                audioPromise.catch(() => {});
+                if (!stale()) browserSpeak(text, char, onDone);
+                return;
+              }
+              url = firstResult.value;
+            } else url = await audioPromise;
+          }
           catch { if (!stale()) browserSpeak(chunk, char, index + 1 < chunks.length ? () => playChunk(index + 1, chunkPromises[index + 1]) : onDone); return; }
           if (stale()) return;
           const audio = getTtsAudio() || new Audio();
