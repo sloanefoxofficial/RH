@@ -69,13 +69,16 @@ function sendEvent(res, payload) {
 }
 function getChunkText(chunk) {
   try {
-    if (typeof chunk?.text === "string") return chunk.text;
+    const parts = chunk?.candidates?.[0]?.content?.parts;
+    if (Array.isArray(parts)) {
+      const candidateText = parts.map((part) => typeof part?.text === "string" ? part.text : "").join("");
+      if (candidateText) return candidateText;
+    }
     if (typeof chunk?.text === "function") {
       const text = chunk.text();
-      if (typeof text === "string") return text;
+      if (typeof text === "string" && text.trim()) return text;
     }
-    const parts = chunk?.candidates?.[0]?.content?.parts;
-    if (Array.isArray(parts)) return parts.map((part) => typeof part?.text === "string" ? part.text : "").join("");
+    if (typeof chunk?.text === "string" && chunk.text.trim()) return chunk.text;
   } catch {
     return "";
   }
