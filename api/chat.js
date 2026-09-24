@@ -145,7 +145,13 @@ export default async function handler(req, res) {
       res.status(413).json({ error: message });
       return;
     }
-    res.status(502).json({ error: "The guides are temporarily unavailable. Please try again in a moment." });
+    console.error("Google AI Studio request failed", {
+      message,
+      status: error?.status || error?.statusCode || null,
+      code: error?.code || null,
+    });
+    const providerStatus = error?.status || error?.statusCode || "unknown";
+    res.status(502).json({ error: `Google AI Studio request failed (${providerStatus}). Please try again in a moment.` });
   }
 }
 
