@@ -6474,14 +6474,27 @@ function ProgramPage({ profile, plan, progress, saveProgress, answers, journalCo
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [voiceOn, speechLang]);
   const weeks = plan?.weeks || [];
+  // User-created tasks live inside the existing progress object so they follow
+  // the same encrypted local/cloud persistence as plan completion.
+  const customTasks = Array.isArray(progress?.__customTasks) ? progress.__customTasks : [];
+  const customTasksForDay = (weekNumber, dayNumber) => customTasks.filter((task) => task.week === weekNumber && task.day === dayNumber);
+  const customTaskKey = (task) => `custom:${task.id}`;
+  const selfDirectedPrompt = (weekNumber) => weekNumber <= 2
+    ? "You can add one small task of your own whenever you like — even something simple counts."
+    : weekNumber <= 5
+      ? "Try adding one task that matters to you alongside the plan. Your own ideas belong here too."
+      : "As the plan becomes a support rather than a crutch, try choosing more of today’s tasks yourself."
   // Support day-based plans ({days:[{d,tasks:[]}]}) and legacy step-based plans ({steps:[]}).
   const weekTaskKeys = (w) => {
     if (Array.isArray(w.days)) {
       const keys = [];
-      w.days.forEach((day) => (day.tasks || []).forEach((_, ti) => keys.push(`w${w.n}d${day.d}t${ti}`)));
+      w.days.forEach((day) => {
+        (day.tasks || []).forEach((_, ti) => keys.push(`w${w.n}d${day.d}t${ti}`));
+        customTasksForDay(w.n, day.d).forEach((task) => keys.push(customTaskKey(task)));
+      });
       return keys;
     }
-    return (w.steps || []).map((_, si) => `w${w.n}s${si}`);
+    return [...(w.steps || []).map((_, si) => `w${w.n}s${si}`), ...customTasks.filter((task) => task.week === w.n).map(customTaskKey)];
   };
   const allKeys = weeks.flatMap(weekTaskKeys);
   const answerHas = (key, value) => {
@@ -6527,6 +6540,7 @@ function ProgramPage({ profile, plan, progress, saveProgress, answers, journalCo
   const [wk, setWk] = useState(currentWeek);
   const [expandedDays, setExpandedDays] = useState({});
   const [dayCheckIns, setDayCheckIns] = useState({});
+  const [customTaskText, setCustomTaskText] = useState("");
   const [calendarTick, setCalendarTick] = useState(0);
   const week = weeks.find((w) => w.n === wk);
   const planStart = plan?.startedAt ? new Date(plan.startedAt) : null;
@@ -6563,6 +6577,21 @@ function ProgramPage({ profile, plan, progress, saveProgress, answers, journalCo
   }) : [];
   const walkDone = walkTaskKeys.filter((k) => progress[k]).length;
   const toggle = (key) => saveProgress({ ...progress, [key]: !progress[key] });
+  const addCustomTask = () => {
+    const text = customTaskText.trim();
+    if (!text) return;
+    const targetDay = week?.days?.some((day) => day.d === activeDayNumber) ? activeDayNumber : (week?.days?.[0]?.d || 1);
+    const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    saveProgress({ ...progress, __customTasks: [...customTasks, { id, text, week: wk, day: targetDay, createdAt: Date.now() }] });
+    setCustomTaskText("");
+    setExpandedDays((old) => ({ ...old, [dayKey(wk, targetDay)]: true }));
+  };
+  const removeCustomTask = (task) => {
+    const next = customTasks.filter((item) => item.id !== task.id);
+    const nextProgress = { ...progress, __customTasks: next };
+    delete nextProgress[customTaskKey(task)];
+    saveProgress(nextProgress);
+  };
   const coachWeek = week || weeks[0];
   const coachContext = coachWeek ? `You are guiding the person from inside their 8-week plan. They are currently viewing Week ${coachWeek.n}, focused on “${coachWeek.focus}”. Their visible tasks are: ${Array.isArray(coachWeek.days) ? coachWeek.days.flatMap((d) => d.tasks || []).join("; ") : (coachWeek.steps || []).join("; ")}. Help them understand the purpose of this week, answer questions, make tasks feel manageable, and offer gentle, practical advice. Do not pressure them to complete anything. If they are struggling, help them choose one small next step. You can suggest that they tick off a task only when they feel it is genuinely done. This is supportive guidance, not therapy, diagnosis, or a clinical treatment plan.` : "You are helping the person understand and use their personalised 8-week plan. Keep your guidance gentle, practical, and collaborative.";
 
@@ -6665,6 +6694,14 @@ function ProgramPage({ profile, plan, progress, saveProgress, answers, journalCo
             <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 5 }}><Sparkles size={18} color={T.greenDk} /><div style={{ fontWeight: 800, fontSize: 15.5 }}>A little extra for this week</div></div>
             <div style={{ fontSize: 12.5, color: T.sub, lineHeight: 1.45, marginBottom: 7 }}>These are optional ways to make the plan feel more like yours. Pick what fits, leave what does not.</div>
             {weeklyExtras(wk).map((extra, ei) => <TaskRow key={extra} label={extra} k={`w${wk}extra${ei}`} />)}
+            <div style={{ marginTop: 9, paddingTop: 10, borderTop: `1px solid ${T.line}` }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 4 }}><Plus size={16} color={T.greenDk} /><div style={{ fontWeight: 800, fontSize: 13.5 }}>Add your own task</div></div>
+              <div style={{ fontSize: 12, color: T.sub, lineHeight: 1.4, marginBottom: 8 }}>{selfDirectedPrompt(wk)}</div>
+              <div style={{ display: "flex", gap: 7 }}>
+                <input value={customTaskText} onChange={(event) => setCustomTaskText(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") addCustomTask(); }} placeholder="Something you choose to do today" aria-label="Add your own task" maxLength={140} style={{ flex: 1, minWidth: 0, border: `1px solid ${T.line}`, borderRadius: 12, padding: "9px 10px", background: "#fff", color: T.ink, font: "inherit", fontSize: 12.5 }} />
+                <button type="button" onClick={addCustomTask} disabled={!customTaskText.trim()} style={{ border: "none", borderRadius: 12, padding: "9px 12px", background: customTaskText.trim() ? T.greenDk : "#cfcfcf", color: "#fff", fontWeight: 800, fontSize: 12, cursor: customTaskText.trim() ? "pointer" : "default" }}>Add</button>
+              </div>
+            </div>
           </div>
           <div style={{ background: "linear-gradient(135deg, #f1f8f3, #ffffff 70%, #fff4e8)", border: `1px solid ${T.line}`, borderRadius: 20, padding: 15, boxShadow: T.soft, marginBottom: 12 }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}><div style={{ display: "flex", alignItems: "center", gap: 9 }}><div style={{ width: 38, height: 38, borderRadius: 12, background: "#dff1e5", display: "grid", placeItems: "center" }}><Anchor size={19} color={T.greenDk} /></div><div><div style={{ fontWeight: 800, fontSize: 14.5 }}>Walking this week</div><div style={{ fontSize: 12, color: T.sub }}>A gentle daily rhythm</div></div></div><div style={{ fontWeight: 850, fontSize: 18, color: T.greenDk }}>{walkDone}/{walkTaskKeys.length || 7}<span style={{ fontSize: 11, fontWeight: 700, color: T.sub }}> walks</span></div></div>
@@ -6693,8 +6730,9 @@ function ProgramPage({ profile, plan, progress, saveProgress, answers, journalCo
                 {week.days.map((day) => {
                   const isCurrent = day.d === activeDayNumber;
                   const expanded = isDayExpanded(week.n, day.d);
-                  const taskCount = (day.tasks || []).length;
-                  const completedCount = (day.tasks || []).filter((_, ti) => progress[`w${week.n}d${day.d}t${ti}`]).length;
+                  const dayCustomTasks = customTasksForDay(week.n, day.d);
+                  const taskCount = (day.tasks || []).length + dayCustomTasks.length;
+                  const completedCount = (day.tasks || []).filter((_, ti) => progress[`w${week.n}d${day.d}t${ti}`]).length + dayCustomTasks.filter((task) => progress[customTaskKey(task)]).length;
                   if (!expanded) {
                     return (
                       <button key={day.d} onClick={() => toggleDay(week.n, day.d)} aria-expanded={false} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, background: "#f7faf7", border: `1px solid ${T.line}`, borderRadius: 14, padding: "10px 12px", marginTop: 9, textAlign: "left", cursor: "pointer", color: T.ink }}>
@@ -6708,13 +6746,13 @@ function ProgramPage({ profile, plan, progress, saveProgress, answers, journalCo
                     <div key={day.d} style={{ background: day.d % 2 ? "linear-gradient(135deg, #ffffff, #f8fbf8)" : "linear-gradient(135deg, #fffdf9, #ffffff)", border: `1px solid ${T.line}`, borderRadius: 17, padding: "12px 13px", marginTop: 12, boxShadow: "0 5px 14px rgba(47,97,72,0.045)" }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 4 }}><div style={{ display: "flex", alignItems: "center", gap: 7 }}><div style={{ fontSize: 11, fontWeight: 900, color: T.greenDk, textTransform: "uppercase", letterSpacing: 0.8 }}>Day {day.d}</div>{!isCurrent && <button onClick={() => toggleDay(week.n, day.d)} aria-label={`Collapse day ${day.d}`} style={{ border: "none", background: "none", padding: 2, cursor: "pointer", color: T.sub }}><ChevronUp size={15} /></button>}</div>{started && <div style={{ fontSize: 11, color: T.sub }}>{fmtD(dayDate(week.n, day.d))}</div>}</div>
                       <div style={{ height: 2, width: 34, borderRadius: 999, background: day.d % 2 ? T.green : "#d99b67", marginBottom: 4 }} />
-                      {day.d === week.days[0].d && !firstDayCheckIn ? <div style={{ fontSize: 13, color: T.sub, padding: "10px 0 3px", lineHeight: 1.45 }}>Choose a quick check-in above and we’ll show the right-sized version of today’s tasks.</div> : day.d === week.days[0].d && firstDayCheckIn === "overwhelmed" ? <TaskRow label="Bare minimum for today: put both feet on the floor, take three slow breaths, and let the rest wait." k={`w${week.n}d${day.d}t0`} /> : (day.tasks || []).map((t, ti) => <TaskRow key={ti} label={t} k={`w${week.n}d${day.d}t${ti}`} />)}
+                      {day.d === week.days[0].d && !firstDayCheckIn ? <div style={{ fontSize: 13, color: T.sub, padding: "10px 0 3px", lineHeight: 1.45 }}>Choose a quick check-in above and we’ll show the right-sized version of today’s tasks.</div> : <>{day.d === week.days[0].d && firstDayCheckIn === "overwhelmed" ? <TaskRow label="Bare minimum for today: put both feet on the floor, take three slow breaths, and let the rest wait." k={`w${week.n}d${day.d}t0`} /> : (day.tasks || []).map((t, ti) => <TaskRow key={ti} label={t} k={`w${week.n}d${day.d}t${ti}`} />)}{dayCustomTasks.map((task) => <div key={task.id} style={{ display: "flex", alignItems: "flex-start", gap: 8 }}><TaskRow label={task.text} k={customTaskKey(task)} /><button type="button" onClick={() => removeCustomTask(task)} aria-label={`Remove custom task: ${task.text}`} style={{ border: "none", background: "none", color: T.sub, padding: "9px 0 0", cursor: "pointer", fontSize: 16 }}>×</button></div>)}</>}
                     </div>
                   );
                 })}
               </>
             ) : (
-              (week?.steps || []).map((s, si) => <TaskRow key={si} label={s} k={`w${week.n}s${si}`} />)
+              <>{(week?.steps || []).map((s, si) => <TaskRow key={si} label={s} k={`w${week.n}s${si}`} />)}{customTasks.filter((task) => task.week === week?.n).map((task) => <div key={task.id} style={{ display: "flex", alignItems: "flex-start", gap: 8 }}><TaskRow label={task.text} k={customTaskKey(task)} /><button type="button" onClick={() => removeCustomTask(task)} aria-label={`Remove custom task: ${task.text}`} style={{ border: "none", background: "none", color: T.sub, padding: "9px 0 0", cursor: "pointer", fontSize: 16 }}>×</button></div>)}</>
             )}
           </div>
         </>
