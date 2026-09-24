@@ -5,7 +5,7 @@ import { GoogleGenAI } from "@google/genai";
 
 const MAX_IMAGES = 10;
 const MAX_IMAGE_DATA_CHARS = 5_600_000;
-const DEFAULT_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+const DEFAULT_MODEL = process.env.GEMINI_MODEL || "gemini-3.6-flash";
 
 function parseBody(req) {
   try {
