@@ -93,6 +93,13 @@ function beginStream(res) {
   if (typeof res.flushHeaders === "function") res.flushHeaders();
 }
 
+function providerStatus(error) {
+  const direct = error?.status || error?.statusCode || error?.response?.status;
+  if (direct) return Number(direct) || direct;
+  const match = String(error?.message || "").match(/\b(429|500|502|503|504)\b/);
+  return match ? Number(match[1]) : null;
+}
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     res.status(405).json({ error: "Method not allowed" });
@@ -133,7 +140,10 @@ export default async function handler(req, res) {
         break;
       } catch (error) {
         lastError = error;
-        if (attempt === 0) await new Promise((resolve) => setTimeout(resolve, 250));
+        const status = providerStatus(error);
+        if (attempt === 0 && (status === 429 || status === 500 || status === 502 || status === 503 || status === 504)) {
+          await new Promise((resolve) => setTimeout(resolve, status === 429 ? 900 : 350));
+        } else break;
       }
     }
     if (!stream) throw lastError || new Error("Gemini stream unavailable");
@@ -167,8 +177,13 @@ export default async function handler(req, res) {
       status: error?.status || error?.statusCode || null,
       code: error?.code || null,
     });
-    const providerStatus = error?.status || error?.statusCode || "unknown";
-    res.status(502).json({ error: `Google AI Studio request failed (${providerStatus}). Please try again in a moment.` });
+    const status = providerStatus(error);
+    if (status === 429) {
+      res.setHeader("Retry-After", "2");
+      res.status(429).json({ error: "The guides are busy right now. Please try again in a few seconds." });
+      return;
+    }
+    res.status(502).json({ error: `Google AI Studio request failed (${status || "unknown"}). Please try again in a moment.` });
   }
 }
 

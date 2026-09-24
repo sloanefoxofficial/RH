@@ -336,18 +336,23 @@ async function callModel({ system, messages, maxTokens = 1000, timeoutMs = 90000
   let res;
   let timer;
   let controller;
-  try {
-    controller = new AbortController();
-    timer = setTimeout(() => controller.abort(), timeoutMs);
-    res = await fetch("/api/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ system, messages, max_tokens: maxTokens }),
-      signal: controller.signal,
-    });
-  } catch (error) {
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      controller = new AbortController();
+      timer = setTimeout(() => controller.abort(), timeoutMs);
+      res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ system, messages, max_tokens: maxTokens }),
+        signal: controller.signal,
+      });
+    } catch (error) {
+      clearTimeout(timer);
+      throw new Error("Couldn't reach the guides just now — check your connection and try again.");
+    }
+    if (res.status !== 429 || attempt === 1) break;
     clearTimeout(timer);
-    throw new Error("Couldn't reach the guides just now — check your connection and try again.");
+    await new Promise((resolve) => setTimeout(resolve, 1000));
   }
   let text = "";
   let streamError = "";
@@ -391,6 +396,7 @@ async function callModel({ system, messages, maxTokens = 1000, timeoutMs = 90000
   clearTimeout(timer);
   if (!res.ok || streamError) {
     const detail = streamError || `error ${res.status}`;
+    if (res.status === 429) throw new Error("The guides are busy right now — please try again in a few seconds.");
     throw new Error("The guides couldn't reply just now (" + detail + "). Give it another go in a moment.");
   }
   text = text.trim();
@@ -7378,7 +7384,10 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
   const [busy, setBusy] = useState(false);
   const [streamingReply, setStreamingReply] = useState("");
   const sendLockRef = useRef(false);
-  const streamingVoiceStartedRef = useRef(false);
+  const streamSpeechChainRef = useRef(Promise.resolve());
+  const streamSpeechBufferRef = useRef("");
+  const streamSpeechSourceRef = useRef("");
+  const streamSpeechGenerationRef = useRef(0);
   const lastSubmittedTextRef = useRef({ text: "", at: 0 });
   const [err, setErr] = useState(null);
   const [crisisActive, setCrisisActive] = useState(false);
@@ -7483,7 +7492,10 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
     if (voiceOn && __autoReplyVoiceOn) { try { primeAudio(); } catch {} } // unlock audio inside the send tap so the reply can auto-speak
     stop(); // interrupt: a new message from the person always cuts the guide off
     setErr(null); setInput(""); setPendingImages([]); setStreamingReply("");
-    streamingVoiceStartedRef.current = false;
+    streamSpeechGenerationRef.current += 1;
+    streamSpeechChainRef.current = Promise.resolve();
+    streamSpeechBufferRef.current = "";
+    streamSpeechSourceRef.current = "";
     const userMsg = { role: "user", content: text || `(sent ${imgs.length} page${imgs.length === 1 ? "" : "s"})`, ts: Date.now() };
     if (imgs.length) {
       userMsg.images = imgs.map((item, i) => ({ ...item, page: i + 1 }));
@@ -7564,17 +7576,31 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
       // available for continuity, but give normal/chilled replies enough output
       // headroom for long plan or document explanations.
       const speedTokens = effSpeed === "fast" ? 400 : effSpeed === "chilled" ? 2800 : 2400;
+      const queueStreamSentence = (sentence) => {
+        const generation = streamSpeechGenerationRef.current;
+        streamSpeechChainRef.current = streamSpeechChainRef.current
+          .catch(() => {})
+          .then(() => new Promise((resolve) => {
+            if (generation !== streamSpeechGenerationRef.current) { resolve(); return; }
+            speak(sentence, char, resolve);
+          }));
+      };
       const reply = await callModel({
         system,
         messages: msgs,
         maxTokens: speedTokens,
         onText: (partial) => {
           setStreamingReply(partial);
-          if (voiceOn && __autoReplyVoiceOn && !streamingVoiceStartedRef.current) {
-            const firstSentence = partial.match(/^(.+?[.!?])(?:\s|$)/s)?.[1]?.trim();
-            if (firstSentence) {
-              streamingVoiceStartedRef.current = true;
-              speak(firstSentence, char);
+          if (voiceOn && __autoReplyVoiceOn) {
+            const delta = partial.slice(streamSpeechSourceRef.current.length);
+            streamSpeechSourceRef.current = partial;
+            streamSpeechBufferRef.current += delta;
+            let match;
+            while ((match = streamSpeechBufferRef.current.match(/^([\s\S]*?[.!?])(?:\s+|$)/))) {
+              const sentence = match[1].trim();
+              streamSpeechBufferRef.current = streamSpeechBufferRef.current.slice(match[0].length);
+              if (!sentence) continue;
+              queueStreamSentence(sentence);
             }
           }
         },
@@ -7586,10 +7612,13 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
       const withReply = [...newHist, { role: "assistant", content: clean, tool, ts: Date.now() }];
       setHistory(withReply);
       setStreamingReply("");
-      if (voiceOn && __autoReplyVoiceOn && !streamingVoiceStartedRef.current) {
+      if (voiceOn && __autoReplyVoiceOn) {
+        const finalSentence = streamSpeechBufferRef.current.replace(/<tool>\s*(breathing|grounding|meditation|affirmations|calm)\s*<\/tool>/gi, "").trim();
+        if (finalSentence) queueStreamSentence(finalSentence);
         spoken.current.add(withReply.length - 1);
-        speak(clean, char);
       }
+      streamSpeechBufferRef.current = "";
+      streamSpeechSourceRef.current = "";
       if (onConversation) onConversation(withReply); // quietly refresh long-term memory in the background
     } catch (e) {
       setErr(e.message || "Something went wrong.");
