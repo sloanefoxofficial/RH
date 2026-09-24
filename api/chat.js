@@ -139,8 +139,22 @@ export default async function handler(req, res) {
 
     beginStream(res);
     let sentText = false;
+    let debugSent = false;
     try {
       for await (const chunk of stream) {
+        if (body.debug === true && !debugSent) {
+          debugSent = true;
+          sendEvent(res, {
+            debug: {
+              keys: Object.keys(chunk || {}),
+              candidateKeys: Object.keys(chunk?.candidates?.[0] || {}),
+              contentKeys: Object.keys(chunk?.candidates?.[0]?.content || {}),
+              partKeys: Object.keys(chunk?.candidates?.[0]?.content?.parts?.[0] || {}),
+              textType: typeof chunk?.text,
+              textIsFunction: typeof chunk?.text === "function",
+            },
+          });
+        }
         const text = getChunkText(chunk);
         if (text) {
           sentText = true;
