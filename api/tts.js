@@ -37,7 +37,7 @@ async function fishSynth(text, referenceId) {
         reference_id: referenceId,
         format: "mp3",
         mp3_bitrate: 64,
-        latency: "balanced",
+        latency: "low",
         chunk_length: 100,
         min_chunk_length: 50,
         condition_on_previous_chunks: false,
