@@ -532,7 +532,8 @@
 
   let clientId = safeGet(CLIENT_KEY);
   if(!clientId){ clientId = uid(); safeSet(CLIENT_KEY, clientId); }
-  let nickname = safeGet(NAME_KEY) || "";
+  const savedNickname = safeGet(NAME_KEY) || "";
+  let nickname = savedNickname === 'Bloke' ? "" : savedNickname;
   let avatarPref = null;
   try{ avatarPref = JSON.parse(safeGet(AVATAR_KEY) || 'null'); }catch(e){ avatarPref = null; }
 
@@ -733,6 +734,7 @@
   const SEAT_STALE_MS = 30 * 1000;
   let backend = null;
   let currentFireId = null;
+  const defaultCampfireName = (fireId = currentFireId) => fireId === 'ladies' ? 'Jane' : 'Sam';
   let campfireInitPromise = null;
   let campfireOpenedAt = 0;
   let presenceSweepTimer = null;
@@ -889,10 +891,10 @@
       wrap.innerHTML = avatarMarkup(s.occupied ? s.avatarType : null, s.avatarData, !s.occupied);
       if(s.occupied){
         occupiedCount++;
-        label.textContent = isMine ? 'You' : (s.name || 'Bloke');
+        label.textContent = isMine ? 'You' : (s.name || defaultCampfireName());
         el.disabled = false;
         el.title = mySeat !== null && !isMine ? 'Throw the green ball' : '';
-        el.setAttribute('aria-label', isMine ? 'Your seat, tap to stand up' : ((s.name||'Bloke') + '’s seat, taken'));
+        el.setAttribute('aria-label', isMine ? 'Your seat, tap to stand up' : ((s.name||defaultCampfireName()) + '’s seat, taken'));
       } else {
         label.textContent = 'Free';
         el.title = '';
@@ -970,7 +972,7 @@
       const div = document.createElement('div');
       if(m.type === 'throw'){
         div.className = 'msg system throw-notice';
-        div.textContent = (m.fromName || 'Bloke') + ' threw the ball to ' + (m.toName || 'Bloke');
+        div.textContent = (m.fromName || defaultCampfireName()) + ' threw the ball to ' + (m.toName || defaultCampfireName());
       } else if(m.system){
         div.className = 'msg system';
         div.textContent = m.text;
@@ -980,12 +982,12 @@
         const timeStr = isNaN(t) ? '' : t.toLocaleTimeString([], {hour:'numeric', minute:'2-digit'});
         if(m.type === 'voice' && m.audio){
           div.innerHTML = '<span class="who"></span><span class="voice-chip">🔊 Voice message</span><span class="when"></span>';
-          div.querySelector('.who').textContent = (m.name || 'Bloke') + ':';
+          div.querySelector('.who').textContent = (m.name || defaultCampfireName()) + ':';
           div.querySelector('.when').textContent = timeStr;
           div.querySelector('.voice-chip').addEventListener('click', ()=>playCampfireVoice(m.audio));
         } else {
           div.innerHTML = '<span class="who"></span><span class="body"></span><span class="when"></span>';
-          div.querySelector('.who').textContent = (m.name || 'Bloke') + ':';
+          div.querySelector('.who').textContent = (m.name || defaultCampfireName()) + ':';
           div.querySelector('.body').textContent = m.text || '';
           div.querySelector('.when').textContent = timeStr;
         }
@@ -1036,7 +1038,7 @@
     let seatIndex = seats.findIndex(s => s.occupied && s.clientId === m.clientId);
     if(seatIndex === -1 && typeof m.seat === 'number') seatIndex = m.seat;
     if(seatIndex === -1 || seatIndex == null) return;
-    const name = m.name || 'Bloke';
+    const name = m.name || defaultCampfireName();
     const seatData = seats[seatIndex] || {};
     const avatarHtml = '<span class="sb-avatar">'+avatarMarkup(seatData.avatarType, seatData.avatarData, false)+'</span>';
     if(m.type === 'voice' && m.audio){
@@ -1306,8 +1308,8 @@
     lastThrowAt = now;
     backend.sendMessage({
       type:'throw', fromSeat:mySeat, toSeat:targetSeat,
-      fromName: seats[mySeat].name || nickname || 'Bloke',
-      toName: seats[targetSeat].name || 'Bloke', clientId, ts:now
+      fromName: seats[mySeat].name || nickname || defaultCampfireName(),
+      toName: seats[targetSeat].name || defaultCampfireName(), clientId, ts:now
     });
   }
   function onChairTap(i){
@@ -1350,7 +1352,8 @@
     pendingSeatIndex = seatIndex;
     isEditingSeat = !!editMode;
     const current = (editMode && seats[seatIndex] && seats[seatIndex].occupied) ? seats[seatIndex] : null;
-    modalNameInput.value = current ? (current.name || '') : nickname;
+    modalNameInput.placeholder = defaultCampfireName();
+    modalNameInput.value = current ? (current.name || '') : (nickname || defaultCampfireName());
     modalAvatarType = current ? (current.avatarType || 'none') : ((avatarPref && avatarPref.type) || 'none');
     modalCartoonOpts = (modalAvatarType === 'cartoon' && current && current.avatarData) ? current.avatarData
       : (modalAvatarType === 'cartoon' && avatarPref && avatarPref.data) ? avatarPref.data : randomCartoon();
@@ -1442,14 +1445,14 @@
     if(pendingSeatIndex === null) return;
     if(isEditingSeat){ closeModal(); return; } // Cancel: leave seat untouched
     const idx = pendingSeatIndex;
-    nickname = 'Bloke'; safeSet(NAME_KEY, '');
+    nickname = defaultCampfireName(); safeSet(NAME_KEY, '');
     closeModal();
-    sitDown(idx, 'Bloke', 'none', null);
+    sitDown(idx, defaultCampfireName(), 'none', null);
   });
   modalSit.addEventListener('click', ()=>{
     if(pendingSeatIndex === null) return;
     const idx = pendingSeatIndex;
-    const name = (modalNameInput.value || '').trim().slice(0,18) || 'Bloke';
+    const name = (modalNameInput.value || '').trim().slice(0,18) || defaultCampfireName();
     nickname = name; safeSet(NAME_KEY, name);
     let avatarData = null;
     if(modalAvatarType === 'cartoon') avatarData = modalCartoonOpts;
@@ -1473,7 +1476,7 @@
     if(mySeat === null || !backend) return;
     const text = chatInput.value.trim();
     if(!text) return;
-    backend.sendMessage({ seat:mySeat, clientId, name: seats[mySeat] ? (seats[mySeat].name || nickname || 'Bloke') : (nickname||'Bloke'), type:'text', text, ts: Date.now() });
+    backend.sendMessage({ seat:mySeat, clientId, name: seats[mySeat] ? (seats[mySeat].name || nickname || defaultCampfireName()) : (nickname||defaultCampfireName()), type:'text', text, ts: Date.now() });
     chatInput.value = '';
   });
 
@@ -1548,7 +1551,7 @@
       try{
         const dataUrl = await blobToDataURL(blob);
         if(mySeat === null || !backend) return;
-        backend.sendMessage({ seat:mySeat, clientId, name: seats[mySeat] ? (seats[mySeat].name || nickname || 'Bloke') : (nickname||'Bloke'), type:'voice', audio:dataUrl, ts: Date.now() });
+        backend.sendMessage({ seat:mySeat, clientId, name: seats[mySeat] ? (seats[mySeat].name || nickname || defaultCampfireName()) : (nickname||defaultCampfireName()), type:'voice', audio:dataUrl, ts: Date.now() });
       }catch(e){}
     };
     mediaRecorder.start();
@@ -1773,7 +1776,7 @@
     }
     const seat = seats[mySeat];
     if(!seat || !seat.occupied || seat.clientId !== clientId) return;
-    const name = seat.name || nickname || 'Bloke';
+    const name = seat.name || nickname || defaultCampfireName();
     const presenceKey = currentFireId+':'+mySeat+':'+name;
     if(lastPresenceKey === presenceKey) return;
     lastPresenceKey = presenceKey;
@@ -1821,7 +1824,7 @@
         button.className = 'call-person';
         button.type = 'button';
         button.disabled = !presence;
-        const name = seat.name || 'Bloke';
+        const name = seat.name || defaultCampfireName();
         button.innerHTML = '<span></span><small></small>';
         button.querySelector('span').textContent = name;
         button.querySelector('small').textContent = presence ? 'Seat '+(index+1) : 'Calls unavailable';
@@ -1837,7 +1840,7 @@
       call_id: activeCallId,
       sender_client_id: clientId,
       to_client_id: callPeerClientId || null,
-      from_name: mySeat !== null && seats[mySeat] ? (seats[mySeat].name || nickname || 'Bloke') : (nickname || 'Bloke')
+      from_name: mySeat !== null && seats[mySeat] ? (seats[mySeat].name || nickname || defaultCampfireName()) : (nickname || defaultCampfireName())
     }, extra || {});
   }
 
@@ -1867,7 +1870,7 @@
     activeCallId = callUuid();
     callPeerUserId = seat.callUserId;
     callPeerClientId = seat.clientId || null;
-    callPeerName = seat.name || 'Bloke';
+    callPeerName = seat.name || defaultCampfireName();
     callState = 'ringing';
     setCallPanel('Calling '+callPeerName, 'Waiting for them to accept…', false, false);
     callControls.hidden = false;
