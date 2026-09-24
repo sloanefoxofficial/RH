@@ -1,93 +1,152 @@
-// Single shared chat endpoint for the WHOLE app — every guide (Rex, Juan,
-// Carlos, Mick, Lila), the plan generator, the journal helper, and the admin
-// assistant all call this one function, using the one ANTHROPIC_API_KEY held
-// server-side. The key is never exposed to the browser.
+// Shared AI guide endpoint for the whole app.
+// Uses Google's official @google/genai SDK with streaming enabled.
+// The API key remains server-side in Vercel and is never sent to the browser.
+import { GoogleGenAI } from "@google/genai";
+
+const MAX_IMAGES = 10;
+const MAX_IMAGE_DATA_CHARS = 5_600_000;
+const DEFAULT_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+
+function parseBody(req) {
+  try {
+    return typeof req.body === "string" ? JSON.parse(req.body || "{}") : req.body || {};
+  } catch {
+    return null;
+  }
+}
+
+function cleanMessages(rawMessages) {
+  let imageCount = 0;
+  let imageDataChars = 0;
+  const clean = [];
+
+  for (const message of Array.isArray(rawMessages) ? rawMessages : []) {
+    if (!message || (message.role !== "user" && message.role !== "assistant")) continue;
+    const role = message.role === "assistant" ? "model" : "user";
+    const sourceBlocks = Array.isArray(message.content) ? message.content : [{ type: "text", text: message.content }];
+    const parts = [];
+
+    for (const block of sourceBlocks) {
+      if (!block) continue;
+      if (block.type === "image") {
+        const source = block.source || {};
+        const mimeType = source.media_type;
+        const data = typeof source.data === "string" ? source.data : "";
+        if (source.type !== "base64" || !/^image\/(jpeg|png|webp|gif)$/i.test(mimeType || "") || !data) {
+          throw new Error("invalid_image_block");
+        }
+        imageCount += 1;
+        imageDataChars += data.length;
+        if (imageCount > MAX_IMAGES || imageDataChars > MAX_IMAGE_DATA_CHARS) {
+          throw new Error("image_payload_too_large");
+        }
+        parts.push({ inlineData: { mimeType, data } });
+      } else {
+        const text = typeof block.text === "string" ? block.text.trim() : typeof block === "string" ? block.trim() : "";
+        if (text) parts.push({ text });
+      }
+    }
+
+    if (!parts.length) continue;
+    const previous = clean[clean.length - 1];
+    if (previous && previous.role === role && previous.parts.length === 1 && previous.parts[0].text && parts.length === 1 && parts[0].text) {
+      previous.parts[0].text += "\n\n" + parts[0].text;
+    } else {
+      clean.push({ role, parts });
+    }
+  }
+
+  while (clean.length && clean[0].role !== "user") clean.shift();
+  return clean;
+}
+
+function sendEvent(res, payload) {
+  try {
+    res.write(`data: ${JSON.stringify(payload)}\n\n`);
+  } catch {
+    // The client may have gone away; the stream loop will end naturally.
+  }
+}
+
+function beginStream(res) {
+  res.statusCode = 200;
+  res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
+  res.setHeader("Cache-Control", "no-cache, no-transform");
+  res.setHeader("Connection", "keep-alive");
+  res.setHeader("X-Accel-Buffering", "no");
+  if (typeof res.flushHeaders === "function") res.flushHeaders();
+}
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     res.status(405).json({ error: "Method not allowed" });
     return;
   }
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+
+  const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    res.status(500).json({ error: "Server is missing ANTHROPIC_API_KEY" });
+    res.status(500).json({ error: "Server is missing GEMINI_API_KEY" });
     return;
   }
-  const model = process.env.ANTHROPIC_MODEL || "claude-sonnet-5";
+
+  const body = parseBody(req);
+  if (!body) {
+    res.status(400).json({ error: "Invalid request body" });
+    return;
+  }
+
   try {
-    const body =
-      typeof req.body === "string" ? JSON.parse(req.body || "{}") : req.body || {};
-    const { system, max_tokens } = body;
-    const MAX_IMAGES = 10;
-    const MAX_IMAGE_DATA_CHARS = 5_600_000;
-    let imageCount = 0;
-    let imageDataChars = 0;
-    const clean = [];
-    for (const m of Array.isArray(body.messages) ? body.messages : []) {
-      if (!m || (m.role !== "user" && m.role !== "assistant")) continue;
-      let content;
-      if (Array.isArray(m.content)) {
-        if (!m.content.length) continue;
-        content = m.content.map((block) => {
-          if (!block || block.type !== "image") return block;
-          const source = block.source || {};
-          const mediaType = source.media_type;
-          const data = typeof source.data === "string" ? source.data : "";
-          if (source.type !== "base64" || !/^image\/(jpeg|png|webp|gif)$/i.test(mediaType || "") || !data) {
-            throw new Error("invalid_image_block");
-          }
-          imageCount += 1;
-          imageDataChars += data.length;
-          if (imageCount > MAX_IMAGES || imageDataChars > MAX_IMAGE_DATA_CHARS) throw new Error("image_payload_too_large");
-          return { type: "image", source: { type: "base64", media_type: mediaType, data } };
-        });
-      } else {
-        const t = typeof m.content === "string" ? m.content.trim() : "";
-        if (!t) continue;
-        content = t;
-      }
-      const prev = clean.length ? clean[clean.length - 1] : null;
-      if (prev && prev.role === m.role && typeof prev.content === "string" && typeof content === "string") {
-        prev.content += "\n\n" + content;
-      } else {
-        clean.push({ role: m.role, content });
-      }
-    }
-    while (clean.length && clean[0].role !== "user") clean.shift();
-    if (clean.length === 0) {
+    const contents = cleanMessages(body.messages);
+    if (!contents.length) {
       res.status(400).json({ error: "No message to send." });
       return;
     }
-    const r = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model,
-        max_tokens: max_tokens || 1000,
-        ...(system ? { system } : {}),
-        messages: clean,
-      }),
-    });
-    const data = await r.json();
-    if (!r.ok) {
-      const msg = (data && data.error && data.error.message) || "Model error";
-      res.status(r.status).json({ error: msg });
+
+    const ai = new GoogleGenAI({ apiKey });
+    const config = {
+      maxOutputTokens: Number(body.max_tokens) || 1000,
+      ...(body.system ? { systemInstruction: String(body.system) } : {}),
+    };
+
+    let stream;
+    let lastError;
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      try {
+        stream = await ai.models.generateContentStream({ model: DEFAULT_MODEL, contents, config });
+        break;
+      } catch (error) {
+        lastError = error;
+        if (attempt === 0) await new Promise((resolve) => setTimeout(resolve, 250));
+      }
+    }
+    if (!stream) throw lastError || new Error("Gemini stream unavailable");
+
+    beginStream(res);
+    let sentText = false;
+    try {
+      for await (const chunk of stream) {
+        const text = typeof chunk?.text === "string" ? chunk.text : "";
+        if (text) {
+          sentText = true;
+          sendEvent(res, { text });
+        }
+      }
+      if (!sentText) sendEvent(res, { error: "The reply came back empty — try sending that again." });
+      sendEvent(res, { done: true });
+      res.end();
+    } catch {
+      sendEvent(res, { error: "The guide connection was interrupted. Please try again." });
+      sendEvent(res, { done: true });
+      res.end();
+    }
+  } catch (error) {
+    const message = error?.message || "Failed to reach Google AI Studio.";
+    if (message === "invalid_image_block" || message === "image_payload_too_large") {
+      res.status(413).json({ error: message });
       return;
     }
-    const text = (data.content || [])
-      .filter((b) => b && b.type === "text")
-      .map((b) => b.text)
-      .join("\n")
-      .trim();
-    res.status(200).json({ text });
-  } catch (e) {
-    if (e && (e.message === "invalid_image_block" || e.message === "image_payload_too_large")) {
-      res.status(413).json({ error: e.message });
-      return;
-    }
-    res.status(500).json({ error: "Failed to reach the model." });
+    res.status(502).json({ error: "The guides are temporarily unavailable. Please try again in a moment." });
   }
 }
+
+export const config = { api: { bodyParser: { sizeLimit: "12mb" } } };

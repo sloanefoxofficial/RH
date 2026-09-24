@@ -290,7 +290,7 @@ const PERSONALITY_DEFAULTS = {
 const REX_INTRO =
   "G'day, I'm Rex — welcome to The Resilience Hub. This is a safe place built to walk with you, not talk at you. In a bit we'll ask a few simple questions — nothing scary, just so we can shape everything around you. Nicolas brings lived experience, and the Carlos AI Guide is inspired by our registered psychologist, Carlos Camacho. Ready when you are.";
 
-/* ---- AI helpers (in-app Anthropic model) ---- */
+/* ---- AI helpers (Google AI Studio streaming model) ---- */
 // ---- Long-term "about me" memory (Stage 2) ----
 // Durable facts a guide carries across conversations. Two hard rules, agreed
 // with Carlos: (1) crisis / self-harm / abuse content is NEVER written to
@@ -335,8 +335,9 @@ function contextBlock(profile, answers) {
 async function callModel({ system, messages, maxTokens = 1000, timeoutMs = 90000 }) {
   let res;
   let timer;
+  let controller;
   try {
-    const controller = new AbortController();
+    controller = new AbortController();
     timer = setTimeout(() => controller.abort(), timeoutMs);
     res = await fetch("/api/chat", {
       method: "POST",
@@ -345,19 +346,51 @@ async function callModel({ system, messages, maxTokens = 1000, timeoutMs = 90000
       signal: controller.signal,
     });
   } catch (error) {
+    clearTimeout(timer);
     throw new Error("Couldn't reach the guides just now — check your connection and try again.");
   }
-
-  finally { clearTimeout(timer); }
-  let data = null;
-  try { data = await res.json(); } catch { data = null; }
-
-  if (!res.ok || !data) {
-    const detail = data && data.error ? data.error : `error ${res.status}`;
+  let text = "";
+  let streamError = "";
+  try {
+    const contentType = res.headers.get("content-type") || "";
+    if (res.ok && contentType.includes("text/event-stream") && res.body) {
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      const consume = (raw) => {
+        buffer += raw;
+        const events = buffer.split("\n\n");
+        buffer = events.pop() || "";
+        for (const event of events) {
+          const line = event.split("\n").find((entry) => entry.startsWith("data: "));
+          if (!line) continue;
+          try {
+            const payload = JSON.parse(line.slice(6));
+            if (payload.error) streamError = payload.error;
+            if (payload.text) text += payload.text;
+          } catch {}
+        }
+      };
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        consume(decoder.decode(value, { stream: true }));
+      }
+      consume(decoder.decode());
+    } else {
+      const data = await res.json().catch(() => null);
+      text = data?.text || "";
+      streamError = data?.error || "";
+    }
+  } catch {
+    streamError = "The guide connection was interrupted. Please try again.";
+  }
+  clearTimeout(timer);
+  if (!res.ok || streamError) {
+    const detail = streamError || `error ${res.status}`;
     throw new Error("The guides couldn't reply just now (" + detail + "). Give it another go in a moment.");
   }
-
-  const text = (data.text || "").trim();
+  text = text.trim();
   if (!text) throw new Error("The reply came back empty — try sending that again.");
   return text;
 }
@@ -1861,7 +1894,7 @@ let __autoReplyVoiceOn = true;
 let __primePromise = null;
 let __lastVoiceAt = 0; // Date.now() of the last time a guide's voice actually started playing — used to only apply the iOS mic-recovery delay when it's actually needed
 // Speech-to-text language — was hardcoded to "en-AU" everywhere, which is why
-// typing in another language worked fine (that's Claude reading text) but
+// typing in another language worked fine (that's the model reading text) but
 // SPEAKING in one didn't: the browser's mic transcription needs to be told
 // which language to actually listen for. This is read directly by every
 // place that creates a SpeechRecognition session, rather than threaded as a
@@ -5461,10 +5494,10 @@ function PrivacyLink({ style, variant }) {
               Your Journal PIN is a privacy lock for the Journal, not an account password or encryption key. You choose a recovery question and answer when setting it up. The PIN and recovery answer are stored as one-way hashes. Keep your account login secure and choose a recovery answer that others cannot guess.
             </div>
             {section("Support messages and reports", <>Messages to the real Juan, bug reports, feedback, appointment requests, and optional screenshots are sent only when you choose those features. They are protected by authenticated access and database/storage controls and are available to authorised Resilience Hub staff so they can respond or provide support. These submissions are not user-only encrypted. Other members cannot read them. Screenshots are optional and may contain sensitive details, so crop or hide anything unnecessary.</>)}
-            {section("AI and voice services", <>When you ask an AI guide to reply, the relevant content is sent through our server to Anthropic Claude so a response can be generated. When voice playback is requested, text may be sent through Fish Audio or Google Cloud Text-to-Speech, with browser speech as a fallback. These providers may process content under their own terms and retention practices. Do not enter information you are not comfortable sending to an AI or speech service.</>)}
+            {section("AI and voice services", <>When you ask an AI guide to reply, the relevant content is sent through our server to Google AI Studio so a response can be generated. When voice playback is requested, text may be sent through Fish Audio for Nicolas/Juan and Carlos, or Google Cloud Text-to-Speech for Mick and Lila, with browser speech as a fallback. These providers may process content under their own terms and retention practices. Do not enter information you are not comfortable sending to an AI or speech service.</>)}
             {section("Account, sign-in and notifications", <>The app uses Supabase authentication and database services. Email/password and Google sign-in may be available. “Stay logged in” controls session persistence; disable it on shared devices. The optional Journal PIN is separate from your account login and can be changed or removed in Settings using your PIN or recovery answer. Do not reuse your account password as your recovery answer. Push notification bodies are kept generic and should not contain journal text, message content, or crisis disclosures.</>)}
             {section("Usage information and live activity", <>If you leave anonymous usage tracking switched on, we record app session times and broad sections such as Program, Journal, Resources, Guides, Toolkit, or Home to help improve support and service coverage. Authorised administrators may see the live active count, display name, last seen time, current broad section, session duration, daily/weekly/monthly totals, and aggregate peak usage periods. This never includes journal entries, notes, guide messages, uploads, what you type, location, IP profiling, or advertising data. No other member can see your activity, and this information is never sold or shared externally. You can turn tracking off at any time in Settings.</>)}
-            {section("Who may access information", <>Authorised Resilience Hub staff may access support submissions that you deliberately send. Supabase, Vercel, Google Gemini, Fish Audio, Google Cloud Text-to-Speech, authentication providers, push-notification infrastructure, and other service providers may process limited information needed to provide the app. We do not sell personal information or use it for advertising profiling. We may disclose information where required by law or needed to respond to an immediate safety risk.</>)}
+            {section("Who may access information", <>Authorised Resilience Hub staff may access support submissions that you deliberately send. Supabase, Vercel, Google AI Studio, Fish Audio, Google Cloud Text-to-Speech, authentication providers, push-notification infrastructure, and other service providers may process limited information needed to provide the app. We do not sell personal information or use it for advertising profiling. We may disclose information where required by law or needed to respond to an immediate safety risk.</>)}
             {section("Deletion and retention", <>You can clear your app data from your Profile. The app attempts to remove account rows, support rows linked to your account, game progress, push subscriptions, local cached data, Journal PIN metadata, and associated screenshot objects. Deleted data may remain in provider backups, point-in-time recovery, disaster-recovery systems, device backups, or third-party provider systems for up to <strong>31 days</strong> before those backup copies are routinely overwritten or expire.</>)}
             {section("Your choices and questions", <>You can change optional profile details, manage guide memory, control voice and notification preferences, manage your Journal PIN, clear app data, sign out, and contact the team about privacy or deletion requests. Never send a privacy passphrase, recovery key, private encryption key, or service secret to support. For urgent danger, call 000 or use Safety First.</>)}
             <div style={{ marginTop: 14 }}><Btn onClick={() => setOpen(false)}>Close</Btn></div>

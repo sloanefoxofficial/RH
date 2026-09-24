@@ -24,7 +24,7 @@ Vercel → your project → **Settings → Environment Variables**:
 | `VITE_SUPABASE_URL` | your Project URL |
 | `VITE_SUPABASE_ANON_KEY` | your anon public key |
 
-(You should already have `ANTHROPIC_API_KEY` here.) Then redeploy once.
+(Add `GEMINI_API_KEY` here for Google AI Studio and `FISH_API_KEY` here for Fish Audio, then redeploy once.)
 
 ## 3. Turn on sign-in methods
 
@@ -108,7 +108,7 @@ Anyone else who signs in (Lisa, testers, real users) just gets the normal experi
 
 The voices today use the browser's built-in speech. To use ElevenLabs cloned voices:
 1. Get an ElevenLabs API key and add it in Vercel as `ELEVENLABS_API_KEY` (server-side, like your
-   Anthropic key — never in the browser).
+   Google AI Studio and Fish Audio keys — never in the browser).
 2. Add a small `api/tts.js` endpoint that takes text + a voice ID, calls ElevenLabs, and returns audio.
 3. In the app, when a guide speaks, play that audio instead of the browser voice (with the browser
    voice as a fallback). Each guide can have its own ElevenLabs voice ID.

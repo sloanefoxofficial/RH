@@ -8,7 +8,7 @@
 // member's push subscriptions at once for a broadcast, bypassing the
 // own-row-only RLS policy that (correctly) applies to normal user requests.
 // It must never be exposed to the browser — used server-side only, exactly
-// like ANTHROPIC_API_KEY and the other secret keys.
+// like GEMINI_API_KEY, FISH_API_KEY, and the other secret keys.
 
 import webpush from "web-push";
 import { createClient } from "@supabase/supabase-js";
