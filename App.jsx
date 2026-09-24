@@ -1216,6 +1216,15 @@ export default function App() {
         // same privacy vault remains unlockable after the reset.
         await supabase.from("member_data").update({ profile: null, answers: null, plan: null, progress: {}, journal: [], updated_at: new Date().toISOString() }).eq("user_id", uid);
       } catch {}
+      try {
+        // Profile details live in their own public profile row, separate from
+        // member_data. Clear the editable identity fields but keep the account
+        // row and email association intact.
+        await supabase.from("profiles").update({ preferred_name: "", pronouns: "", bio: "", avatar: "", updated_at: new Date().toISOString() }).eq("id", uid);
+      } catch {}
+      try {
+        await supabase.from("private_contact").delete().eq("id", uid);
+      } catch {}
     }
     setScreen("welcome");
   };
@@ -4302,7 +4311,7 @@ function Profile({ session, profile, answers, saveProfile, saveAnswers, persistC
       <SectionTitle>Start over</SectionTitle>
       <div style={{ background: T.card, borderRadius: 20, padding: 18, boxShadow: T.soft }}>
         <p style={{ fontSize: 13, color: T.sub, margin: "0 0 12px", lineHeight: 1.5 }}>
-          This clears your journey, plan progress, journal entries, and saved conversations with the guides.
+          This clears your profile details and photo, journey, plan progress, journal entries, and saved conversations with the guides.
           It can't be undone. Your account stays — only your data is reset.
         </p>
         <button onClick={() => setConfirmReset(true)}
@@ -4323,7 +4332,7 @@ function Profile({ session, profile, answers, saveProfile, saveAnswers, persistC
             boxShadow: T.lift, padding: "22px 20px", textAlign: "center" }}>
             <div style={{ fontWeight: 800, fontSize: 18, marginBottom: 8 }}>Clear everything?</div>
             <p style={{ fontSize: 14, color: T.sub, lineHeight: 1.5, margin: "0 0 18px" }}>
-              This permanently clears your plan, journal, and saved conversations. This can't be undone.
+              This permanently clears your profile details and photo, plan, journal, and saved conversations. This can't be undone.
             </p>
             <button onClick={() => { setConfirmReset(false); onReset && onReset(); }}
               style={{ width: "100%", background: "#e5484d", color: "#fff", border: "none", borderRadius: 14,
