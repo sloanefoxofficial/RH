@@ -971,6 +971,19 @@ export default function App() {
       return merged;
     });
   }, [persistSensitiveCache, syncMemberData]);
+  useEffect(() => {
+    // A new account can finish onboarding before sessionRef is populated. Once
+    // the account and member data are hydrated, make one reliable follow-up
+    // write to the profile row used by the Admin Members directory.
+    const introducedName = String(profile?.name || "").trim();
+    const account = session?.user;
+    if (!introducedName || !authEnabled || !supabase || !account?.id) return;
+    void supabase.from("profiles").upsert({
+      id: account.id,
+      preferred_name: introducedName,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "id" });
+  }, [profile?.name, session?.user?.id]);
   const saveAnswers = useCallback((a) => { setAnswers(a); void persistSensitiveCache("rh_answers", a); void syncMemberData({ answers: a }); }, [persistSensitiveCache, syncMemberData]);
   const persistCampfireAccess = useCallback(async (value) => {
     if (!supabase || !sessionRef.current) return;
