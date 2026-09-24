@@ -67,7 +67,20 @@ function sendEvent(res, payload) {
     // The client may have gone away; the stream loop will end naturally.
   }
 }
-
+function getChunkText(chunk) {
+  try {
+    if (typeof chunk?.text === "string") return chunk.text;
+    if (typeof chunk?.text === "function") {
+      const text = chunk.text();
+      if (typeof text === "string") return text;
+    }
+    const parts = chunk?.candidates?.[0]?.content?.parts;
+    if (Array.isArray(parts)) return parts.map((part) => typeof part?.text === "string" ? part.text : "").join("");
+  } catch {
+    return "";
+  }
+  return "";
+}
 function beginStream(res) {
   res.statusCode = 200;
   res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
@@ -125,7 +138,7 @@ export default async function handler(req, res) {
     let sentText = false;
     try {
       for await (const chunk of stream) {
-        const text = typeof chunk?.text === "string" ? chunk.text : "";
+        const text = getChunkText(chunk);
         if (text) {
           sentText = true;
           sendEvent(res, { text });
