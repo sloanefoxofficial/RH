@@ -6531,7 +6531,19 @@ function ProgramPage({ profile, plan, progress, saveProgress, answers, journalCo
   const doneCount = trackedKeys.filter((k) => progress[k]).length;
   const totalSteps = trackedKeys.length;
   const completedWeeks = weeks.filter((w) => weekTaskKeys(w).every((k) => progress[k])).length;
-  const currentWeek = Math.min(weeks.length || 1, 1 + completedWeeks);
+  const planStart = plan?.startedAt ? new Date(plan.startedAt) : null;
+  const localCalendarDayForProgress = (value) => {
+    const date = new Date(value);
+    return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+  };
+  const elapsedPlanDayForProgress = planStart && !Number.isNaN(planStart.getTime())
+    ? Math.min(weeks.length * 7, Math.max(1, Math.floor((localCalendarDayForProgress(Date.now()) - localCalendarDayForProgress(planStart)) / 86400000) + 1))
+    : null;
+  const calendarWeekForProgress = elapsedPlanDayForProgress ? Math.ceil(elapsedPlanDayForProgress / 7) : 1;
+  // A week can advance either because the person completed it or because the
+  // calendar reached the next week. This keeps optional plans moving without
+  // making someone finish every task before seeing the next week's structure.
+  const currentWeek = Math.min(weeks.length || 1, Math.max(1 + completedWeeks, calendarWeekForProgress));
   const currentWeekData = weeks.find((w) => w.n === currentWeek) || weeks[0];
   const currentWeekKeys = currentWeekData ? [...weekTaskKeys(currentWeekData), ...weeklyExtras(currentWeekData.n).map((_, i) => `w${currentWeekData.n}extra${i}`)] : [];
   const currentWeekDone = currentWeekKeys.filter((k) => progress[k]).length;
@@ -6545,7 +6557,6 @@ function ProgramPage({ profile, plan, progress, saveProgress, answers, journalCo
   const [weeklyReflection, setWeeklyReflection] = useState("");
   const [calendarTick, setCalendarTick] = useState(0);
   const week = weeks.find((w) => w.n === wk);
-  const planStart = plan?.startedAt ? new Date(plan.startedAt) : null;
   // Compare local calendar dates, not rolling 24-hour periods. If a plan was
   // started at 11:30pm, the next calendar day must become Day 2 at midnight.
   const localCalendarDay = (value) => {
@@ -6567,6 +6578,14 @@ function ProgramPage({ profile, plan, progress, saveProgress, answers, journalCo
     const days = week?.days || [];
     if (days.length && !days.some((day) => day.d === customTaskDay)) setCustomTaskDay(activeDayNumber || days[0].d);
   }, [wk, activeDayNumber, week?.days, customTaskDay]);
+  useEffect(() => {
+    // When a new week becomes current, open it automatically. Do not pull the
+    // person backwards if they deliberately browse an earlier week.
+    if (currentWeek > wk) {
+      setWk(currentWeek);
+      setExpandedDays({});
+    }
+  }, [currentWeek, wk]);
   useEffect(() => {
     if (!planStart || !plan) return undefined;
     const now = new Date();
