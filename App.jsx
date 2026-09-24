@@ -956,6 +956,18 @@ export default function App() {
       const merged = { ...(current || {}), ...(p || {}) };
       void persistSensitiveCache("rh_profile", merged);
       void syncMemberData({ profile: merged });
+      // Onboarding stores the user's introduction in member_data.profile.name.
+      // Keep the admin-facing profiles row in sync so new members do not appear
+      // as "Unnamed member" in the Members directory.
+      const introducedName = String(p?.name || "").trim();
+      const account = sessionRef.current?.user;
+      if (introducedName && authEnabled && supabase && account?.id) {
+        void supabase.from("profiles").upsert({
+          id: account.id,
+          preferred_name: introducedName,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: "id" });
+      }
       return merged;
     });
   }, [persistSensitiveCache, syncMemberData]);
