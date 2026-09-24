@@ -332,7 +332,7 @@ function contextBlock(profile, answers) {
   return s;
 }
 
-async function callModel({ system, messages, maxTokens = 1000, timeoutMs = 90000 }) {
+async function callModel({ system, messages, maxTokens = 1000, timeoutMs = 90000, onText }) {
   let res;
   let timer;
   let controller;
@@ -367,7 +367,10 @@ async function callModel({ system, messages, maxTokens = 1000, timeoutMs = 90000
           try {
             const payload = JSON.parse(line.slice(6));
             if (payload.error) streamError = payload.error;
-            if (payload.text) text += payload.text;
+            if (payload.text) {
+              text += payload.text;
+              if (onText) onText(text);
+            }
           } catch {}
         }
       };
@@ -7373,7 +7376,9 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
   const spokenGuideWelcome = speechLang === "en-AU" ? guideWelcome : spokenIntro("chat", guideWelcome, speechLang);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
+  const [streamingReply, setStreamingReply] = useState("");
   const sendLockRef = useRef(false);
+  const streamingVoiceStartedRef = useRef(false);
   const lastSubmittedTextRef = useRef({ text: "", at: 0 });
   const [err, setErr] = useState(null);
   const [crisisActive, setCrisisActive] = useState(false);
@@ -7428,7 +7433,7 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
     if (added.length) setPendingImages((prev) => [...prev, ...added]);
   };
 
-  useEffect(() => { scrollRef.current?.scrollTo({ top: 1e6, behavior: 'smooth' }); }, [history, busy, showAllHistory]);
+  useEffect(() => { scrollRef.current?.scrollTo({ top: 1e6, behavior: 'smooth' }); }, [history, busy, streamingReply, showAllHistory]);
   useEffect(() => {
     if (!voiceOn || !guideWelcome) return undefined;
     // Warm the guide welcome immediately, then play the same in-flight request.
@@ -7477,7 +7482,8 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
     const effSpeed = (opts && opts.forceFast) ? "fast" : (responseSpeed || "normal");
     if (voiceOn && __autoReplyVoiceOn) { try { primeAudio(); } catch {} } // unlock audio inside the send tap so the reply can auto-speak
     stop(); // interrupt: a new message from the person always cuts the guide off
-    setErr(null); setInput(""); setPendingImages([]);
+    setErr(null); setInput(""); setPendingImages([]); setStreamingReply("");
+    streamingVoiceStartedRef.current = false;
     const userMsg = { role: "user", content: text || `(sent ${imgs.length} page${imgs.length === 1 ? "" : "s"})`, ts: Date.now() };
     if (imgs.length) {
       userMsg.images = imgs.map((item, i) => ({ ...item, page: i + 1 }));
@@ -7558,14 +7564,32 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
       // available for continuity, but give normal/chilled replies enough output
       // headroom for long plan or document explanations.
       const speedTokens = effSpeed === "fast" ? 400 : effSpeed === "chilled" ? 2800 : 2400;
-      const reply = await callModel({ system, messages: msgs, maxTokens: speedTokens });
+      const reply = await callModel({
+        system,
+        messages: msgs,
+        maxTokens: speedTokens,
+        onText: (partial) => {
+          setStreamingReply(partial);
+          if (voiceOn && __autoReplyVoiceOn && !streamingVoiceStartedRef.current) {
+            const firstSentence = partial.match(/^(.+?[.!?])(?:\s|$)/s)?.[1]?.trim();
+            if (firstSentence) {
+              streamingVoiceStartedRef.current = true;
+              speak(firstSentence, char);
+            }
+          }
+        },
+      });
       const tagRe = /<tool>\s*(breathing|grounding|meditation|affirmations|calm)\s*<\/tool>/i;
       const found = reply.match(tagRe);
       const tool = found ? found[1].toLowerCase() : null;
       const clean = reply.replace(/<tool>\s*(breathing|grounding|meditation|affirmations|calm)\s*<\/tool>/gi, "").trim();
       const withReply = [...newHist, { role: "assistant", content: clean, tool, ts: Date.now() }];
       setHistory(withReply);
-      if (voiceOn && __autoReplyVoiceOn) { spoken.current.add(withReply.length - 1); speak(clean, char); }
+      setStreamingReply("");
+      if (voiceOn && __autoReplyVoiceOn && !streamingVoiceStartedRef.current) {
+        spoken.current.add(withReply.length - 1);
+        speak(clean, char);
+      }
       if (onConversation) onConversation(withReply); // quietly refresh long-term memory in the background
     } catch (e) {
       setErr(e.message || "Something went wrong.");
@@ -7697,7 +7721,13 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
             </div>
           );
         })}
-        {busy && <div style={{ fontSize: 13, color: T.sub, paddingLeft: 4 }}>{char.name} is thinking…</div>}
+        {streamingReply && (
+          <div style={{ alignSelf: "flex-start", maxWidth: "82%" }}>
+            <div style={{ padding: "11px 14px", borderRadius: 18, fontSize: 15, lineHeight: 1.45,
+              whiteSpace: "pre-wrap", background: "#fff", color: T.ink, boxShadow: T.soft }}>{streamingReply}</div>
+          </div>
+        )}
+        {busy && <div style={{ fontSize: 13, color: T.sub, paddingLeft: 4 }}>{streamingReply ? `${char.name} is replying…` : `${char.name} is thinking…`}</div>}
         {err && <div style={{ fontSize: 13, color: "#c0392b", background: "#fdecec", borderRadius: 12, padding: "8px 12px" }}>{err}</div>}
       </div>
 
