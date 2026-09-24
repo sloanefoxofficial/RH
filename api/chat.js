@@ -5,7 +5,10 @@ import { GoogleGenAI } from "@google/genai";
 
 const MAX_IMAGES = 10;
 const MAX_IMAGE_DATA_CHARS = 5_600_000;
-const DEFAULT_GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-3.6-flash";
+const configuredGeminiModel = process.env.GEMINI_MODEL || "gemini-3.6-flash";
+// Keep the low-latency Flash/Flash-Lite route even if an old environment value
+// accidentally points at a Pro or experimental model.
+const DEFAULT_GEMINI_MODEL = /flash(?:-lite)?/i.test(configuredGeminiModel) ? configuredGeminiModel : "gemini-3.6-flash";
 const DEFAULT_CLAUDE_MODEL = process.env.ANTHROPIC_MODEL || "claude-sonnet-5";
 
 function parseBody(req) {
@@ -138,6 +141,17 @@ function providerStatus(error) {
   return match ? Number(match[1]) : null;
 }
 
+function isDailyQuotaError(error) {
+  const message = String(error?.message || error || "");
+  return /GenerateRequestsPerDayPerProject|generate_content_free_tier_requests|quotaValue|daily quota/i.test(message);
+}
+
+function isRetryableGeminiError(error) {
+  const message = String(error?.message || error || "");
+  const status = providerStatus(error);
+  return status === 429 || status === 500 || status === 502 || status === 503 || status === 504 || /RESOURCE_EXHAUSTED|rate.?limit|temporarily unavailable/i.test(message);
+}
+
 async function readProviderError(response, provider) {
   const raw = await response.text().catch(() => "");
   let message = raw;
@@ -242,16 +256,17 @@ export default async function handler(req, res) {
           ...(body.system ? { systemInstruction: String(body.system) } : {}),
         };
         let stream;
-        for (let attempt = 0; attempt < 2; attempt += 1) {
+        for (let attempt = 0; attempt < 3; attempt += 1) {
           try {
             stream = await ai.models.generateContentStream({ model: DEFAULT_GEMINI_MODEL, contents, config });
             break;
           } catch (error) {
             geminiError = error;
-            const status = providerStatus(error);
-            if (attempt === 0 && (status === 429 || status === 500 || status === 502 || status === 503 || status === 504)) {
-              await new Promise((resolve) => setTimeout(resolve, status === 429 ? 900 : 350));
-            } else break;
+            // A daily free-tier quota cannot recover from a short wait, so
+            // hand that request to Claude immediately. Traffic-rate errors,
+            // however, get the requested silent 2s then 4s backoff.
+            if (!isRetryableGeminiError(error) || isDailyQuotaError(error) || attempt >= 2) break;
+            await new Promise((resolve) => setTimeout(resolve, attempt === 0 ? 2000 : 4000));
           }
         }
         if (!stream) throw geminiError || new Error("Gemini stream unavailable");
