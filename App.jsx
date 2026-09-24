@@ -6732,23 +6732,29 @@ function ProgramPage({ profile, plan, progress, saveProgress, answers, journalCo
             <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 5 }}><Sparkles size={18} color={T.greenDk} /><div style={{ fontWeight: 800, fontSize: 15.5 }}>A little extra for this week</div></div>
             <div style={{ fontSize: 12.5, color: T.sub, lineHeight: 1.45, marginBottom: 7 }}>These are optional ways to make the plan feel more like yours. Pick what fits, leave what does not.</div>
             {weeklyExtras(wk).map((extra, ei) => <TaskRow key={extra} label={extra} k={`w${wk}extra${ei}`} />)}
-            <div style={{ marginTop: 9, paddingTop: 10, borderTop: `1px solid ${T.line}` }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 4 }}><Plus size={16} color={T.greenDk} /><div style={{ fontWeight: 800, fontSize: 13.5 }}>Add your own task</div></div>
-              <div style={{ fontSize: 12, color: T.sub, lineHeight: 1.4, marginBottom: 8 }}>{selfDirectedPrompt(wk)}</div>
-              {week?.days?.length > 0 && <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 7, fontSize: 12.5, color: T.ink, fontWeight: 700 }}>Add it to
-                <select value={customTaskDay} onChange={(event) => setCustomTaskDay(Number(event.target.value))} aria-label="Choose which day to add your task to" style={{ flex: 1, border: `1px solid ${T.line}`, borderRadius: 10, padding: "8px 9px", background: "#fff", color: T.ink, font: "inherit", fontSize: 12.5 }}>
+            <div style={{ marginTop: 11, padding: 12, borderRadius: 17, background: "linear-gradient(135deg, #e7f6ec 0%, #f8fcf8 72%, #fff 100%)", border: "1px solid rgba(77,159,104,0.22)", boxShadow: "0 6px 14px rgba(77,159,104,0.08)" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 5 }}>
+                <span style={{ width: 32, height: 32, borderRadius: 11, display: "grid", placeItems: "center", background: "#d2edda", color: T.greenDk }}><Plus size={18} strokeWidth={2.7} /></span>
+                <div style={{ flex: 1 }}><div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap", fontWeight: 850, fontSize: 14 }}>Add your own task <span style={{ fontSize: 9.5, letterSpacing: 0.6, textTransform: "uppercase", color: T.greenDk, background: "rgba(255,255,255,0.78)", borderRadius: 999, padding: "3px 7px" }}>Your choice</span></div><div style={{ fontSize: 11.5, color: T.sub, marginTop: 2 }}>Small actions you choose count too.</div></div>
+              </div>
+              <div style={{ fontSize: 12, color: T.sub, lineHeight: 1.4, margin: "7px 0 9px 41px" }}>{selfDirectedPrompt(wk)}</div>
+              {week?.days?.length > 0 && <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 7, fontSize: 12.5, color: T.ink, fontWeight: 750 }}>Add it to
+                <select value={customTaskDay} onChange={(event) => setCustomTaskDay(Number(event.target.value))} aria-label="Choose which day to add your task to" style={{ flex: 1, border: "1px solid rgba(77,159,104,0.28)", borderRadius: 11, padding: "8px 9px", background: "rgba(255,255,255,0.86)", color: T.ink, font: "inherit", fontSize: 12.5, outline: "none" }}>
                   {week.days.map((day) => <option key={day.d} value={day.d}>Day {day.d}{started ? ` · ${fmtD(dayDate(week.n, day.d))}` : ""}</option>)}
                 </select>
               </label>}
               <div style={{ display: "flex", gap: 7 }}>
-                <input value={customTaskText} onChange={(event) => setCustomTaskText(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") addCustomTask(); }} placeholder="Something you choose to do" aria-label="Add your own task" maxLength={140} style={{ flex: 1, minWidth: 0, border: `1px solid ${T.line}`, borderRadius: 12, padding: "9px 10px", background: "#fff", color: T.ink, font: "inherit", fontSize: 12.5 }} />
-                <button type="button" onClick={addCustomTask} disabled={!customTaskText.trim()} style={{ border: "none", borderRadius: 12, padding: "9px 12px", background: customTaskText.trim() ? T.greenDk : "#cfcfcf", color: "#fff", fontWeight: 800, fontSize: 12, cursor: customTaskText.trim() ? "pointer" : "default" }}>Add</button>
+                <input value={customTaskText} onChange={(event) => setCustomTaskText(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") addCustomTask(); }} placeholder="Something you choose to do" aria-label="Add your own task" maxLength={140} style={{ flex: 1, minWidth: 0, border: "1px solid rgba(77,159,104,0.24)", borderRadius: 12, padding: "10px", background: "rgba(255,255,255,0.92)", color: T.ink, font: "inherit", fontSize: 12.5, outline: "none" }} />
+                <button type="button" onClick={addCustomTask} disabled={!customTaskText.trim()} style={{ border: "none", borderRadius: 12, padding: "9px 13px", background: customTaskText.trim() ? "linear-gradient(135deg, #347d62, #4d9f68)" : "#cfcfcf", color: "#fff", fontWeight: 850, fontSize: 12, cursor: customTaskText.trim() ? "pointer" : "default", boxShadow: customTaskText.trim() ? "0 5px 11px rgba(52,125,98,0.22)" : "none" }}>Add</button>
               </div>
             </div>
-            <div style={{ marginTop: 12, paddingTop: 10, borderTop: `1px solid ${T.line}` }}>
-              <div style={{ fontWeight: 800, fontSize: 13.5 }}>What is actually helping?</div>
-              <div style={{ fontSize: 12, color: T.sub, lineHeight: 1.4, margin: "4px 0 7px" }}>A quick note can help you build your own playbook — not just complete a checklist.</div>
-              <textarea value={weeklyReflection || progress.__weeklyReflections?.[wk] || ""} onChange={(event) => setWeeklyReflection(event.target.value)} onBlur={saveWeeklyReflection} placeholder="For example: walking helped more than I expected…" maxLength={280} rows={2} style={{ width: "100%", boxSizing: "border-box", resize: "vertical", border: `1px solid ${T.line}`, borderRadius: 12, padding: "8px 10px", background: "#fff", color: T.ink, font: "inherit", fontSize: 12.5 }} />
+            <div style={{ marginTop: 10, padding: 12, borderRadius: 17, background: "linear-gradient(135deg, #fff8e9 0%, #fffdf7 72%, #fff 100%)", border: "1px solid rgba(181,133,47,0.22)", boxShadow: "0 6px 14px rgba(181,133,47,0.07)" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 5 }}>
+                <span style={{ width: 32, height: 32, borderRadius: 11, display: "grid", placeItems: "center", background: "#f8e7b7", color: "#9b761f" }}><Sparkles size={17} /></span>
+                <div style={{ flex: 1 }}><div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap", fontWeight: 850, fontSize: 14 }}>What is actually helping? <span style={{ fontSize: 9.5, letterSpacing: 0.6, textTransform: "uppercase", color: "#9b761f", background: "rgba(255,255,255,0.78)", borderRadius: 999, padding: "3px 7px" }}>Notice &amp; adapt</span></div><div style={{ fontSize: 11.5, color: T.sub, marginTop: 2 }}>Your experience is useful information.</div></div>
+              </div>
+              <div style={{ fontSize: 12, color: T.sub, lineHeight: 1.4, margin: "7px 0 8px 41px" }}>A quick note can help you build your own playbook — not just complete a checklist.</div>
+              <textarea value={weeklyReflection || progress.__weeklyReflections?.[wk] || ""} onChange={(event) => setWeeklyReflection(event.target.value)} onBlur={saveWeeklyReflection} placeholder="For example: walking helped more than I expected…" maxLength={280} rows={2} style={{ width: "100%", boxSizing: "border-box", resize: "vertical", border: "1px solid rgba(181,133,47,0.24)", borderRadius: 12, padding: "10px", background: "rgba(255,255,255,0.92)", color: T.ink, font: "inherit", fontSize: 12.5, outline: "none" }} />
             </div>
           </div>
           <div style={{ background: "linear-gradient(135deg, #f1f8f3, #ffffff 70%, #fff4e8)", border: `1px solid ${T.line}`, borderRadius: 20, padding: 15, boxShadow: T.soft, marginBottom: 12 }}>
