@@ -121,6 +121,7 @@ export default async function handler(req, res) {
     const ai = new GoogleGenAI({ apiKey });
     const config = {
       maxOutputTokens: Number(body.max_tokens) || 1000,
+      thinkingConfig: { thinkingLevel: "minimal" },
       ...(body.system ? { systemInstruction: String(body.system) } : {}),
     };
 
