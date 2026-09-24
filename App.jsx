@@ -1752,9 +1752,9 @@ function GlobalJumpToTop({ screen }) {
 
 function CrisisInterception({ onDismiss }) {
   return <div style={{ background: "#fff5f4", border: "1px solid #efc9c6", borderRadius: 18, padding: 14, marginTop: 10, boxShadow: T.soft }}>
-    <div style={{ display: "flex", alignItems: "flex-start", gap: 9 }}><Heart size={18} color="#c54848" style={{ flexShrink: 0, marginTop: 2 }} /><div><div style={{ fontWeight: 800, color: "#8e3131", fontSize: 14.5 }}>Let’s get a real person beside you</div><div style={{ color: T.ink, fontSize: 13, lineHeight: 1.45, marginTop: 4 }}>I’m really glad you told us. If you might act on these thoughts or are in immediate danger, call 000 now. Otherwise, please call Lifeline on 13 11 14 or Suicide Call Back Service on 1300 659 467. If you can, move near another person and ask them to stay with you. You do not have to handle this alone.</div></div></div>
+    <div style={{ display: "flex", alignItems: "flex-start", gap: 9 }}><Heart size={18} color="#c54848" style={{ flexShrink: 0, marginTop: 2 }} /><div><div style={{ fontWeight: 800, color: "#8e3131", fontSize: 14.5 }}>You’re in charge of the next step</div><div style={{ color: T.ink, fontSize: 13, lineHeight: 1.45, marginTop: 4 }}>I’m really glad you told us. If you might act on these thoughts or are in immediate danger, call 000 now. Otherwise, you can choose a support person below, move near someone you trust, or simply tell the guide: “No, I don’t want that right now.” You do not need to say you already have support, and you will not be pressured or locked out of the conversation.</div></div></div>
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 11 }}>{CONTACTS.slice(0, 4).map((c) => <a key={c.label} href={`tel:${c.tel}`} onClick={stopGuideSpeechForCall} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, borderRadius: 12, padding: "10px 8px", textDecoration: "none", background: c.accent ? "#c54848" : "#fff", color: c.accent ? "#fff" : T.ink, border: c.accent ? "none" : "1px solid #efc9c6", fontSize: 12.5, fontWeight: 800 }}><Phone size={14} /> {c.label}</a>)}</div>
-    <button onClick={onDismiss} style={{ marginTop: 9, border: "none", background: "transparent", color: T.sub, fontSize: 12, cursor: "pointer" }}>I’m safe for now — return to the conversation</button>
+    <button onClick={onDismiss} style={{ marginTop: 9, border: "1px solid #efc9c6", borderRadius: 999, background: "#fff", color: "#8e3131", fontSize: 12, fontWeight: 800, cursor: "pointer", padding: "8px 12px" }}>Not right now — stay with the conversation</button>
   </div>;
 }
 
@@ -1770,7 +1770,7 @@ function CrisisBar() {
             padding: 12, boxShadow: T.lift, border: `1px solid ${T.line}` }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 700, fontSize: 14 }}>
-                <LifeBuoy size={16} color={T.green} /> If you need help right now
+                <LifeBuoy size={16} color={T.green} /> Safety First — choose your next step
               </div>
               <button onClick={() => setOpen(false)} aria-label="Close" style={{ background: "none", border: "none", cursor: "pointer", color: T.sub }}>
                 <X size={18} />
@@ -1791,14 +1791,14 @@ function CrisisBar() {
               ))}
             </div>
             <p style={{ fontSize: 11, color: T.sub, textAlign: "center", marginTop: 10 }}>
-              A support tool — not a replacement for a doctor or emergency service.
+              Choosing support is a strength. You stay in control. This is not a replacement for a doctor or emergency service.
             </p>
           </div>
         ) : (
           <button onClick={() => setOpen(true)} style={{ margin: "0 auto", display: "flex", alignItems: "center", gap: 8,
             borderRadius: 999, padding: "10px 18px", background: "rgba(255,255,255,0.97)", backdropFilter: "blur(6px)",
             border: `1px solid ${T.line}`, boxShadow: T.soft, cursor: "pointer", fontSize: 14, fontWeight: 600, color: T.ink }}>
-            <LifeBuoy size={16} color={T.green} /> Need help now?
+            <LifeBuoy size={16} color={T.green} /> Safety First
           </button>
         )}
       </div>
@@ -1859,7 +1859,7 @@ const AUTO_INTRO_SPEECH = {
     toolkit: "Welcome to the Toolkit — a collection of things that can help, whenever you need them. Take your time, look around, and choose whatever feels right today.",
     guides: "Welcome to your guides — AI guided support from a team you can turn to whenever you need it. Choose the voice that feels right for you today.",
     plan: "This is your tailor-made 8-week plan, shaped around what you told us about your life, your energy, and what you want to work towards. It grows week by week, starting gently and building practical steps at a pace that fits you. I’m here to help you understand each week, answer your questions, and help you notice your progress without pressure or judgement.",
-    program: "Hi, I’m Juan, the founder of The Resilience Hub. This program is free and built around you. We listen to where you’re at, shape practical support at your pace, and connect you with the right people. If you need help, use Message Juan to reach the real me, talk with an AI guide, or use Help Now for urgent human support.",
+    program: "Hi, I’m Juan, the founder of The Resilience Hub. This program is free and built around you. We listen to where you’re at, shape practical support at your pace, and connect you with the right people. If you need help, use Message Juan to reach the real me, talk with an AI guide, or use Safety First for urgent human support.",
     planChoice: "Before we go any further, would you like Carlos to put together a personalised 8-week plan for you? I’ll ask a handful of questions so he can shape it around what you’re dealing with. If you’d rather use the guides and Toolkit for now, that’s completely fine.",
     chat: "Hi, I’m your AI guide. Take your time — we can talk things through at your pace."
   },
@@ -5427,12 +5427,12 @@ function PrivacyLink({ style, variant }) {
               Your Journal PIN is a privacy lock for the Journal, not an account password or encryption key. You choose a recovery question and answer when setting it up. The PIN and recovery answer are stored as one-way hashes. Keep your account login secure and choose a recovery answer that others cannot guess.
             </div>
             {section("Support messages and reports", <>Messages to the real Juan, bug reports, feedback, appointment requests, and optional screenshots are sent only when you choose those features. They are protected by authenticated access and database/storage controls and are available to authorised Resilience Hub staff so they can respond or provide support. These submissions are not user-only encrypted. Other members cannot read them. Screenshots are optional and may contain sensitive details, so crop or hide anything unnecessary.</>)}
-            {section("AI and voice services", <>When you ask an AI guide to reply, the relevant content is sent through our server to Google Gemini so a response can be generated. When voice playback is requested, text may be sent through Fish Audio or Google Cloud Text-to-Speech, with browser speech as a fallback. These providers may process content under their own terms and retention practices. Do not enter information you are not comfortable sending to an AI or speech service.</>)}
+            {section("AI and voice services", <>When you ask an AI guide to reply, the relevant content is sent through our server to Anthropic Claude so a response can be generated. When voice playback is requested, text may be sent through Fish Audio or Google Cloud Text-to-Speech, with browser speech as a fallback. These providers may process content under their own terms and retention practices. Do not enter information you are not comfortable sending to an AI or speech service.</>)}
             {section("Account, sign-in and notifications", <>The app uses Supabase authentication and database services. Email/password and Google sign-in may be available. “Stay logged in” controls session persistence; disable it on shared devices. The optional Journal PIN is separate from your account login and can be changed or removed in Settings using your PIN or recovery answer. Do not reuse your account password as your recovery answer. Push notification bodies are kept generic and should not contain journal text, message content, or crisis disclosures.</>)}
             {section("Usage information and live activity", <>If you leave anonymous usage tracking switched on, we record app session times and broad sections such as Program, Journal, Resources, Guides, Toolkit, or Home to help improve support and service coverage. Authorised administrators may see the live active count, display name, last seen time, current broad section, session duration, daily/weekly/monthly totals, and aggregate peak usage periods. This never includes journal entries, notes, guide messages, uploads, what you type, location, IP profiling, or advertising data. No other member can see your activity, and this information is never sold or shared externally. You can turn tracking off at any time in Settings.</>)}
             {section("Who may access information", <>Authorised Resilience Hub staff may access support submissions that you deliberately send. Supabase, Vercel, Google Gemini, Fish Audio, Google Cloud Text-to-Speech, authentication providers, push-notification infrastructure, and other service providers may process limited information needed to provide the app. We do not sell personal information or use it for advertising profiling. We may disclose information where required by law or needed to respond to an immediate safety risk.</>)}
             {section("Deletion and retention", <>You can clear your app data from your Profile. The app attempts to remove account rows, support rows linked to your account, game progress, push subscriptions, local cached data, Journal PIN metadata, and associated screenshot objects. Deleted data may remain in provider backups, point-in-time recovery, disaster-recovery systems, device backups, or third-party provider systems for up to <strong>31 days</strong> before those backup copies are routinely overwritten or expire.</>)}
-            {section("Your choices and questions", <>You can change optional profile details, manage guide memory, control voice and notification preferences, manage your Journal PIN, clear app data, sign out, and contact the team about privacy or deletion requests. Never send a privacy passphrase, recovery key, private encryption key, or service secret to support. For urgent danger, call 000 or use Help Now.</>)}
+            {section("Your choices and questions", <>You can change optional profile details, manage guide memory, control voice and notification preferences, manage your Journal PIN, clear app data, sign out, and contact the team about privacy or deletion requests. Never send a privacy passphrase, recovery key, private encryption key, or service secret to support. For urgent danger, call 000 or use Safety First.</>)}
             <div style={{ marginTop: 14 }}><Btn onClick={() => setOpen(false)}>Close</Btn></div>
           </div>
         </div>
@@ -6541,6 +6541,7 @@ function ProgramPage({ profile, plan, progress, saveProgress, answers, journalCo
   const [expandedDays, setExpandedDays] = useState({});
   const [dayCheckIns, setDayCheckIns] = useState({});
   const [customTaskText, setCustomTaskText] = useState("");
+  const [weeklyReflection, setWeeklyReflection] = useState("");
   const [calendarTick, setCalendarTick] = useState(0);
   const week = weeks.find((w) => w.n === wk);
   const planStart = plan?.startedAt ? new Date(plan.startedAt) : null;
@@ -6590,7 +6591,20 @@ function ProgramPage({ profile, plan, progress, saveProgress, answers, journalCo
     const next = customTasks.filter((item) => item.id !== task.id);
     const nextProgress = { ...progress, __customTasks: next };
     delete nextProgress[customTaskKey(task)];
+    if (nextProgress.__customTaskReflections) {
+      nextProgress.__customTaskReflections = { ...nextProgress.__customTaskReflections };
+      delete nextProgress.__customTaskReflections[task.id];
+    }
     saveProgress(nextProgress);
+  };
+  const setCustomTaskReflection = (task, value) => saveProgress({
+    ...progress,
+    __customTaskReflections: { ...(progress.__customTaskReflections || {}), [task.id]: value },
+  });
+  const saveWeeklyReflection = () => {
+    const value = weeklyReflection.trim();
+    if (!value) return;
+    saveProgress({ ...progress, __weeklyReflections: { ...(progress.__weeklyReflections || {}), [wk]: value } });
   };
   const coachWeek = week || weeks[0];
   const coachContext = coachWeek ? `You are guiding the person from inside their 8-week plan. They are currently viewing Week ${coachWeek.n}, focused on “${coachWeek.focus}”. Their visible tasks are: ${Array.isArray(coachWeek.days) ? coachWeek.days.flatMap((d) => d.tasks || []).join("; ") : (coachWeek.steps || []).join("; ")}. Help them understand the purpose of this week, answer questions, make tasks feel manageable, and offer gentle, practical advice. Do not pressure them to complete anything. If they are struggling, help them choose one small next step. You can suggest that they tick off a task only when they feel it is genuinely done. This is supportive guidance, not therapy, diagnosis, or a clinical treatment plan.` : "You are helping the person understand and use their personalised 8-week plan. Keep your guidance gentle, practical, and collaborative.";
@@ -6702,6 +6716,11 @@ function ProgramPage({ profile, plan, progress, saveProgress, answers, journalCo
                 <button type="button" onClick={addCustomTask} disabled={!customTaskText.trim()} style={{ border: "none", borderRadius: 12, padding: "9px 12px", background: customTaskText.trim() ? T.greenDk : "#cfcfcf", color: "#fff", fontWeight: 800, fontSize: 12, cursor: customTaskText.trim() ? "pointer" : "default" }}>Add</button>
               </div>
             </div>
+            <div style={{ marginTop: 12, paddingTop: 10, borderTop: `1px solid ${T.line}` }}>
+              <div style={{ fontWeight: 800, fontSize: 13.5 }}>What is actually helping?</div>
+              <div style={{ fontSize: 12, color: T.sub, lineHeight: 1.4, margin: "4px 0 7px" }}>A quick note can help you build your own playbook — not just complete a checklist.</div>
+              <textarea value={weeklyReflection || progress.__weeklyReflections?.[wk] || ""} onChange={(event) => setWeeklyReflection(event.target.value)} onBlur={saveWeeklyReflection} placeholder="For example: walking helped more than I expected…" maxLength={280} rows={2} style={{ width: "100%", boxSizing: "border-box", resize: "vertical", border: `1px solid ${T.line}`, borderRadius: 12, padding: "8px 10px", background: "#fff", color: T.ink, font: "inherit", fontSize: 12.5 }} />
+            </div>
           </div>
           <div style={{ background: "linear-gradient(135deg, #f1f8f3, #ffffff 70%, #fff4e8)", border: `1px solid ${T.line}`, borderRadius: 20, padding: 15, boxShadow: T.soft, marginBottom: 12 }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}><div style={{ display: "flex", alignItems: "center", gap: 9 }}><div style={{ width: 38, height: 38, borderRadius: 12, background: "#dff1e5", display: "grid", placeItems: "center" }}><Anchor size={19} color={T.greenDk} /></div><div><div style={{ fontWeight: 800, fontSize: 14.5 }}>Walking this week</div><div style={{ fontSize: 12, color: T.sub }}>A gentle daily rhythm</div></div></div><div style={{ fontWeight: 850, fontSize: 18, color: T.greenDk }}>{walkDone}/{walkTaskKeys.length || 7}<span style={{ fontSize: 11, fontWeight: 700, color: T.sub }}> walks</span></div></div>
@@ -6746,13 +6765,13 @@ function ProgramPage({ profile, plan, progress, saveProgress, answers, journalCo
                     <div key={day.d} style={{ background: day.d % 2 ? "linear-gradient(135deg, #ffffff, #f8fbf8)" : "linear-gradient(135deg, #fffdf9, #ffffff)", border: `1px solid ${T.line}`, borderRadius: 17, padding: "12px 13px", marginTop: 12, boxShadow: "0 5px 14px rgba(47,97,72,0.045)" }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 4 }}><div style={{ display: "flex", alignItems: "center", gap: 7 }}><div style={{ fontSize: 11, fontWeight: 900, color: T.greenDk, textTransform: "uppercase", letterSpacing: 0.8 }}>Day {day.d}</div>{!isCurrent && <button onClick={() => toggleDay(week.n, day.d)} aria-label={`Collapse day ${day.d}`} style={{ border: "none", background: "none", padding: 2, cursor: "pointer", color: T.sub }}><ChevronUp size={15} /></button>}</div>{started && <div style={{ fontSize: 11, color: T.sub }}>{fmtD(dayDate(week.n, day.d))}</div>}</div>
                       <div style={{ height: 2, width: 34, borderRadius: 999, background: day.d % 2 ? T.green : "#d99b67", marginBottom: 4 }} />
-                      {day.d === week.days[0].d && !firstDayCheckIn ? <div style={{ fontSize: 13, color: T.sub, padding: "10px 0 3px", lineHeight: 1.45 }}>Choose a quick check-in above and we’ll show the right-sized version of today’s tasks.</div> : <>{day.d === week.days[0].d && firstDayCheckIn === "overwhelmed" ? <TaskRow label="Bare minimum for today: put both feet on the floor, take three slow breaths, and let the rest wait." k={`w${week.n}d${day.d}t0`} /> : (day.tasks || []).map((t, ti) => <TaskRow key={ti} label={t} k={`w${week.n}d${day.d}t${ti}`} />)}{dayCustomTasks.map((task) => <div key={task.id} style={{ display: "flex", alignItems: "flex-start", gap: 8 }}><TaskRow label={task.text} k={customTaskKey(task)} /><button type="button" onClick={() => removeCustomTask(task)} aria-label={`Remove custom task: ${task.text}`} style={{ border: "none", background: "none", color: T.sub, padding: "9px 0 0", cursor: "pointer", fontSize: 16 }}>×</button></div>)}</>}
+                      {day.d === week.days[0].d && !firstDayCheckIn ? <div style={{ fontSize: 13, color: T.sub, padding: "10px 0 3px", lineHeight: 1.45 }}>Choose a quick check-in above and we’ll show the right-sized version of today’s tasks.</div> : <>{day.d === week.days[0].d && firstDayCheckIn === "overwhelmed" ? <TaskRow label="Bare minimum for today: put both feet on the floor, take three slow breaths, and let the rest wait." k={`w${week.n}d${day.d}t0`} /> : (day.tasks || []).map((t, ti) => <TaskRow key={ti} label={t} k={`w${week.n}d${day.d}t${ti}`} />)}{dayCustomTasks.map((task) => <div key={task.id} style={{ display: "flex", alignItems: "flex-start", gap: 8 }}><div style={{ flex: 1, minWidth: 0 }}><TaskRow label={task.text} k={customTaskKey(task)} />{progress[customTaskKey(task)] && <div style={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap", margin: "-2px 0 7px 29px", fontSize: 11.5, color: T.sub }}><span>Was it helpful?</span>{[["helpful", "Helpful"], ["mixed", "A bit"], ["not_helpful", "Not really"]].map(([key, label]) => <button type="button" key={key} onClick={() => setCustomTaskReflection(task, key)} style={{ border: `1px solid ${progress.__customTaskReflections?.[task.id] === key ? T.green : T.line}`, borderRadius: 999, background: progress.__customTaskReflections?.[task.id] === key ? "#e1f2e6" : "#fff", color: T.ink, padding: "4px 7px", fontSize: 10.5, cursor: "pointer" }}>{label}</button>)}</div>}</div><button type="button" onClick={() => removeCustomTask(task)} aria-label={`Remove custom task: ${task.text}`} style={{ border: "none", background: "none", color: T.sub, padding: "9px 0 0", cursor: "pointer", fontSize: 16 }}>×</button></div>)}</>}
                     </div>
                   );
                 })}
               </>
             ) : (
-              <>{(week?.steps || []).map((s, si) => <TaskRow key={si} label={s} k={`w${week.n}s${si}`} />)}{customTasks.filter((task) => task.week === week?.n).map((task) => <div key={task.id} style={{ display: "flex", alignItems: "flex-start", gap: 8 }}><TaskRow label={task.text} k={customTaskKey(task)} /><button type="button" onClick={() => removeCustomTask(task)} aria-label={`Remove custom task: ${task.text}`} style={{ border: "none", background: "none", color: T.sub, padding: "9px 0 0", cursor: "pointer", fontSize: 16 }}>×</button></div>)}</>
+              <>{(week?.steps || []).map((s, si) => <TaskRow key={si} label={s} k={`w${week.n}s${si}`} />)}{customTasks.filter((task) => task.week === week?.n).map((task) => <div key={task.id} style={{ display: "flex", alignItems: "flex-start", gap: 8 }}><div style={{ flex: 1, minWidth: 0 }}><TaskRow label={task.text} k={customTaskKey(task)} />{progress[customTaskKey(task)] && <div style={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap", margin: "-2px 0 7px 29px", fontSize: 11.5, color: T.sub }}><span>Was it helpful?</span>{[["helpful", "Helpful"], ["mixed", "A bit"], ["not_helpful", "Not really"]].map(([key, label]) => <button type="button" key={key} onClick={() => setCustomTaskReflection(task, key)} style={{ border: `1px solid ${progress.__customTaskReflections?.[task.id] === key ? T.green : T.line}`, borderRadius: 999, background: progress.__customTaskReflections?.[task.id] === key ? "#e1f2e6" : "#fff", color: T.ink, padding: "4px 7px", fontSize: 10.5, cursor: "pointer" }}>{label}</button>)}</div>}</div><button type="button" onClick={() => removeCustomTask(task)} aria-label={`Remove custom task: ${task.text}`} style={{ border: "none", background: "none", color: T.sub, padding: "9px 0 0", cursor: "pointer", fontSize: 16 }}>×</button></div>)}</>
             )}
           </div>
         </>
@@ -6856,7 +6875,7 @@ function RexHubTour({ voiceOn, onOpenJournal, onOpenProgram, onOpenSafety, onOpe
     { title: "Welcome to your Hub", text: "Hey, mate — I’m Rex. I’ll give you a quick, calm look around. You can skip this any time.", icon: Heart, tint: "#e6f6ea", color: T.greenDk },
     { title: "Your Private Journal", text: "This is your PIN-protected space to write, reflect, or capture a fleeting thought. Take your time — there’s no right or wrong way to use it.", icon: BookOpen, tint: "#fff5d9", color: "#947019", action: onOpenJournal, actionLabel: "Open Journal" },
     { title: "Your 8-Week Plan", text: "Your plan gives you gentle daily steps with Carlos, building at your pace. You can start it whenever you feel ready.", icon: CalendarCheck, tint: "#e8efff", color: "#345c8d", action: onOpenProgram, actionLabel: "Open plan" },
-    { title: "Need Help Now", text: "Crisis support is always close by. If you or someone else is in immediate danger, call Triple Zero — 000.", icon: LifeBuoy, tint: "#ffe9e8", color: "#b64949", action: onOpenSafety, actionLabel: "Open help" },
+    { title: "Safety First", text: "Crisis support is always close by. If you or someone else is in immediate danger, call Triple Zero — 000. Choosing support is a protective choice.", icon: LifeBuoy, tint: "#ffe9e8", color: "#b64949", action: onOpenSafety, actionLabel: "Open Safety First" },
     { title: "Support Directory", text: "Food, housing, recovery, local services, activities, and people to connect with — all gathered in one place.", icon: ResourcesIcon, tint: "#e7f3fa", color: "#3f7e9e", action: onOpenResources, actionLabel: "Open directory" },
     { title: "Set yourself up", text: "Tap your profile to set your PIN, update your details, adjust preferences, and install the Hub on your home screen. You’re always in control.", icon: User, tint: "#f1e8ff", color: "#7652a6", action: onOpenProfile, actionLabel: "Go to Profile" },
   ];
@@ -7072,7 +7091,8 @@ function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, set
       </div>
 
       <div style={{ marginTop: 10, background: "linear-gradient(135deg, #fff0f0 0%, #fff8f4 100%)", border: "1px solid rgba(201,79,79,0.22)", borderRadius: 20, padding: 13, boxShadow: "0 8px 20px rgba(201,79,79,0.09)" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 7, color: "#a53f42", fontSize: 11, fontWeight: 900, letterSpacing: 0.8, textTransform: "uppercase", marginBottom: 9 }}><LifeBuoy size={15} /> Need help now?</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 7, color: "#a53f42", fontSize: 11, fontWeight: 900, letterSpacing: 0.8, textTransform: "uppercase", marginBottom: 9 }}><LifeBuoy size={15} /> Safety First</div>
+        <div style={{ color: T.sub, fontSize: 12.5, lineHeight: 1.4, marginBottom: 9 }}>Choosing support is a protective choice. You decide what feels right — now, later, or not right now.</div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 7 }}>
           <a href="tel:000" aria-label="Call Triple Zero 000" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3, padding: "9px 4px", borderRadius: 13, background: "#c94f4f", color: "#fff", textDecoration: "none", fontWeight: 900, fontSize: 12 }}><Phone size={17} />000</a>
           <a href="tel:131114" aria-label="Call Lifeline 13 11 14" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3, padding: "9px 4px", borderRadius: 13, background: "#fff", color: "#a53f42", border: "1px solid #efcccc", textDecoration: "none", fontWeight: 900, fontSize: 12 }}><Phone size={17} /><span>Lifeline</span><span>13 11 14</span></a>
@@ -7325,7 +7345,7 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
     if (!imgs.length && crisisLevel(text) === "immediate") {
       stop(); setErr(null); setInput("");
       const crisisUser = { role: "user", content: text, ts: Date.now() };
-      const crisisText = "I hear you, and I care. If you’re in danger or thinking about hurting yourself, please call Triple Zero — 000 — right away, or go to the nearest hospital or safe place. I’m still here with you, and you can tell me more while you reach out to someone who can be with you in person. You matter, and you don’t have to get through this alone.";
+      const crisisText = "I hear you, and I care. If you’re in danger or thinking about hurting yourself, please call Triple Zero — 000 — right away, or go to the nearest hospital or safe place. If you do not want to contact anyone right now, you can say so plainly — you do not have to pretend you already have support. I’ll respect that choice and stay with you while we focus on the next safest step. You matter, and you don’t have to get through this alone.";
       const crisisReply = { role: "assistant", content: crisisText, ts: Date.now() };
       const nextCrisisHistory = [...history, crisisUser, crisisReply];
       setHistory(nextCrisisHistory);
@@ -7367,7 +7387,7 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
       }
       // Only for people who haven't set up a plan — never shown to anyone already on one.
       if (CRISIS_REFERENCE_RE.test(text)) {
-        system += `\n\n[SENSITIVE TOPIC CONTEXT] The message mentions suicide, self-harm, overdose, or crisis language. Distinguish a general mention from current personal danger. Do not use the emergency script merely because a word appears. If the person is discussing the topic generally, answer naturally and briefly check whether it relates to their own immediate safety only if unclear. If they indicate current intent, a plan, an attempt, imminent danger, or that they cannot stay safe, put urgent human help first and direct them to 000 and Lifeline 13 11 14.`;
+        system += `\n\n[SENSITIVE TOPIC CONTEXT] The message mentions suicide, self-harm, overdose, or crisis language. Distinguish a general mention from current personal danger. Do not use the emergency script merely because a word appears. If the person is discussing the topic generally, answer naturally and briefly check whether it relates to their own immediate safety only if unclear. If they indicate current intent, a plan, an attempt, imminent danger, or that they cannot stay safe, put urgent human help first and direct them to 000 and Lifeline 13 11 14. Always preserve agency: offer clear choices, including “No, I don’t want that right now.” Never require the person to claim they already have support in order to continue talking. If they decline help and there is no new sign of immediate danger, acknowledge the choice without guilt, do not repeat the same referral insistently, and keep engaging with what they are willing to do next. If immediate danger remains, calmly explain why urgent human help is still important while continuing to offer choices.`;
       }
       if (!plan) {
         system += `\n\n[They have NOT set up an 8-week plan. If — and only if — it comes up naturally (they mention wanting structure, direction, goals, or ask what else the app does), you may gently mention once that Carlos can build them a personalised 8-week plan from their 8-Week Plan page, whenever they feel ready. Never interrupt what they're actually talking about to bring it up, never repeat it if they don't take it up, and never push. If they're upset, in crisis, or working through something, do not mention it at all.]`;
@@ -8012,7 +8032,7 @@ function FounderVideoSection() {
 }
 
 function ProgramInfo({ voiceOn, speechLang, onBack, onMessageJuan, onOpenIntake, onBookAppointment }) {
-  const juanProgramIntro = "Hi, I'm Juan, the founder of The Resilience Hub. This program is free and built around you: we listen to where you're at, shape practical support at your pace, and help connect you with the right people. If you need help at any point, use Message Juan to reach the real me, talk with one of the AI guides, or use Help Now for urgent human support.";
+  const juanProgramIntro = "Hi, I'm Juan, the founder of The Resilience Hub. This program is free and built around you: we listen to where you're at, shape practical support at your pace, and help connect you with the right people. If you need help at any point, use Message Juan to reach the real me, talk with one of the AI guides, or use Safety First for urgent human support.";
   const spokenJuanProgramIntro = spokenIntro("program", juanProgramIntro, speechLang);
   const { speak: speakJuanProgramIntro, stop: stopJuanProgramIntro, prefetch: prefetchJuanProgramIntro } = useVoice(voiceOn);
   useEffect(() => {
@@ -8725,7 +8745,7 @@ function Journal({ profile, journal, saveJournal, voiceOn, onBack }) {
     <>
       <Brand right={<BackBtn onBack={onBack} />} />
       <div style={{ background: "linear-gradient(135deg, #eee9f8, #f8fbf8 72%)", borderRadius: 20, padding: "15px 16px", boxShadow: T.soft, marginTop: 5 }}><div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 800, color: T.ink }}><Shield size={18} color="#7055a8" /> Private space</div><div style={{ fontSize: 12.5, color: T.sub, lineHeight: 1.45, marginTop: 4 }}>Your notes stay behind your Journal PIN. Choose the kind of space you need today.</div></div>
-      <div style={{ display: "flex", gap: 7, marginTop: 13 }}>{tabButton("journal", "Journal", BookOpen)}{tabButton("fleeting", "Fleeting thoughts", Sparkles)}{tabButton("services", "Help now", LifeBuoy)}</div>
+      <div style={{ display: "flex", gap: 7, marginTop: 13 }}>{tabButton("journal", "Journal", BookOpen)}{tabButton("fleeting", "Fleeting thoughts", Sparkles)}{tabButton("services", "Safety First", LifeBuoy)}</div>
 
       {tab !== "services" && <div style={{ display: "flex", gap: 12, alignItems: "center", marginTop: 15 }}><div style={{ width: 76, flexShrink: 0 }}><Portrait src={IMG.lila} name="Lila" size={76} speaking={speaking} tint={CHARS.lila.tint} /></div><div style={{ background: T.card, borderRadius: 18, padding: "13px 15px", boxShadow: T.soft, fontSize: 14.5, lineHeight: 1.45 }}>{reflecting ? "Reading that back…" : tab === "fleeting" ? "A thought does not have to become a whole story. Get it down before it disappears." : prompt}</div></div>}
 
