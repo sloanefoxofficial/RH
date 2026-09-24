@@ -7578,6 +7578,10 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
       const speedTokens = effSpeed === "fast" ? 400 : effSpeed === "chilled" ? 2800 : 2400;
       const queueStreamSentence = (sentence) => {
         const generation = streamSpeechGenerationRef.current;
+        // Start Fish Audio while the previous sentence is speaking. speak()
+        // will reuse this in-flight request from __ttsPending, removing the
+        // network gap between queued sentences.
+        if (voiceOn && char?.voiceId) prefetch(sentence, char);
         streamSpeechChainRef.current = streamSpeechChainRef.current
           .catch(() => {})
           .then(() => new Promise((resolve) => {
