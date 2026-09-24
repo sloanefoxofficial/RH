@@ -6541,6 +6541,7 @@ function ProgramPage({ profile, plan, progress, saveProgress, answers, journalCo
   const [expandedDays, setExpandedDays] = useState({});
   const [dayCheckIns, setDayCheckIns] = useState({});
   const [customTaskText, setCustomTaskText] = useState("");
+  const [customTaskDay, setCustomTaskDay] = useState(1);
   const [weeklyReflection, setWeeklyReflection] = useState("");
   const [calendarTick, setCalendarTick] = useState(0);
   const week = weeks.find((w) => w.n === wk);
@@ -6563,6 +6564,10 @@ function ProgramPage({ profile, plan, progress, saveProgress, answers, journalCo
   const isDayExpanded = (weekNumber, dayNumber) => dayNumber === activeDayNumber ? true : Boolean(expandedDays[dayKey(weekNumber, dayNumber)]);
   const toggleDay = (weekNumber, dayNumber) => setExpandedDays((old) => ({ ...old, [dayKey(weekNumber, dayNumber)]: !old[dayKey(weekNumber, dayNumber)] }));
   useEffect(() => {
+    const days = week?.days || [];
+    if (days.length && !days.some((day) => day.d === customTaskDay)) setCustomTaskDay(activeDayNumber || days[0].d);
+  }, [wk, activeDayNumber, week?.days, customTaskDay]);
+  useEffect(() => {
     if (!planStart || !plan) return undefined;
     const now = new Date();
     const nextMidnight = new Date(now);
@@ -6581,7 +6586,7 @@ function ProgramPage({ profile, plan, progress, saveProgress, answers, journalCo
   const addCustomTask = () => {
     const text = customTaskText.trim();
     if (!text) return;
-    const targetDay = week?.days?.some((day) => day.d === activeDayNumber) ? activeDayNumber : (week?.days?.[0]?.d || 1);
+    const targetDay = week?.days?.some((day) => day.d === customTaskDay) ? customTaskDay : (week?.days?.[0]?.d || 1);
     const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     saveProgress({ ...progress, __customTasks: [...customTasks, { id, text, week: wk, day: targetDay, createdAt: Date.now() }] });
     setCustomTaskText("");
@@ -6711,8 +6716,13 @@ function ProgramPage({ profile, plan, progress, saveProgress, answers, journalCo
             <div style={{ marginTop: 9, paddingTop: 10, borderTop: `1px solid ${T.line}` }}>
               <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 4 }}><Plus size={16} color={T.greenDk} /><div style={{ fontWeight: 800, fontSize: 13.5 }}>Add your own task</div></div>
               <div style={{ fontSize: 12, color: T.sub, lineHeight: 1.4, marginBottom: 8 }}>{selfDirectedPrompt(wk)}</div>
+              {week?.days?.length > 0 && <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 7, fontSize: 12.5, color: T.ink, fontWeight: 700 }}>Add it to
+                <select value={customTaskDay} onChange={(event) => setCustomTaskDay(Number(event.target.value))} aria-label="Choose which day to add your task to" style={{ flex: 1, border: `1px solid ${T.line}`, borderRadius: 10, padding: "8px 9px", background: "#fff", color: T.ink, font: "inherit", fontSize: 12.5 }}>
+                  {week.days.map((day) => <option key={day.d} value={day.d}>Day {day.d}{started ? ` · ${fmtD(dayDate(week.n, day.d))}` : ""}</option>)}
+                </select>
+              </label>}
               <div style={{ display: "flex", gap: 7 }}>
-                <input value={customTaskText} onChange={(event) => setCustomTaskText(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") addCustomTask(); }} placeholder="Something you choose to do today" aria-label="Add your own task" maxLength={140} style={{ flex: 1, minWidth: 0, border: `1px solid ${T.line}`, borderRadius: 12, padding: "9px 10px", background: "#fff", color: T.ink, font: "inherit", fontSize: 12.5 }} />
+                <input value={customTaskText} onChange={(event) => setCustomTaskText(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") addCustomTask(); }} placeholder="Something you choose to do" aria-label="Add your own task" maxLength={140} style={{ flex: 1, minWidth: 0, border: `1px solid ${T.line}`, borderRadius: 12, padding: "9px 10px", background: "#fff", color: T.ink, font: "inherit", fontSize: 12.5 }} />
                 <button type="button" onClick={addCustomTask} disabled={!customTaskText.trim()} style={{ border: "none", borderRadius: 12, padding: "9px 12px", background: customTaskText.trim() ? T.greenDk : "#cfcfcf", color: "#fff", fontWeight: 800, fontSize: 12, cursor: customTaskText.trim() ? "pointer" : "default" }}>Add</button>
               </div>
             </div>
