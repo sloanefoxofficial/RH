@@ -2448,10 +2448,15 @@ function HoldToTalk({ onText, onStart, size = 52 }) {
   const runSession = () => {
     if (!heldRef.current) return;
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent || "") || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
     let r;
     try { r = new SR(); } catch { setErr("Couldn't start the mic."); setListening(false); return; }
     voiceDebug("tap session created");
-    r.lang = __speechLang; r.interimResults = true; r.continuous = false;
+    // Android can keep one continuous session alive without a start chime.
+    // Restarting short sessions there caused a distracting chime every time
+    // the browser's recognition window ended. iPhone WebKit still needs the
+    // short-session chaining and recovery path below.
+    r.lang = __speechLang; r.interimResults = true; r.continuous = !isIOS;
     let sessionFinal = "", interimText = "";
     r.onresult = (e) => {
       // Rebuild this session's text from scratch each update — idempotent, so a
