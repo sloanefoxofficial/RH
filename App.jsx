@@ -7125,7 +7125,7 @@ function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, set
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 7 }}>
           <a href="tel:000" aria-label="Call Triple Zero 000" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3, padding: "9px 4px", borderRadius: 13, background: "#c94f4f", color: "#fff", textDecoration: "none", fontWeight: 900, fontSize: 12 }}><Phone size={17} />000</a>
           <a href="tel:131114" aria-label="Call Lifeline 13 11 14" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3, padding: "9px 4px", borderRadius: 13, background: "#fff", color: "#a53f42", border: "1px solid #efcccc", textDecoration: "none", fontWeight: 900, fontSize: 12 }}><Phone size={17} /><span>Lifeline</span><span>13 11 14</span></a>
-          <a href="tel:1300789978" aria-label="Call MensLine Australia" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3, padding: "9px 4px", borderRadius: 13, background: "#fff", color: "#a53f42", border: "1px solid #efcccc", textDecoration: "none", fontWeight: 900, fontSize: 12 }}><Phone size={17} />MensLine</a>
+          <a href="tel:1300789978" aria-label="Call MensLine Australia on 1300 78 99 78" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3, padding: "9px 4px", borderRadius: 13, background: "#fff", color: "#a53f42", border: "1px solid #efcccc", textDecoration: "none", fontWeight: 900, fontSize: 12 }}><Phone size={17} /><span>MensLine</span><span>1300 78 99 78</span></a>
         </div>
       </div>
 
