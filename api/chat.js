@@ -1,6 +1,6 @@
 // Shared AI guide endpoint for the whole app.
-// Gemini is the normal provider; Claude is the server-side fallback when Gemini
-// is unavailable, rate-limited, or otherwise fails before a stream starts.
+// Gemini is the normal provider; Claude is an opt-in server-side fallback when
+// Gemini is unavailable, rate-limited, or otherwise fails before a stream starts.
 import { GoogleGenAI } from "@google/genai";
 
 const MAX_IMAGES = 10;
@@ -10,6 +10,7 @@ const configuredGeminiModel = process.env.GEMINI_MODEL || "gemini-3.6-flash";
 // accidentally points at a Pro or experimental model.
 const DEFAULT_GEMINI_MODEL = /flash(?:-lite)?/i.test(configuredGeminiModel) ? configuredGeminiModel : "gemini-3.6-flash";
 const DEFAULT_CLAUDE_MODEL = process.env.ANTHROPIC_MODEL || "claude-sonnet-5";
+const CLAUDE_FALLBACK_ENABLED = process.env.CLAUDE_FALLBACK_ENABLED === "true";
 
 function parseBody(req) {
   try {
@@ -300,7 +301,7 @@ export default async function handler(req, res) {
       }
     }
 
-    if (!claudeKey) {
+    if (!claudeKey || !CLAUDE_FALLBACK_ENABLED) {
       const status = providerStatus(geminiError);
       if (status === 429) {
         res.setHeader("Retry-After", "2");
