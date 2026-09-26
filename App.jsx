@@ -2197,6 +2197,27 @@ function cleanTranscript(text) {
   return out.join(' ');
 }
 
+// Android SpeechRecognition can replay the end of the previous recognition
+// session when a long hold is restarted. Remove the largest suffix/prefix word
+// overlap before appending the new segment, while preserving genuinely repeated
+// words inside a sentence.
+function appendTranscriptWithoutOverlap(existing, next) {
+  const left = String(existing || '').trim();
+  const right = String(next || '').trim();
+  if (!left) return right;
+  if (!right) return left;
+  const a = left.split(/\s+/);
+  const b = right.split(/\s+/);
+  const normal = (word) => String(word || '').toLowerCase().replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '');
+  const max = Math.min(24, a.length, b.length);
+  for (let size = max; size >= 2; size -= 1) {
+    const suffix = a.slice(-size).map(normal).join(' ');
+    const prefix = b.slice(0, size).map(normal).join(' ');
+    if (suffix && suffix === prefix) return `${left} ${b.slice(size).join(' ')}`.trim();
+  }
+  return `${left} ${right}`.trim();
+}
+
 function splitForTts(text) {
   const clean = String(text || "").replace(/\s+/g, " ").trim();
   if (!clean) return [];
@@ -2479,7 +2500,7 @@ function HoldToTalk({ onText, onStart, size = 52 }) {
       // On iPhone, tapping to stop can arrive while the last phrase is still
       // interim. Keep it rather than silently submitting an empty message.
       const seg = (sessionFinal || interimText).trim();
-      if (seg) committedRef.current = (committedRef.current + " " + seg).trim();
+      if (seg) committedRef.current = appendTranscriptWithoutOverlap(committedRef.current, seg);
       sessionFinal = ""; interimText = "";
       if (heldRef.current) {
         // Chain short sessions while the button remains active, but yield to
