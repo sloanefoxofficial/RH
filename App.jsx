@@ -2156,31 +2156,22 @@ async function fetchTtsUrl(text, voiceId, languageCode = __speechLang) {
   const pending = __ttsPending.get(key);
   if (pending) return pending;
   const request = (async () => {
-    let lastError;
-    for (let attempt = 0; attempt < 3; attempt += 1) {
-      try {
-        const res = await fetch("/api/tts", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text, voiceId, languageCode: lang }),
-        });
-        if (!res.ok) throw new Error(`tts_failed_${res.status}`);
-        const blob = await res.blob();
-        const url = URL.createObjectURL(blob);
-        __ttsCache.set(key, url);
-        if (__ttsCache.size > __TTS_CACHE_MAX) {
-          const oldestKey = __ttsCache.keys().next().value;
-          const oldUrl = __ttsCache.get(oldestKey);
-          __ttsCache.delete(oldestKey);
-          try { URL.revokeObjectURL(oldUrl); } catch {}
-        }
-        return url;
-      } catch (error) {
-        lastError = error;
-        if (attempt < 2) await new Promise((resolve) => setTimeout(resolve, attempt === 0 ? 250 : 700));
-      }
+    const res = await fetch("/api/tts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text, voiceId, languageCode: lang }),
+    });
+    if (!res.ok) throw new Error("tts_failed");
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    __ttsCache.set(key, url);
+    if (__ttsCache.size > __TTS_CACHE_MAX) {
+      const oldestKey = __ttsCache.keys().next().value;
+      const oldUrl = __ttsCache.get(oldestKey);
+      __ttsCache.delete(oldestKey);
+      try { URL.revokeObjectURL(oldUrl); } catch {}
     }
-    throw lastError || new Error("tts_failed");
+    return url;
   })();
   __ttsPending.set(key, request);
   try { return await request; }
@@ -2192,7 +2183,7 @@ async function fetchTtsUrl(text, voiceId, languageCode = __speechLang) {
 const voiceDebug = (...args) => { try { if (import.meta.env && import.meta.env.DEV) console.debug("[RH voice]", ...args); } catch {} };
 
 function cleanTranscript(text) {
-  const raw = collapseRepeatedTranscript(String(text || '').replace(/\s+/g, ' ').trim());
+  const raw = String(text || '').replace(/\s+/g, ' ').trim();
   if (!raw) return '';
   const words = raw.split(' ');
   const out = [];
@@ -2204,50 +2195,6 @@ function cleanTranscript(text) {
   const half = Math.floor(out.length / 2);
   if (out.length > 3 && out.length % 2 === 0 && out.slice(0, half).join(' ').toLowerCase() === out.slice(half).join(' ').toLowerCase()) return out.slice(0, half).join(' ');
   return out.join(' ');
-}
-
-function collapseRepeatedTranscript(text) {
-  const words = String(text || '').trim().split(/\s+/).filter(Boolean);
-  if (words.length < 4) return words.join(' ');
-  const normal = (word) => String(word || '').toLowerCase().replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '');
-  let changed = true;
-  while (changed) {
-    changed = false;
-    for (let size = Math.min(14, Math.floor(words.length / 2)); size >= 2; size -= 1) {
-      let found = false;
-      for (let i = 0; i + size * 2 <= words.length; i += 1) {
-        const left = words.slice(i, i + size).map(normal).join(' ');
-        const right = words.slice(i + size, i + size * 2).map(normal).join(' ');
-        if (left && left === right) {
-          words.splice(i + size, size);
-          changed = true; found = true; break;
-        }
-      }
-      if (found) break;
-    }
-  }
-  return words.join(' ');
-}
-
-// Android SpeechRecognition can replay the end of the previous recognition
-// session when a long hold is restarted. Remove the largest suffix/prefix word
-// overlap before appending the new segment, while preserving genuinely repeated
-// words inside a sentence.
-function appendTranscriptWithoutOverlap(existing, next) {
-  const left = String(existing || '').trim();
-  const right = String(next || '').trim();
-  if (!left) return right;
-  if (!right) return left;
-  const a = left.split(/\s+/);
-  const b = right.split(/\s+/);
-  const normal = (word) => String(word || '').toLowerCase().replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '');
-  const max = Math.min(24, a.length, b.length);
-  for (let size = max; size >= 2; size -= 1) {
-    const suffix = a.slice(-size).map(normal).join(' ');
-    const prefix = b.slice(0, size).map(normal).join(' ');
-    if (suffix && suffix === prefix) return `${left} ${b.slice(size).join(' ')}`.trim();
-  }
-  return `${left} ${right}`.trim();
 }
 
 function splitForTts(text) {
@@ -2389,17 +2336,18 @@ function useVoice(voiceOn) {
       const first = chunks[0] || text;
       const firstVoiceWait = String(char.voiceId).startsWith("fish:") ? 7000 : 2200;
       try {
-        // Start the first short request immediately and keep only one sentence
-        // ahead warm. Firing every sentence at once created provider bursts,
-        // especially on Fish Audio, and made otherwise healthy clips fail or
-        // get cut off when several streams were active on Android.
-        const chunkPromises = chunks.map(() => null);
-        if (chunks.length) chunkPromises[0] = fetchTtsUrl(chunks[0], char.voiceId);
+        // Start the first short request immediately. The remaining response no
+        // longer blocks the first spoken sentence; the next chunk is warmed in
+        // parallel while this one is synthesising/playing.
+        // Warm every remaining chunk in parallel. Previously only the second
+        // chunk was prefetched, so longer replies could pause after sentence
+        // two while the following audio was still being generated.
+        const chunkPromises = chunks.map((chunk, i) => i === 0
+          ? fetchTtsUrl(chunk, char.voiceId)
+          : fetchTtsUrl(chunk, char.voiceId));
         const playChunk = async (index, urlPromise, retry = 0) => {
           if (stale()) return;
           const chunk = chunks[index] || text;
-          const fishVoice = String(char?.voiceId || "").startsWith("fish:");
-          const failVoice = () => { setSpeaking(false); if (onDone) onDone(); };
           let url;
           try {
             const audioPromise = urlPromise || fetchTtsUrl(chunk, char.voiceId);
@@ -2410,17 +2358,14 @@ function useVoice(voiceOn) {
               ]);
               if (firstResult.kind === "timeout") {
                 audioPromise.catch(() => {});
-                if (!stale()) fishVoice ? failVoice() : browserSpeak(text, char, onDone);
+                if (!stale()) browserSpeak(text, char, onDone);
                 return;
               }
               url = firstResult.value;
             } else url = await audioPromise;
           }
-          catch { if (!stale()) fishVoice ? failVoice() : browserSpeak(chunk, char, index + 1 < chunks.length ? () => playChunk(index + 1, chunkPromises[index + 1]) : onDone); return; }
+          catch { if (!stale()) browserSpeak(chunk, char, index + 1 < chunks.length ? () => playChunk(index + 1, chunkPromises[index + 1]) : onDone); return; }
           if (stale()) return;
-          if (index + 1 < chunks.length && !chunkPromises[index + 1]) {
-            chunkPromises[index + 1] = fetchTtsUrl(chunks[index + 1], char.voiceId);
-          }
           const audio = getTtsAudio() || new Audio();
           audioRef.current = audio;
           audio.onplay = () => { try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch {} __lastVoiceAt = Date.now(); setSpeaking(true); };
@@ -2430,7 +2375,6 @@ function useVoice(voiceOn) {
             if (index + 1 < chunks.length) {
               // Fetch the following chunk just-in-time; the prior prefetch makes
               // this normally a cache hit and keeps the transition quick.
-              if (!chunkPromises[index + 1]) chunkPromises[index + 1] = fetchTtsUrl(chunks[index + 1], char.voiceId);
               playChunk(index + 1, chunkPromises[index + 1]);
             } else {
               setSpeaking(false);
@@ -2447,8 +2391,7 @@ function useVoice(voiceOn) {
               setTimeout(() => { if (!stale()) playChunk(index, urlPromise, retry + 1); }, 120);
               return;
             }
-            if (fishVoice) failVoice();
-            else if (index + 1 < chunks.length) browserSpeak(chunk, char, () => playChunk(index + 1, chunkPromises[index + 1]));
+            if (index + 1 < chunks.length) browserSpeak(chunk, char, () => playChunk(index + 1, chunkPromises[index + 1]));
             else { setSpeaking(false); browserSpeak(chunk, char, onDone); }
           };
           try {
@@ -2468,7 +2411,7 @@ function useVoice(voiceOn) {
               await audio.play();
               return;
             }
-            catch { if (!stale()) fishVoice ? failVoice() : browserSpeak(chunk, char, index + 1 < chunks.length ? () => playChunk(index + 1, chunkPromises[index + 1]) : onDone); }
+            catch { if (!stale()) browserSpeak(chunk, char, index + 1 < chunks.length ? () => playChunk(index + 1, chunkPromises[index + 1]) : onDone); }
           }
         };
         await playChunk(0, chunkPromises[0]);
@@ -2538,7 +2481,7 @@ function HoldToTalk({ onText, onStart, size = 52 }) {
       // On iPhone, tapping to stop can arrive while the last phrase is still
       // interim. Keep it rather than silently submitting an empty message.
       const seg = (sessionFinal || interimText).trim();
-      if (seg) committedRef.current = appendTranscriptWithoutOverlap(committedRef.current, seg);
+      if (seg) committedRef.current = (committedRef.current + " " + seg).trim();
       sessionFinal = ""; interimText = "";
       if (heldRef.current) {
         // Chain short sessions while the button remains active, but yield to
@@ -4188,11 +4131,8 @@ function AdminWelcomeEditor() {
 /* ---------- user profile / control panel ---------- */
 const GUIDE_MAX_IMAGES = 10;
 const GUIDE_MAX_ORIGINAL_FILE_BYTES = 12 * 1024 * 1024;
-// Keep the encoded JSON comfortably below Vercel's request-body limit. A
-// 4 MB base64 payload becomes roughly 5.3 MB once JSON-encoded, which caused
-// Android document chats to fail before /api/chat could handle them.
-const GUIDE_MAX_TOTAL_DATA_BYTES = 2.5 * 1024 * 1024;
-const GUIDE_MAX_IMAGE_DIMENSION = 1200;
+const GUIDE_MAX_TOTAL_DATA_BYTES = 4 * 1024 * 1024;
+const GUIDE_MAX_IMAGE_DIMENSION = 1400;
 
 function dataUrlByteLength(dataUrl) {
   const comma = String(dataUrl || "").indexOf(",");
@@ -7497,7 +7437,7 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
         const dataUrl = await resizeImageForGuide(file);
         const bytes = dataUrlByteLength(dataUrl);
         if (totalBytes + bytes > GUIDE_MAX_TOTAL_DATA_BYTES) {
-          setErr("Those pages are too large together. Please send fewer pages or choose lower-resolution images (2.5 MB combined after resizing). ");
+          setErr("Those pages are too large together. Please send fewer pages or choose lower-resolution images (4 MB combined after resizing). ");
           break;
         }
         totalBytes += bytes;
@@ -7616,17 +7556,7 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
         const next = reviewKeys.find((k) => !(progress && progress[k]));
         if (next) saveProgress({ ...progress, [next]: true });
       }
-      const latestImageIndex = newHist.reduce((found, message, index) => {
-        return message.role === "user" && (Array.isArray(message.images) ? message.images.length : message.image) ? index : found;
-      }, -1);
       let msgs = newHist.slice(-20).map((m) => {
-        // Image payloads are only needed for the latest upload. Re-sending all
-        // historical base64 pages made long Android chats exceed Vercel's body
-        // limit even though the visible message history looked modest.
-        const absoluteIndex = newHist.indexOf(m);
-        if (absoluteIndex !== latestImageIndex && m.role === "user" && (Array.isArray(m.images) ? m.images.length : m.image)) {
-          return { role: m.role, content: m.content || "[Earlier document upload]" };
-        }
         if (m.role === "user" && (Array.isArray(m.images) ? m.images.length : m.image)) {
           const pages = Array.isArray(m.images) && m.images.length ? m.images : [{ dataUrl: m.image, mediaType: m.mediaType, page: 1 }];
           const blocks = [];
@@ -7654,8 +7584,9 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
       const queueStreamSentence = (sentence) => {
         const generation = streamSpeechGenerationRef.current;
         // Start Fish Audio while the previous sentence is speaking. speak()
-        // uses one-sentence lookahead internally. Keeping the concurrency there
-        // avoids several streamed sentences hammering a provider at once.
+        // will reuse this in-flight request from __ttsPending, removing the
+        // network gap between queued sentences.
+        if (voiceOn && char?.voiceId) prefetch(sentence, char);
         streamSpeechChainRef.current = streamSpeechChainRef.current
           .catch(() => {})
           .then(() => new Promise((resolve) => {
