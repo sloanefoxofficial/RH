@@ -18,14 +18,13 @@ import { createUserVault, unlockUserVault, encryptJson, decryptJson, isEncrypted
 
 
 const T = {
-  // Steady Ground: grounded ink, eucalyptus action colour, warm sand surfaces.
-  bgTop: "#f4f1ea", bgMid: "#f8f7f3", bgBot: "#efe8dc",
-  card: "#fffdf9", ink: "#172b2a", sub: "#5f706d",
-  line: "#d9e2dd", green: "#28785f", greenDk: "#15533f",
-  teal: "#3b8f82", tealDk: "#24675f",
-  blue: "#4c6f8f", blueDk: "#2e4d69",
-  soft: "0 6px 18px rgba(23,43,42,0.07), 0 1px 3px rgba(23,43,42,0.05)",
-  lift: "0 18px 42px rgba(23,43,42,0.13), 0 4px 12px rgba(23,43,42,0.07)",
+  bgTop: "#edf7f0", bgMid: "#f6faf7", bgBot: "#fff4ea",
+  card: "#ffffff", ink: "#244238", sub: "#6f7f77",
+  line: "#dcece2", green: "#4d9f68", greenDk: "#205f48",
+  teal: "#55ae9b", tealDk: "#2e8578",
+  blue: "#5b83b8", blueDk: "#345c8d",
+  soft: "0 8px 24px rgba(47,97,72,0.08), 0 2px 7px rgba(47,97,72,0.05)",
+  lift: "0 20px 50px rgba(47,97,72,0.15), 0 6px 16px rgba(47,97,72,0.09)",
 };
 
 // The router records the actual screen a person came from. Any top back
@@ -1488,13 +1487,13 @@ export default function App() {
   const signOut = async () => { const accountId = sessionRef.current?.user?.id; try { await supabase.auth.signOut(); } catch {} clearLocalDeviceCache(accountId); setIsAdmin(false); setScreen("hub"); };
 
   return (
-    <div className="rh-app-shell" style={{ minHeight: "100vh", color: T.ink,
-      background: `radial-gradient(90% 55% at 12% 0%, rgba(40,120,95,0.09), transparent 60%), radial-gradient(80% 50% at 92% 12%, rgba(196,151,91,0.09), transparent 55%), linear-gradient(180deg, ${T.bgTop} 0%, ${T.bgMid} 46%, ${T.bgBot} 100%)`,
+    <div style={{ minHeight: "100vh", color: T.ink,
+      background: `radial-gradient(90% 55% at 12% 0%, rgba(63,111,175,0.07), transparent 60%), radial-gradient(80% 50% at 92% 12%, rgba(47,158,147,0.07), transparent 55%), linear-gradient(180deg, ${T.bgTop} 0%, ${T.bgMid} 46%, ${T.bgBot} 100%)`,
       backgroundAttachment: "fixed",
       fontFamily: "'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif" }}>
       <StyleTag />
       {reduceMotion && <style>{`*{animation:none!important;transition:none!important}`}</style>}
-      <div className="rh-content-column" style={{ maxWidth: 560, margin: "0 auto", padding: "0 18px 132px", position: "relative", zIndex: 1, zoom: textScale }}>
+      <div style={{ maxWidth: 460, margin: "0 auto", padding: "0 16px 132px", position: "relative", zIndex: 1, zoom: textScale }}>
         {authEnabled && !authChecked ? (
           <div style={{ paddingTop: 120, textAlign: "center", color: T.sub }}>Loading…</div>
         ) : showAuth && !session ? (
