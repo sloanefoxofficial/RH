@@ -2342,12 +2342,13 @@ function useVoice(voiceOn) {
         // Warm every remaining chunk in parallel. Previously only the second
         // chunk was prefetched, so longer replies could pause after sentence
         // two while the following audio was still being generated.
-        const chunkPromises = chunks.map((chunk, i) => i === 0
-          ? fetchTtsUrl(chunk, char.voiceId)
-          : fetchTtsUrl(chunk, char.voiceId));
+        const chunkPromises = chunks.map(() => null);
+        if (chunks.length) chunkPromises[0] = fetchTtsUrl(chunks[0], char.voiceId);
         const playChunk = async (index, urlPromise, retry = 0) => {
           if (stale()) return;
           const chunk = chunks[index] || text;
+          const fishVoice = String(char?.voiceId || "").startsWith("fish:");
+          const failVoice = () => { setSpeaking(false); if (onDone) onDone(); };
           let url;
           try {
             const audioPromise = urlPromise || fetchTtsUrl(chunk, char.voiceId);
@@ -2358,14 +2359,17 @@ function useVoice(voiceOn) {
               ]);
               if (firstResult.kind === "timeout") {
                 audioPromise.catch(() => {});
-                if (!stale()) browserSpeak(text, char, onDone);
+                if (!stale()) fishVoice ? failVoice() : browserSpeak(text, char, onDone);
                 return;
               }
               url = firstResult.value;
             } else url = await audioPromise;
           }
-          catch { if (!stale()) browserSpeak(chunk, char, index + 1 < chunks.length ? () => playChunk(index + 1, chunkPromises[index + 1]) : onDone); return; }
+          catch { if (!stale()) fishVoice ? failVoice() : browserSpeak(chunk, char, index + 1 < chunks.length ? () => playChunk(index + 1, chunkPromises[index + 1]) : onDone); return; }
           if (stale()) return;
+          if (index + 1 < chunks.length && !chunkPromises[index + 1]) {
+            chunkPromises[index + 1] = fetchTtsUrl(chunks[index + 1], char.voiceId);
+          }
           const audio = getTtsAudio() || new Audio();
           audioRef.current = audio;
           audio.onplay = () => { try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch {} __lastVoiceAt = Date.now(); setSpeaking(true); };
@@ -2375,6 +2379,7 @@ function useVoice(voiceOn) {
             if (index + 1 < chunks.length) {
               // Fetch the following chunk just-in-time; the prior prefetch makes
               // this normally a cache hit and keeps the transition quick.
+              if (!chunkPromises[index + 1]) chunkPromises[index + 1] = fetchTtsUrl(chunks[index + 1], char.voiceId);
               playChunk(index + 1, chunkPromises[index + 1]);
             } else {
               setSpeaking(false);
@@ -2391,7 +2396,8 @@ function useVoice(voiceOn) {
               setTimeout(() => { if (!stale()) playChunk(index, urlPromise, retry + 1); }, 120);
               return;
             }
-            if (index + 1 < chunks.length) browserSpeak(chunk, char, () => playChunk(index + 1, chunkPromises[index + 1]));
+            if (fishVoice) failVoice();
+            else if (index + 1 < chunks.length) browserSpeak(chunk, char, () => playChunk(index + 1, chunkPromises[index + 1]));
             else { setSpeaking(false); browserSpeak(chunk, char, onDone); }
           };
           try {
@@ -2411,7 +2417,7 @@ function useVoice(voiceOn) {
               await audio.play();
               return;
             }
-            catch { if (!stale()) browserSpeak(chunk, char, index + 1 < chunks.length ? () => playChunk(index + 1, chunkPromises[index + 1]) : onDone); }
+            catch { if (!stale()) fishVoice ? failVoice() : browserSpeak(chunk, char, index + 1 < chunks.length ? () => playChunk(index + 1, chunkPromises[index + 1]) : onDone); }
           }
         };
         await playChunk(0, chunkPromises[0]);
@@ -2452,11 +2458,11 @@ function HoldToTalk({ onText, onStart, size = 52 }) {
     let r;
     try { r = new SR(); } catch { setErr("Couldn't start the mic."); setListening(false); return; }
     voiceDebug("tap session created");
-    // Android can keep one continuous session alive without a start chime.
-    // Restarting short sessions there caused a distracting chime every time
-    // the browser's recognition window ended. iPhone WebKit still needs the
-    // short-session chaining and recovery path below.
-    r.lang = __speechLang; r.interimResults = true; r.continuous = !isIOS;
+    // Android Chrome can replay finalized results when a continuous session is
+    // auto-restarted. One recognition session per tap is more reliable than
+    // trying to keep the microphone alive indefinitely; onend submits the text
+    // that was captured so a long pause cannot create duplicate paragraphs.
+    r.lang = __speechLang; r.interimResults = true; r.continuous = false;
     let sessionFinal = "", interimText = "";
     r.onresult = (e) => {
       // Rebuild this session's text from scratch each update — idempotent, so a
@@ -2483,12 +2489,14 @@ function HoldToTalk({ onText, onStart, size = 52 }) {
       const seg = (sessionFinal || interimText).trim();
       if (seg) committedRef.current = (committedRef.current + " " + seg).trim();
       sessionFinal = ""; interimText = "";
-      if (heldRef.current) {
+      if (heldRef.current && isIOS) {
         // Chain short sessions while the button remains active, but yield to
         // WebKit briefly so it can release the previous recognition instance.
         setTimeout(() => { if (heldRef.current && !recRef.current) runSession(); }, 60);
         return;
       }
+      heldRef.current = false;
+      clearInterval(watchdog.current);
       setListening(false);
       const t = cleanTranscript(committedRef.current);
       if (t && !submittedRef.current) { submittedRef.current = true; voiceDebug("tap transcript submitted", t); onText(t); }
