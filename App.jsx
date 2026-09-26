@@ -2338,15 +2338,12 @@ function useVoice(voiceOn) {
       const first = chunks[0] || text;
       const firstVoiceWait = String(char.voiceId).startsWith("fish:") ? 7000 : 2200;
       try {
-        // Start the first short request immediately. The remaining response no
-        // longer blocks the first spoken sentence; the next chunk is warmed in
-        // parallel while this one is synthesising/playing.
-        // Warm every remaining chunk in parallel. Previously only the second
-        // chunk was prefetched, so longer replies could pause after sentence
-        // two while the following audio was still being generated.
-        const chunkPromises = chunks.map((chunk, i) => i === 0
-          ? fetchTtsUrl(chunk, char.voiceId)
-          : fetchTtsUrl(chunk, char.voiceId));
+        // Start the first short request immediately and keep only one sentence
+        // ahead warm. Firing every sentence at once created provider bursts,
+        // especially on Fish Audio, and made otherwise healthy clips fail or
+        // get cut off when several streams were active on Android.
+        const chunkPromises = chunks.map(() => null);
+        if (chunks.length) chunkPromises[0] = fetchTtsUrl(chunks[0], char.voiceId);
         const playChunk = async (index, urlPromise, retry = 0) => {
           if (stale()) return;
           const chunk = chunks[index] || text;
@@ -2377,6 +2374,7 @@ function useVoice(voiceOn) {
             if (index + 1 < chunks.length) {
               // Fetch the following chunk just-in-time; the prior prefetch makes
               // this normally a cache hit and keeps the transition quick.
+              if (!chunkPromises[index + 1]) chunkPromises[index + 1] = fetchTtsUrl(chunks[index + 1], char.voiceId);
               playChunk(index + 1, chunkPromises[index + 1]);
             } else {
               setSpeaking(false);
@@ -4133,8 +4131,11 @@ function AdminWelcomeEditor() {
 /* ---------- user profile / control panel ---------- */
 const GUIDE_MAX_IMAGES = 10;
 const GUIDE_MAX_ORIGINAL_FILE_BYTES = 12 * 1024 * 1024;
-const GUIDE_MAX_TOTAL_DATA_BYTES = 4 * 1024 * 1024;
-const GUIDE_MAX_IMAGE_DIMENSION = 1400;
+// Keep the encoded JSON comfortably below Vercel's request-body limit. A
+// 4 MB base64 payload becomes roughly 5.3 MB once JSON-encoded, which caused
+// Android document chats to fail before /api/chat could handle them.
+const GUIDE_MAX_TOTAL_DATA_BYTES = 2.5 * 1024 * 1024;
+const GUIDE_MAX_IMAGE_DIMENSION = 1200;
 
 function dataUrlByteLength(dataUrl) {
   const comma = String(dataUrl || "").indexOf(",");
@@ -7439,7 +7440,7 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
         const dataUrl = await resizeImageForGuide(file);
         const bytes = dataUrlByteLength(dataUrl);
         if (totalBytes + bytes > GUIDE_MAX_TOTAL_DATA_BYTES) {
-          setErr("Those pages are too large together. Please send fewer pages or choose lower-resolution images (4 MB combined after resizing). ");
+          setErr("Those pages are too large together. Please send fewer pages or choose lower-resolution images (2.5 MB combined after resizing). ");
           break;
         }
         totalBytes += bytes;
@@ -7558,7 +7559,17 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
         const next = reviewKeys.find((k) => !(progress && progress[k]));
         if (next) saveProgress({ ...progress, [next]: true });
       }
+      const latestImageIndex = newHist.reduce((found, message, index) => {
+        return message.role === "user" && (Array.isArray(message.images) ? message.images.length : message.image) ? index : found;
+      }, -1);
       let msgs = newHist.slice(-20).map((m) => {
+        // Image payloads are only needed for the latest upload. Re-sending all
+        // historical base64 pages made long Android chats exceed Vercel's body
+        // limit even though the visible message history looked modest.
+        const absoluteIndex = newHist.indexOf(m);
+        if (absoluteIndex !== latestImageIndex && m.role === "user" && (Array.isArray(m.images) ? m.images.length : m.image)) {
+          return { role: m.role, content: m.content || "[Earlier document upload]" };
+        }
         if (m.role === "user" && (Array.isArray(m.images) ? m.images.length : m.image)) {
           const pages = Array.isArray(m.images) && m.images.length ? m.images : [{ dataUrl: m.image, mediaType: m.mediaType, page: 1 }];
           const blocks = [];
@@ -7586,9 +7597,8 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
       const queueStreamSentence = (sentence) => {
         const generation = streamSpeechGenerationRef.current;
         // Start Fish Audio while the previous sentence is speaking. speak()
-        // will reuse this in-flight request from __ttsPending, removing the
-        // network gap between queued sentences.
-        if (voiceOn && char?.voiceId) prefetch(sentence, char);
+        // uses one-sentence lookahead internally. Keeping the concurrency there
+        // avoids several streamed sentences hammering a provider at once.
         streamSpeechChainRef.current = streamSpeechChainRef.current
           .catch(() => {})
           .then(() => new Promise((resolve) => {
