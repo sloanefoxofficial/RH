@@ -1,24 +1,25 @@
 :root {
-  color-scheme: light;
-  --rh-ink: #172b2a;
-  --rh-muted: #5f706d;
-  --rh-green: #28785f;
-  --rh-green-dark: #15533f;
-  --rh-sand: #f4f1ea;
-  --rh-surface: #fffdf9;
-  --rh-line: #d9e2dd;
-  --rh-coral: #b94a4a;
-  --rh-focus: #1b7f68;
+  color-scheme: dark;
+  --rh-ink: #f3efe5;
+  --rh-muted: #aab9b3;
+  --rh-green: #75d7a4;
+  --rh-green-dark: #a3efc3;
+  --rh-surface: #172624;
+  --rh-surface-2: #20332f;
+  --rh-line: #2d4540;
+  --rh-coral: #ff8b72;
+  --rh-amber: #f4c66d;
+  --rh-focus: #b8ffcf;
   font-family: Inter, "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   font-synthesis: none;
 }
 
 * { box-sizing: border-box; }
 html, body, #root { margin: 0; min-height: 100%; }
-html { background: var(--rh-sand); }
+html { background: #0b1514; }
 body {
   color: var(--rh-ink);
-  background: var(--rh-sand);
+  background: #0b1514;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
@@ -26,13 +27,11 @@ button, input, textarea, select { font: inherit; }
 button, a { -webkit-tap-highlight-color: transparent; }
 button { color: inherit; }
 a { color: var(--rh-green-dark); }
-
-::selection { background: rgba(40, 120, 95, 0.18); color: var(--rh-ink); }
+::selection { background: rgba(117, 215, 164, 0.28); color: #fff; }
 
 .rh-app-shell { isolation: isolate; }
 .rh-content-column { width: 100%; }
 
-/* Quiet, consistent interaction states across the app. */
 .rh-app-shell button,
 .rh-app-shell a,
 .rh-app-shell input,
@@ -42,35 +41,33 @@ a { color: var(--rh-green-dark); }
     color 160ms ease, transform 160ms ease;
 }
 .rh-app-shell button:active:not(:disabled) { transform: translateY(1px); }
-.rh-app-shell button:disabled { cursor: not-allowed; opacity: 0.62; }
+.rh-app-shell button:disabled { cursor: not-allowed; opacity: 0.58; }
 .rh-app-shell :focus { outline: none; }
 .rh-app-shell :focus-visible {
-  outline: 3px solid rgba(27, 127, 104, 0.42);
+  outline: 3px solid rgba(184, 255, 207, 0.76);
   outline-offset: 3px;
 }
 .rh-app-shell input:focus-visible,
 .rh-app-shell textarea:focus-visible,
 .rh-app-shell select:focus-visible {
   border-color: var(--rh-focus) !important;
-  box-shadow: 0 0 0 4px rgba(27, 127, 104, 0.12) !important;
+  box-shadow: 0 0 0 4px rgba(117, 215, 164, 0.17) !important;
 }
-
-/* Shared utility hooks for redesigned sections and future components. */
 .rh-surface {
   background: var(--rh-surface);
-  border: 1px solid rgba(217, 226, 221, 0.9);
-  border-radius: 18px;
-  box-shadow: 0 6px 18px rgba(23, 43, 42, 0.07);
+  border: 1px solid rgba(45, 69, 64, 0.95);
+  border-radius: 12px;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
 }
 .rh-eyebrow {
-  color: var(--rh-green-dark);
+  color: var(--rh-green);
   font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.12em;
+  font-weight: 900;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
 }
 
-/* Game view: go truly fullscreen when a phone is held in landscape. */
+/* Keep the campfire/game surface deliberately separate from the app chrome. */
 .rh-game-wrap { position: relative; }
 @media (orientation: landscape) and (max-height: 600px) {
   .rh-game-wrap {

@@ -18,14 +18,15 @@ import { createUserVault, unlockUserVault, encryptJson, decryptJson, isEncrypted
 
 
 const T = {
-  // Steady Ground: grounded ink, eucalyptus action colour, warm sand surfaces.
-  bgTop: "#f4f1ea", bgMid: "#f8f7f3", bgBot: "#efe8dc",
-  card: "#fffdf9", ink: "#172b2a", sub: "#5f706d",
-  line: "#d9e2dd", green: "#28785f", greenDk: "#15533f",
-  teal: "#3b8f82", tealDk: "#24675f",
-  blue: "#4c6f8f", blueDk: "#2e4d69",
-  soft: "0 6px 18px rgba(23,43,42,0.07), 0 1px 3px rgba(23,43,42,0.05)",
-  lift: "0 18px 42px rgba(23,43,42,0.13), 0 4px 12px rgba(23,43,42,0.07)",
+  // Dark editorial support-room system: charcoal depth, bone text, electric
+  // eucalyptus actions, and amber/coral reserved for safety signals.
+  bgTop: "#0b1514", bgMid: "#101d1b", bgBot: "#17130f",
+  card: "#172624", ink: "#f3efe5", sub: "#aab9b3",
+  line: "#2d4540", green: "#75d7a4", greenDk: "#a3efc3",
+  teal: "#5dc6b5", tealDk: "#8be5d5",
+  blue: "#86afd2", blueDk: "#a8c9e6",
+  soft: "0 10px 24px rgba(0,0,0,0.22), 0 1px 2px rgba(0,0,0,0.35)",
+  lift: "0 22px 54px rgba(0,0,0,0.35), 0 5px 16px rgba(0,0,0,0.28)",
 };
 
 // The router records the actual screen a person came from. Any top back
