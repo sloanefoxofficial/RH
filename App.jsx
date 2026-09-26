@@ -2156,22 +2156,31 @@ async function fetchTtsUrl(text, voiceId, languageCode = __speechLang) {
   const pending = __ttsPending.get(key);
   if (pending) return pending;
   const request = (async () => {
-    const res = await fetch("/api/tts", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text, voiceId, languageCode: lang }),
-    });
-    if (!res.ok) throw new Error("tts_failed");
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    __ttsCache.set(key, url);
-    if (__ttsCache.size > __TTS_CACHE_MAX) {
-      const oldestKey = __ttsCache.keys().next().value;
-      const oldUrl = __ttsCache.get(oldestKey);
-      __ttsCache.delete(oldestKey);
-      try { URL.revokeObjectURL(oldUrl); } catch {}
+    let lastError;
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      try {
+        const res = await fetch("/api/tts", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text, voiceId, languageCode: lang }),
+        });
+        if (!res.ok) throw new Error(`tts_failed_${res.status}`);
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        __ttsCache.set(key, url);
+        if (__ttsCache.size > __TTS_CACHE_MAX) {
+          const oldestKey = __ttsCache.keys().next().value;
+          const oldUrl = __ttsCache.get(oldestKey);
+          __ttsCache.delete(oldestKey);
+          try { URL.revokeObjectURL(oldUrl); } catch {}
+        }
+        return url;
+      } catch (error) {
+        lastError = error;
+        if (attempt < 2) await new Promise((resolve) => setTimeout(resolve, attempt === 0 ? 250 : 700));
+      }
     }
-    return url;
+    throw lastError || new Error("tts_failed");
   })();
   __ttsPending.set(key, request);
   try { return await request; }
@@ -2183,7 +2192,7 @@ async function fetchTtsUrl(text, voiceId, languageCode = __speechLang) {
 const voiceDebug = (...args) => { try { if (import.meta.env && import.meta.env.DEV) console.debug("[RH voice]", ...args); } catch {} };
 
 function cleanTranscript(text) {
-  const raw = String(text || '').replace(/\s+/g, ' ').trim();
+  const raw = collapseRepeatedTranscript(String(text || '').replace(/\s+/g, ' ').trim());
   if (!raw) return '';
   const words = raw.split(' ');
   const out = [];
@@ -2195,6 +2204,29 @@ function cleanTranscript(text) {
   const half = Math.floor(out.length / 2);
   if (out.length > 3 && out.length % 2 === 0 && out.slice(0, half).join(' ').toLowerCase() === out.slice(half).join(' ').toLowerCase()) return out.slice(0, half).join(' ');
   return out.join(' ');
+}
+
+function collapseRepeatedTranscript(text) {
+  const words = String(text || '').trim().split(/\s+/).filter(Boolean);
+  if (words.length < 4) return words.join(' ');
+  const normal = (word) => String(word || '').toLowerCase().replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '');
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (let size = Math.min(14, Math.floor(words.length / 2)); size >= 2; size -= 1) {
+      let found = false;
+      for (let i = 0; i + size * 2 <= words.length; i += 1) {
+        const left = words.slice(i, i + size).map(normal).join(' ');
+        const right = words.slice(i + size, i + size * 2).map(normal).join(' ');
+        if (left && left === right) {
+          words.splice(i + size, size);
+          changed = true; found = true; break;
+        }
+      }
+      if (found) break;
+    }
+  }
+  return words.join(' ');
 }
 
 // Android SpeechRecognition can replay the end of the previous recognition
@@ -2366,6 +2398,8 @@ function useVoice(voiceOn) {
         const playChunk = async (index, urlPromise, retry = 0) => {
           if (stale()) return;
           const chunk = chunks[index] || text;
+          const fishVoice = String(char?.voiceId || "").startsWith("fish:");
+          const failVoice = () => { setSpeaking(false); if (onDone) onDone(); };
           let url;
           try {
             const audioPromise = urlPromise || fetchTtsUrl(chunk, char.voiceId);
@@ -2376,14 +2410,17 @@ function useVoice(voiceOn) {
               ]);
               if (firstResult.kind === "timeout") {
                 audioPromise.catch(() => {});
-                if (!stale()) browserSpeak(text, char, onDone);
+                if (!stale()) fishVoice ? failVoice() : browserSpeak(text, char, onDone);
                 return;
               }
               url = firstResult.value;
             } else url = await audioPromise;
           }
-          catch { if (!stale()) browserSpeak(chunk, char, index + 1 < chunks.length ? () => playChunk(index + 1, chunkPromises[index + 1]) : onDone); return; }
+          catch { if (!stale()) fishVoice ? failVoice() : browserSpeak(chunk, char, index + 1 < chunks.length ? () => playChunk(index + 1, chunkPromises[index + 1]) : onDone); return; }
           if (stale()) return;
+          if (index + 1 < chunks.length && !chunkPromises[index + 1]) {
+            chunkPromises[index + 1] = fetchTtsUrl(chunks[index + 1], char.voiceId);
+          }
           const audio = getTtsAudio() || new Audio();
           audioRef.current = audio;
           audio.onplay = () => { try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch {} __lastVoiceAt = Date.now(); setSpeaking(true); };
@@ -2410,7 +2447,8 @@ function useVoice(voiceOn) {
               setTimeout(() => { if (!stale()) playChunk(index, urlPromise, retry + 1); }, 120);
               return;
             }
-            if (index + 1 < chunks.length) browserSpeak(chunk, char, () => playChunk(index + 1, chunkPromises[index + 1]));
+            if (fishVoice) failVoice();
+            else if (index + 1 < chunks.length) browserSpeak(chunk, char, () => playChunk(index + 1, chunkPromises[index + 1]));
             else { setSpeaking(false); browserSpeak(chunk, char, onDone); }
           };
           try {
@@ -2430,7 +2468,7 @@ function useVoice(voiceOn) {
               await audio.play();
               return;
             }
-            catch { if (!stale()) browserSpeak(chunk, char, index + 1 < chunks.length ? () => playChunk(index + 1, chunkPromises[index + 1]) : onDone); }
+            catch { if (!stale()) fishVoice ? failVoice() : browserSpeak(chunk, char, index + 1 < chunks.length ? () => playChunk(index + 1, chunkPromises[index + 1]) : onDone); }
           }
         };
         await playChunk(0, chunkPromises[0]);
