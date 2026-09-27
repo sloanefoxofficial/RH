@@ -7164,174 +7164,54 @@ function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, set
         </div>
       )}
 
-      {/* welcome band */}
-      <div style={{ background: "linear-gradient(135deg, #e8f6ec 0%, #f7fcf8 56%, #fff1e4 100%)", borderRadius: 24, padding: "20px 18px", boxShadow: T.soft, marginTop: 8, border: "1px solid rgba(77,159,104,0.16)", position: "relative", overflow: "hidden" }}>
-        <div style={{ position: "absolute", right: -24, top: -30, width: 130, height: 130, borderRadius: "50%", background: "rgba(255,255,255,0.48)" }} />
-        <div style={{ position: "relative" }}>
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,0.72)", borderRadius: 999, padding: "5px 10px", color: T.greenDk, fontSize: 11, fontWeight: 800, letterSpacing: 0.3, marginBottom: 10 }}><Sparkles size={13} /> Built not bought</div>
-          <div style={{ fontSize: 23, fontWeight: 900, lineHeight: 1.12, marginBottom: 5, color: T.greenDk }}>Men’s mental health &amp; suicide prevention</div>
-          <div style={{ fontSize: 14, color: T.greenDk, fontWeight: 800, marginBottom: 10 }}>You never have to walk it alone{nm ? `, ${nm}` : ""}.</div>
+      {/* A calm entry point: put the most likely decisions before the full catalogue. */}
+      <section aria-labelledby="hub-start-title" style={{ background: "linear-gradient(135deg, #e8f6ec 0%, #f8fcf8 58%, #fff5e8 100%)", borderRadius: 24, padding: "21px 18px", boxShadow: T.soft, marginTop: 8, border: "1px solid rgba(77,159,104,0.16)", position: "relative", overflow: "hidden" }}>
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 6, color: T.greenDk, fontSize: 11, fontWeight: 900, letterSpacing: 0.7, textTransform: "uppercase", marginBottom: 9 }}><Sparkles size={14} /> You’re in the right place</div>
+        <h1 id="hub-start-title" style={{ fontSize: 25, fontWeight: 900, lineHeight: 1.12, margin: "0 0 6px", color: T.greenDk }}>What would help right now{nm ? `, ${nm}` : ""}?</h1>
+        <p style={{ fontSize: 14, color: T.sub, lineHeight: 1.45, margin: 0 }}>You don’t need to work it out alone. Start with one small choice.</p>
+        <div style={{ display: "grid", gap: 8, marginTop: 15 }}>
+          <button onClick={() => onOpenChat("juan")} aria-label="Talk it through with Nicolas" style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", minHeight: 48, border: "none", borderRadius: 14, padding: "10px 13px", background: T.greenDk, color: "#fff", fontWeight: 800, fontSize: 14, textAlign: "left", cursor: "pointer" }}><MessageCircle size={19} /> Talk it through with Nicolas <ChevronRight size={17} style={{ marginLeft: "auto" }} /></button>
+          <button onClick={onOpenToolkit} aria-label="Open the Toolkit to help settle and feel safer" style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", minHeight: 48, border: "1px solid rgba(46,133,120,0.22)", borderRadius: 14, padding: "10px 13px", background: "rgba(255,255,255,0.78)", color: T.ink, fontWeight: 800, fontSize: 14, textAlign: "left", cursor: "pointer" }}><Wrench size={19} color="#28736f" /> Help me settle <ChevronRight size={17} color={T.sub} style={{ marginLeft: "auto" }} /></button>
+          <button onClick={onOpenSafety} aria-label="Open Safety First for urgent human support" style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", minHeight: 48, border: "1px solid #efcccc", borderRadius: 14, padding: "10px 13px", background: "#fff7f5", color: "#963c43", fontWeight: 800, fontSize: 14, textAlign: "left", cursor: "pointer" }}><LifeBuoy size={19} /> Safety First <span style={{ fontSize: 12, fontWeight: 600, marginLeft: "auto" }}>urgent support</span><ChevronRight size={17} /></button>
         </div>
-        <div style={{ position: "relative", fontSize: 13.5, color: T.sub, lineHeight: 1.55 }}>
-          A warm place to get support, one step at a time. Not sure who to talk to?
-          <br />• <strong style={{ color: T.ink }}>Nicolas</strong> — an AI mate who gets it, for anything at all
-          <br />• <strong style={{ color: T.ink }}>Carlos</strong> — calming, clinical tools for stress &amp; low mood
-          <br />• <strong style={{ color: T.ink }}>Mick</strong> — housing, bills &amp; practical life
-          <br />• <strong style={{ color: T.ink }}>Lila</strong> — family &amp; relationships
-          <br />• <strong style={{ color: T.ink }}>Dr Robalino</strong> — Fairfield Medical Centre, telehealth or in-person GP appointments
-          <br />• <strong style={{ color: T.ink }}>Juan</strong> — The Resilience Hub’s free 8-week, in-person support program
-          <br />Or just say hi to Rex below — he'll point you the right way.
-        </div>
+      </section>
+
+      <SectionTitle>Your next step</SectionTitle>
+      <div className="rh-hub-card-stack" style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+        {card(onOpenGuides, "#f4e3d9", "#b56739", Users, "Choose a guide", "Nicolas, Carlos, Mick or Lila — chat any time", undefined, { background: "linear-gradient(135deg, #fff4eb 0%, #fffaf6 100%)", border: "1px solid rgba(201,128,63,0.20)", iconBackground: "linear-gradient(145deg, #e8b894, #fff3e7)", iconColor: "#b56739", arrowColor: "#b56739", subColor: "#7f6b60" })}
+        {card(onOpenProgram, "#e7eefb", "#3f6faf", CalendarCheck, plan ? "Continue your 8-week plan" : "Try the 8-week plan", plan ? "Your progress and next small step" : "Optional structure if it helps", undefined, { background: "linear-gradient(135deg, #eaf1ff 0%, #f9fbff 100%)", border: "1px solid rgba(63,111,175,0.20)", iconBackground: "linear-gradient(145deg, #8eaddc, #eef4ff)", iconColor: "#345c8d", arrowColor: "#4e71a6", subColor: "#64758c" })}
+        {card(onOpenJournal, "#f7f0dc", "#9a741a", BookOpen, "Private journal", journalCount ? `${journalCount} saved ${journalCount === 1 ? "entry" : "entries"}` : "A quiet place for a thought", undefined, { background: "linear-gradient(135deg, #fffdf7 0%, #f7f0dc 100%)", border: "1px solid rgba(201,162,39,0.20)", iconBackground: "linear-gradient(145deg, #e9d783, #fffaf0)", iconColor: "#9a741a", arrowColor: "#9a741a" })}
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 10 }}>
-        <a href="https://healthengine.com.au/v2/appointment/book/41615#specialty-selection" target="_blank" rel="noopener noreferrer" aria-label="Book an appointment with Dr Carlos Robalino at Fairfield Medical Centre" style={{ width: "100%", boxSizing: "border-box", background: "linear-gradient(135deg, #eef4ff 0%, #ffffff 58%, #eaf7f2 100%)", border: "1px solid rgba(63,111,175,0.20)", borderRadius: 21, padding: 15, boxShadow: T.soft, cursor: "pointer", display: "flex", alignItems: "center", gap: 13, textAlign: "left", textDecoration: "none", color: T.ink }}>
-          <div style={{ width: 50, height: 50, borderRadius: 16, background: "linear-gradient(145deg, #8eaddc, #e8f4ff)", display: "grid", placeItems: "center", flexShrink: 0 }}><LifeBuoy size={24} color="#345c8d" /></div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ color: "#345c8d", fontSize: 10, fontWeight: 900, letterSpacing: 0.9, marginBottom: 2 }}>FAIRFIELD MEDICAL CENTRE</div>
-            <div style={{ fontWeight: 800, fontSize: 16 }}>Dr Carlos Robalino — Your GP</div>
-            <div style={{ fontSize: 13, color: T.sub, lineHeight: 1.42, marginTop: 3 }}>In-person appointments or a direct phone consultation at Fairfield Medical Centre.</div>
-            <div style={{ fontSize: 11.5, color: T.sub, lineHeight: 1.4, marginTop: 6 }}>42 Court Road, Fairfield NSW 2165 · (02) 9724 2662</div>
-          </div>
-          <ExternalLink size={19} color="#345c8d" style={{ flexShrink: 0 }} />
-        </a>
-        <a href="https://13sick.com.au/?utm_source=gemini&hl=en-AU" target="_blank" rel="noopener noreferrer" aria-label="Open 13SICK Telehealth" style={{ width: "100%", boxSizing: "border-box", background: "linear-gradient(135deg, #e9f7f6 0%, #ffffff 58%, #eef4ff 100%)", border: "1px solid rgba(46,133,120,0.20)", borderRadius: 21, padding: 15, boxShadow: T.soft, cursor: "pointer", display: "flex", alignItems: "center", gap: 13, textAlign: "left", textDecoration: "none", color: T.ink }}>
-          <div style={{ width: 50, height: 50, borderRadius: 16, background: "linear-gradient(145deg, #63b5a4, #e2f5f1)", display: "grid", placeItems: "center", flexShrink: 0 }}><Wifi size={24} color="#28736f" /></div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ color: "#28736f", fontSize: 10, fontWeight: 900, letterSpacing: 0.9, marginBottom: 2 }}>TELEHEALTH</div>
-            <div style={{ fontWeight: 800, fontSize: 16 }}>13SICK — Doctor to your door or screen</div>
-            <div style={{ fontSize: 13, color: T.sub, lineHeight: 1.42, marginTop: 3 }}>Access medical care from home through 13SICK’s telehealth service.</div>
-          </div>
-          <ExternalLink size={19} color="#28736f" style={{ flexShrink: 0 }} />
-        </a>
-        <a href="https://hellodoc.com.au/contact-us/?gad_source=1&gad_campaignid=22108310618&gbraid=0AAAAApth259s3VsZGGGtF2KCkjN6JYcjX&gclid=Cj0KCQjw5bjVBhCiARIsAJzMVnSaMZne_9uFcstB6fS0ngezgD8M3m7gKZn8GxwyHs2Qk4YRH7T75G4aAj9lEALw_wcB" target="_blank" rel="noopener noreferrer" aria-label="Open HelloDoc" style={{ width: "100%", boxSizing: "border-box", background: "linear-gradient(135deg, #f0edff 0%, #ffffff 58%, #eaf7ff 100%)", border: "1px solid rgba(92,82,170,0.20)", borderRadius: 21, padding: 15, boxShadow: T.soft, cursor: "pointer", display: "flex", alignItems: "center", gap: 13, textAlign: "left", textDecoration: "none", color: T.ink }}>
-          <div style={{ width: 50, height: 50, borderRadius: 16, background: "linear-gradient(145deg, #9a91df, #e7e4ff)", display: "grid", placeItems: "center", flexShrink: 0 }}><Heart size={24} color="#5c52aa" /></div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ color: "#5c52aa", fontSize: 10, fontWeight: 900, letterSpacing: 0.9, marginBottom: 2 }}>ONLINE HEALTHCARE</div>
-            <div style={{ fontWeight: 800, fontSize: 16 }}>HelloDoc</div>
-            <div style={{ fontSize: 13, color: T.sub, lineHeight: 1.42, marginTop: 3 }}>Connect with HelloDoc for convenient online healthcare information and support.</div>
-          </div>
-          <ExternalLink size={19} color="#5c52aa" style={{ flexShrink: 0 }} />
-        </a>
-        <button onClick={onOpenProgramInfo} aria-label="Open Juan’s Resilience Hub 8-week support program" style={{ width: "100%", background: "linear-gradient(135deg, #e8f6ec 0%, #ffffff 58%, #fff4e5 100%)", border: "1px solid rgba(77,159,104,0.20)", borderRadius: 21, padding: 15, boxShadow: T.soft, cursor: "pointer", display: "flex", alignItems: "center", gap: 13, textAlign: "left" }}>
-          <div style={{ width: 50, height: 50, borderRadius: 16, background: "linear-gradient(145deg, #75b98a, #e3f5e8)", display: "grid", placeItems: "center", flexShrink: 0 }}><Users size={24} color={T.greenDk} /></div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ color: T.greenDk, fontSize: 10, fontWeight: 900, letterSpacing: 0.9, marginBottom: 2 }}>THE RESILIENCE HUB · WESTERN SYDNEY</div>
-            <div style={{ fontWeight: 800, fontSize: 16 }}>Juan — 8-Week Support Program</div>
-            <div style={{ fontSize: 13, color: T.sub, lineHeight: 1.42, marginTop: 3 }}>Free, in-person, practical support for men, with lived experience and round-the-clock crisis response.</div>
-            <div style={{ fontSize: 11.5, color: T.sub, lineHeight: 1.4, marginTop: 6 }}>Serving Fairfield, Liverpool, Western Sydney and beyond · 0489 059 833</div>
-          </div>
-          <ChevronRight size={20} color={T.greenDk} />
-        </button>
-        <a href="https://axiompsych.com.au/carlos-camacho/" target="_blank" rel="noopener noreferrer" aria-label="Open Carlos Camacho’s psychologist profile" style={{ width: "100%", boxSizing: "border-box", background: "linear-gradient(135deg, #fff4eb 0%, #ffffff 58%, #f2e4dc 100%)", border: "1px solid rgba(201,128,63,0.22)", borderRadius: 21, padding: 15, boxShadow: T.soft, cursor: "pointer", display: "flex", alignItems: "center", gap: 13, textAlign: "left", textDecoration: "none", color: T.ink }}>
-          <div style={{ width: 50, height: 50, borderRadius: 16, background: "linear-gradient(145deg, #e8b894, #fff3e7)", display: "grid", placeItems: "center", flexShrink: 0 }}><Heart size={24} color="#b56739" /></div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ color: "#b56739", fontSize: 10, fontWeight: 900, letterSpacing: 0.9, marginBottom: 2 }}>AXIOM PSYCHOLOGY</div>
-            <div style={{ fontWeight: 800, fontSize: 16 }}>Carlos Camacho — Registered Psychologist</div>
-            <div style={{ fontSize: 13, color: T.sub, lineHeight: 1.42, marginTop: 3 }}>Professional psychological support, guidance, and a calm place to work through what feels heavy.</div>
-          </div>
-          <ExternalLink size={19} color="#b56739" style={{ flexShrink: 0 }} />
-        </a>
+      <SectionTitle>Connect from home</SectionTitle>
+      <div className="rh-hub-card-stack" style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+        {card(onOpenCampfire, "#fff0d9", "#a9511f", Flame, "Virtual Campfire", "Sit, talk straight, or simply not be alone", undefined, { background: "linear-gradient(135deg, #fff4e5 0%, #fffaf3 100%)", border: "1px solid rgba(180,105,53,0.20)", iconBackground: "radial-gradient(circle at 45% 35%, #ffc36e, #e8703a 62%, #a9511f)", iconColor: "#fff7e8", arrowColor: "#a9511f" })}
+        {card(onOpenVirtualSupport, "#e8f4f3", "#28736f", Wifi, "Virtual Support from Home", "Talk, connect or get support without travelling", undefined, { background: "linear-gradient(135deg, #e8f4f3 0%, #f7fbf8 100%)", border: "1px solid rgba(47,126,126,0.20)", iconBackground: "linear-gradient(145deg, #2f807c, #65b99d)", iconColor: "#fff", arrowColor: "#28736f" })}
       </div>
 
-      <div style={{ marginTop: 10, background: "linear-gradient(135deg, #fff0f0 0%, #fff8f4 100%)", border: "1px solid rgba(201,79,79,0.22)", borderRadius: 20, padding: 13, boxShadow: "0 8px 20px rgba(201,79,79,0.09)" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 7, color: "#a53f42", fontSize: 11, fontWeight: 900, letterSpacing: 0.8, textTransform: "uppercase", marginBottom: 9 }}><LifeBuoy size={15} /> Safety First</div>
-        <div style={{ color: T.sub, fontSize: 12.5, lineHeight: 1.4, marginBottom: 9 }}>Choosing support is a protective choice. You decide what feels right — now, later, or not right now.</div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 7 }}>
-          <a href="tel:000" aria-label="Call Triple Zero 000" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3, padding: "9px 4px", borderRadius: 13, background: "#c94f4f", color: "#fff", textDecoration: "none", fontWeight: 900, fontSize: 12 }}><Phone size={17} />000</a>
-          <a href="tel:131114" aria-label="Call Lifeline 13 11 14" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3, padding: "9px 4px", borderRadius: 13, background: "#fff", color: "#a53f42", border: "1px solid #efcccc", textDecoration: "none", fontWeight: 900, fontSize: 12 }}><Phone size={17} /><span>Lifeline</span><span>13 11 14</span></a>
-          <a href="tel:1300789978" aria-label="Call MensLine Australia on 1300 78 99 78" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3, padding: "9px 4px", borderRadius: 13, background: "#fff", color: "#a53f42", border: "1px solid #efcccc", textDecoration: "none", fontWeight: 900, fontSize: 12 }}><Phone size={17} /><span>MensLine</span><span>1300 78 99 78</span></a>
-        </div>
-      </div>
-
-      {/* Rex — friendly welcomer (opens his own chat screen) */}
-      <button onClick={() => onOpenChat("rex")} style={{ width: "100%", textAlign: "left", cursor: "pointer",
-        border: "none", background: "linear-gradient(160deg, #eafaf0, #ffffff)", borderRadius: 20, padding: 16,
-        boxShadow: T.soft, marginTop: 14, display: "flex", alignItems: "center", gap: 14 }}>
-        <Portrait src={CHARS.rex.img} name="Rex" size={64} speaking={false} tint={CHARS.rex.tint} />
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: 800, fontSize: 16 }}>Say hi to Rex</div>
-          <div style={{ fontSize: 13, color: T.sub, lineHeight: 1.45 }}>
-            Your welcomer — he'll show you around and point you to the right guide. Tap to chat.
+      <details style={{ marginTop: 18, borderRadius: 18, border: `1px solid ${T.line}`, background: "rgba(255,255,255,0.62)", boxShadow: T.soft }}>
+        <summary style={{ cursor: "pointer", padding: "15px 16px", fontWeight: 800, color: T.ink, minHeight: 24 }}>More support and services</summary>
+        <div style={{ display: "flex", flexDirection: "column", gap: 9, padding: "0 12px 13px" }}>
+          {card(onOpenResources, "#e8f2fb", "#3f7e9e", ResourcesIcon, "Support Directory", "Food, crisis support, recovery and local services", undefined, { background: "#f7fbff", border: "1px solid #d8e8f0", iconBackground: "linear-gradient(145deg, #3f7e9e, #65bca7)", iconColor: "#fff", arrowColor: "#3f7e9e" })}
+          {card(onOpenProgramInfo, "#e8f6ec", T.greenDk, Users, "Juan’s 8-week support program", "Free, in-person support across Western Sydney", undefined, { background: "#f7fcf8", border: "1px solid #d6eadb", iconBackground: "linear-gradient(145deg, #75b98a, #e3f5e8)", iconColor: T.greenDk, arrowColor: T.greenDk })}
+          {card(onOpenChaptly, "#fff1f1", "#d33d42", Heart, "Chaptly", "Trauma-informed recovery support in gentle daily quests", undefined, { background: "#fff8f6", border: "1px solid #f3d4d1", iconBackground: "#ff3341", iconColor: "#fff", arrowColor: "#d33d42" })}
+          {card(onOpenSupportUs, "#fff0f0", "#c94f4f", Heart, "Support Us", "Help keep The Resilience Hub free", undefined, { background: "#fffaf7", border: "1px solid #f0dada", iconBackground: "linear-gradient(145deg, #e5484d, #f38a73)", iconColor: "#fff", arrowColor: "#c94f4f" })}
+          <div style={{ display: "grid", gap: 8 }}>
+            <a href="https://healthengine.com.au/v2/appointment/book/41615#specialty-selection" target="_blank" rel="noopener noreferrer" style={{ color: "#345c8d", fontSize: 13, fontWeight: 750, padding: "6px 4px" }}>Book with Dr Carlos Robalino <ExternalLink size={14} style={{ verticalAlign: "-2px" }} /></a>
+            <a href="https://13sick.com.au/?utm_source=gemini&hl=en-AU" target="_blank" rel="noopener noreferrer" style={{ color: "#28736f", fontSize: 13, fontWeight: 750, padding: "6px 4px" }}>13SICK telehealth <ExternalLink size={14} style={{ verticalAlign: "-2px" }} /></a>
+            <a href="https://hellodoc.com.au/contact-us/?gad_source=1&gad_campaignid=22108310618&gbraid=0AAAAApth259s3VsZGGGtF2KCkjN6JYcjX&gclid=Cj0KCQjw5bjVBhCiARIsAJzMVnSaMZne_9uFcstB6fS0ngezgD8M3m7gKZn8GxwyHs2Qk4YRH7T75G4aAj9lEALw_wcB" target="_blank" rel="noopener noreferrer" style={{ color: "#5c52aa", fontSize: 13, fontWeight: 750, padding: "6px 4px" }}>HelloDoc online healthcare <ExternalLink size={14} style={{ verticalAlign: "-2px" }} /></a>
+            <a href="https://axiompsych.com.au/carlos-camacho/" target="_blank" rel="noopener noreferrer" style={{ color: "#b56739", fontSize: 13, fontWeight: 750, padding: "6px 4px" }}>Carlos Camacho, Registered Psychologist <ExternalLink size={14} style={{ verticalAlign: "-2px" }} /></a>
           </div>
         </div>
-        <ChevronRight size={20} color={T.sub} />
-      </button>
+      </details>
 
-      {/* The optional inline tour is intentionally not mounted here. The full
-          Watch Rex’s Tutorial page remains available, while the essential Hub
-          must never depend on tour voice/runtime code. */}
-
-      <button onClick={onOpenRexTutorial} aria-label="Watch Rex’s Tutorial: learn how The Resilience Hub works" style={{ width: "100%", textAlign: "left", cursor: "pointer", border: "1px solid rgba(77,159,104,0.18)", background: "linear-gradient(135deg, #f0fbf2 0%, #ffffff 56%, #fff4e8 100%)", borderRadius: 20, padding: 15, boxShadow: T.soft, marginTop: 10, display: "flex", alignItems: "center", gap: 13 }}>
-        <div style={{ width: 50, height: 50, borderRadius: 16, background: "linear-gradient(145deg, #9bd2a8, #fff7ed)", display: "grid", placeItems: "center", flexShrink: 0, overflow: "hidden" }}><Play size={24} color={T.greenDk} /></div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: 800, fontSize: 16 }}>Watch Rex’s Tutorial</div>
-          <div style={{ fontSize: 13, color: T.sub, lineHeight: 1.45 }}>A gentle tour of the Hub, your guides, tools, and settings.</div>
+      <details style={{ marginTop: 10, borderRadius: 18, border: `1px solid ${T.line}`, background: "rgba(255,255,255,0.62)", boxShadow: T.soft }}>
+        <summary style={{ cursor: "pointer", padding: "15px 16px", fontWeight: 800, color: T.ink, minHeight: 24 }}>Need help choosing?</summary>
+        <div style={{ padding: "0 12px 13px", display: "flex", flexDirection: "column", gap: 9 }}>
+          <button onClick={() => onOpenChat("rex")} aria-label="Chat with Rex, your welcomer" style={{ display: "flex", alignItems: "center", gap: 12, border: "none", borderRadius: 14, background: "#eef9f1", padding: 11, textAlign: "left", cursor: "pointer" }}><Portrait src={CHARS.rex.img} name="Rex" size={46} speaking={false} tint={CHARS.rex.tint} /><span style={{ flex: 1 }}><strong style={{ display: "block", color: T.ink }}>Say hi to Rex</strong><span style={{ color: T.sub, fontSize: 12.5 }}>He’ll point you in the right direction.</span></span><ChevronRight size={18} color={T.sub} /></button>
+          <button onClick={onOpenRexTutorial} aria-label="Watch Rex’s tutorial" style={{ display: "flex", alignItems: "center", gap: 12, border: "1px solid #d6eadb", borderRadius: 14, background: "#fff", padding: 12, textAlign: "left", cursor: "pointer" }}><Play size={21} color={T.greenDk} /><span style={{ flex: 1 }}><strong style={{ display: "block", color: T.ink }}>Watch Rex’s tutorial</strong><span style={{ color: T.sub, fontSize: 12.5 }}>A short tour of the Hub.</span></span><ChevronRight size={18} color={T.sub} /></button>
         </div>
-        <ChevronRight size={20} color={T.sub} />
-      </button>
-
-      {/* menu cards — grouped for clarity */}
-      <SectionTitle>Your journey</SectionTitle>
-      <div className="rh-hub-card-stack" style={{ display: "flex", flexDirection: "column", gap: 11 }}>
-        <div style={{ margin: "7px 0 0", color: T.greenDk, fontSize: 12, fontWeight: 900, letterSpacing: 0.9, textTransform: "uppercase" }}>Your AI mates &amp; tools</div>
-        {card(onOpenGuides, "#f4e3d9", "#c9803f", Users, "Your guides", "Nicolas, Carlos, Mick & Lila — chat any time", undefined, { background: "linear-gradient(135deg, #fff4eb 0%, #fffaf6 52%, #f2e4dc 100%)", border: "1px solid rgba(201,128,63,0.22)", iconBackground: "linear-gradient(145deg, #e8b894, #fff3e7)", iconColor: "#b56739", arrowColor: "#b56739", subColor: "#7f6b60" })}
-        {card(onOpenToolkit, "#dceee2", "#2c7d50", Wrench, "Toolkit", "Calm down, reflect & grow, stay safe", undefined, { background: "linear-gradient(135deg, #e5f5eb 0%, #f8fcf8 54%, #e1f1ef 100%)", border: "1px solid rgba(46,133,120,0.20)", iconBackground: "linear-gradient(145deg, #72b88b, #e1f5e7)", iconColor: "#236b58", arrowColor: "#2e8578", subColor: "#5f776e" })}
-        {card(onOpenProgram, "#e7eefb", "#3f6faf", CalendarCheck, plan ? "Your 8-Week Plan" : "Optional 8-Week Plan", plan ? "Your active plan, progress & next steps" : "Your plan, progress & next steps — use it if it helps", undefined, { background: "linear-gradient(135deg, #eaf1ff 0%, #f9fbff 54%, #eeeafd 100%)", border: "1px solid rgba(63,111,175,0.20)", iconBackground: "linear-gradient(145deg, #8eaddc, #eef4ff)", iconColor: "#345c8d", arrowColor: "#4e71a6", subColor: "#64758c" })}
-        <button onClick={onOpenJournal} aria-label="Private Journal: A calm, PIN-protected place for your thoughts" style={{ width: "100%", background: "linear-gradient(125deg, #fffdf7 0%, #f7f0dc 48%, #edf7f0 100%)", borderRadius: 21, padding: 15, boxShadow: T.soft, border: "1px solid rgba(201,162,39,0.20)", cursor: "pointer", display: "flex", alignItems: "center", gap: 13, textAlign: "left", position: "relative", overflow: "hidden" }}>
-          <div style={{ position: "absolute", right: -22, top: -28, width: 100, height: 100, borderRadius: "50%", background: "rgba(255,255,255,0.52)" }} />
-          <div style={{ width: 48, height: 48, borderRadius: 16, background: "linear-gradient(145deg, #e9d783, #fffaf0)", display: "grid", placeItems: "center", position: "relative", flexShrink: 0, boxShadow: "inset 0 0 0 1px rgba(151,113,24,0.16)" }}>
-            <BookOpen size={22} color="#9a741a" strokeWidth={2.2} />
-            <span style={{ position: "absolute", right: -5, bottom: -5, width: 19, height: 19, borderRadius: 999, background: T.green, display: "grid", placeItems: "center", boxShadow: "0 2px 7px rgba(32,95,72,0.28)" }}><Shield size={11} color="#fff" fill="#fff" /></span>
-          </div>
-          <div style={{ flex: 1, minWidth: 0, position: "relative" }}>
-            <div style={{ color: "#8e6a17", fontSize: 10, fontWeight: 900, letterSpacing: 0.9, marginBottom: 2 }}>YOUR PRIVATE SPACE</div>
-            <div style={{ fontWeight: 800, fontSize: 16, color: T.ink }}>Private Journal</div>
-            <div style={{ fontSize: 13, color: T.sub, lineHeight: 1.35 }}>Write, reflect, or capture a fleeting thought at your own pace</div>
-          </div>
-          <ChevronRight size={20} color="#9a741a" style={{ position: "relative" }} />
-        </button>
-        <button onClick={onOpenCampfire} aria-label="Open Virtual Campfire: a quiet place for men to connect and talk" style={{ width: "100%", background: "linear-gradient(135deg, #fff4e5 0%, #fffaf3 50%, #f2e8df 100%)", borderRadius: 21, padding: 15, boxShadow: "0 9px 22px rgba(156,91,43,0.11)", border: "1px solid rgba(180,105,53,0.22)", cursor: "pointer", display: "flex", alignItems: "center", gap: 13, textAlign: "left", position: "relative", overflow: "hidden" }}>
-          <div style={{ position: "absolute", right: -24, top: -30, width: 105, height: 105, borderRadius: "50%", background: "rgba(255,255,255,0.52)" }} />
-          <div style={{ width: 50, height: 50, borderRadius: 17, background: "radial-gradient(circle at 45% 35%, #ffc36e, #e8703a 62%, #a9511f)", display: "grid", placeItems: "center", flexShrink: 0, boxShadow: "0 7px 15px rgba(168,81,31,0.22)", position: "relative" }}><Flame size={26} color="#fff7e8" fill="#fff7e8" /></div>
-          <div style={{ flex: 1, minWidth: 0, position: "relative" }}>
-            <div style={{ color: "#a9511f", fontSize: 10, fontWeight: 900, letterSpacing: 0.9, marginBottom: 2 }}>MEN’S MENTAL HEALTH &amp; CONNECTION</div>
-            <div style={{ fontWeight: 800, fontSize: 16, color: T.ink }}>Virtual Campfire</div>
-            <div style={{ fontSize: 13, color: T.sub, lineHeight: 1.4 }}>A quiet place to sit, talk straight, or simply not be alone.</div>
-          </div>
-          <ChevronRight size={20} color="#a9511f" style={{ position: "relative" }} />
-        </button>
-
-      </div>
-
-      <div style={{ margin: "18px 0 0", color: "#28736f", fontSize: 12, fontWeight: 900, letterSpacing: 0.9, textTransform: "uppercase" }}>From home — virtual spaces</div>
-      <button onClick={onOpenVirtualSupport} aria-label="Open Virtual Support from Home" style={{ width: "100%", marginTop: 8, background: "linear-gradient(135deg, #e8f4f3 0%, #f7fbf8 54%, #eaf0fb 100%)", border: "1px solid rgba(47,126,126,0.20)", borderRadius: 24, padding: 17, boxShadow: "0 10px 24px rgba(47,126,126,0.11)", cursor: "pointer", display: "flex", alignItems: "center", gap: 14, textAlign: "left", position: "relative", overflow: "hidden" }}>
-        <div style={{ position: "absolute", width: 150, height: 150, borderRadius: "50%", right: -55, top: -72, background: "rgba(255,255,255,0.52)" }} />
-        <div style={{ width: 60, height: 60, borderRadius: 19, background: "linear-gradient(145deg, #2f807c, #65b99d)", display: "grid", placeItems: "center", flexShrink: 0, boxShadow: "0 8px 16px rgba(47,128,124,0.19)", position: "relative" }}><Wifi size={29} color="#fff" /></div>
-        <div style={{ flex: 1, minWidth: 0, position: "relative" }}><div style={{ color: "#28736f", fontSize: 10, fontWeight: 900, letterSpacing: 1, marginBottom: 3 }}>MEN’S MENTAL HEALTH</div><div style={{ fontWeight: 800, fontSize: 18, color: T.ink }}>Virtual Support — From Home</div><div style={{ fontSize: 13, color: T.sub, lineHeight: 1.42, marginTop: 3 }}>Talk, connect, or get support from your couch — no travel needed</div></div>
-        <ChevronRight size={23} color="#2f807c" style={{ position: "relative", flexShrink: 0 }} />
-      </button>
-      <div className="rh-hub-card-stack" style={{ display: "flex", flexDirection: "column", gap: 11, marginTop: 11 }}>
-        <div style={{ margin: "7px 0 0", color: "#2f687a", fontSize: 12, fontWeight: 900, letterSpacing: 0.9, textTransform: "uppercase" }}>Out in the real world &amp; practical essentials</div>
-        <button onClick={onOpenChaptly} aria-label="Open Chaptly partner information" style={{ width: "100%", background: "linear-gradient(135deg, #fff1f1 0%, #fff8f6 55%, #fff3df 100%)", border: "1px solid rgba(238,62,66,0.22)", borderRadius: 24, padding: 14, boxShadow: "0 10px 24px rgba(205,55,58,0.12)", cursor: "pointer", display: "flex", alignItems: "center", gap: 13, textAlign: "left", position: "relative", overflow: "hidden" }}>
-          <div style={{ position: "absolute", width: 170, height: 170, borderRadius: "50%", right: -65, top: -80, background: "rgba(255,255,255,0.6)" }} />
-          <div style={{ width: 76, height: 60, borderRadius: 17, overflow: "hidden", flexShrink: 0, background: "#ff3341", boxShadow: "0 8px 16px rgba(205,55,58,0.18)", position: "relative" }}><img src="/partners/chaptly-main-logo.jpg" alt="Chaptly" style={{ width: "100%", height: "100%", objectFit: "cover" }} /></div>
-          <div style={{ flex: 1, minWidth: 0, position: "relative" }}><div style={{ fontWeight: 850, fontSize: 18, color: "#3f2528" }}>Chaptly</div><div style={{ fontSize: 13, color: "#78585a", lineHeight: 1.42, marginTop: 3 }}>Trauma-informed recovery support, made into gentle daily quests</div></div>
-          <ChevronRight size={24} color="#d33d42" style={{ position: "relative", flexShrink: 0 }} />
-        </button>
-        <button onClick={onOpenResources} aria-label="Open Support Directory" style={{ width: "100%", background: "linear-gradient(135deg, #e8f2fb 0%, #f8fbff 52%, #e5f6f1 100%)", border: "1px solid rgba(63,126,158,0.22)", borderRadius: 24, padding: 18, boxShadow: "0 10px 24px rgba(63,126,158,0.12)", cursor: "pointer", display: "flex", alignItems: "center", gap: 14, textAlign: "left", position: "relative", overflow: "hidden" }}>
-          <div style={{ position: "absolute", width: 150, height: 150, borderRadius: "50%", right: -55, top: -70, background: "rgba(255,255,255,0.48)" }} />
-          <div style={{ width: 62, height: 62, borderRadius: 20, background: "linear-gradient(145deg, #3f7e9e, #65bca7)", display: "grid", placeItems: "center", flexShrink: 0, boxShadow: "0 8px 16px rgba(63,126,158,0.2)", position: "relative" }}><ResourcesIcon size={32} color="#fff" /></div>
-          <div style={{ flex: 1, minWidth: 0, position: "relative", display: "flex", flexDirection: "column", justifyContent: "center" }}><div style={{ fontWeight: 800, fontSize: 18, color: "#2f687a" }}>Support Directory</div><div style={{ fontSize: 13, color: "#607c86", lineHeight: 1.45, marginTop: 3 }}>Food, crisis support, recovery, local services, activities, and people to connect with</div></div>
-          <ChevronRight size={24} color="#3f7e9e" style={{ position: "relative", flexShrink: 0 }} />
-        </button>
-        <button onClick={onOpenSupportUs} aria-label="Open Support Us" style={{ width: "100%", background: "linear-gradient(135deg, #fff0f0 0%, #fffaf7 56%, #f5eaf0 100%)", border: "1px solid rgba(201,79,79,0.18)", borderRadius: 22, padding: 16, boxShadow: "0 9px 21px rgba(201,79,79,0.10)", cursor: "pointer", display: "flex", alignItems: "center", gap: 13, textAlign: "left", position: "relative", overflow: "hidden" }}>
-          <div style={{ position: "absolute", width: 120, height: 120, borderRadius: "50%", right: -42, top: -50, background: "rgba(255,255,255,0.48)" }} />
-          <div style={{ width: 56, height: 56, borderRadius: 18, background: "linear-gradient(145deg, #e5484d, #f38a73)", display: "grid", placeItems: "center", flexShrink: 0, boxShadow: "0 7px 15px rgba(201,79,79,0.18)", position: "relative" }}><Heart size={28} color="#fff" fill="#fff" /></div>
-          <div style={{ flex: 1, minWidth: 0, position: "relative" }}><div style={{ display: "inline-block", color: "#c43f45", fontSize: 10, fontWeight: 900, letterSpacing: 1, marginBottom: 3 }}>HELP KEEP THE HUB FREE</div><div style={{ fontWeight: 800, fontSize: 18, color: T.ink }}>Support Us</div><div style={{ fontSize: 13, color: T.sub, lineHeight: 1.42 }}>GoFundMe, Sloane Fox merch, and Carlos’s books — all in one place</div></div>
-          <ChevronRight size={23} color="#c94f4f" style={{ position: "relative", flexShrink: 0 }} />
-        </button>
-      </div>
+      </details>
 
       <Disclaimer />
 
