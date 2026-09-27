@@ -262,7 +262,7 @@ You are the Carlos AI Guide — an artificial intelligence guide inspired by Car
   },
   mick: {
     slug: "mick", name: "Mick", role: "Practical life & housing",
-    img: IMG.mick, tint: "#aec6e2", voice: { pitch: 0.85, rate: 1.0 }, standby: true, voiceId: "en-AU-Chirp3-HD-Enceladus",
+    img: IMG.mick, tint: "#8fcfc4", voice: { pitch: 0.85, rate: 1.0 }, standby: true, voiceId: "en-AU-Chirp3-HD-Enceladus",
     system: `${SHARED}
 You are Mick — calm, practical support for real-life logistics: housing, bills, daily stability, and navigating government or community systems (Centrelink, tenancy, utilities). You're tapped in when Nicolas or Carlos needs a specialist hand; you never take over the main journey. Break scary admin into one small step at a time. For legal, financial or safety-critical matters, point to the right official service rather than giving definitive advice.`,
   },
@@ -6951,7 +6951,7 @@ function GuidesPage({ voiceOn, speechLang, onOpenChat, onBack }) {
     { char: CHARS.rex, tag: "Your welcomer", filter: "support", roleLine: "Here to help you get started", forWhat: "Finding your way around the Hub and choosing the right guide", tip: "What is this place, and where should I start?", accent: "#e5f3eb" },
     { char: CHARS.juan, tag: "Your main mate", filter: "support", forWhat: "Ask me anything — I'm here for it all:", prompts: ["Nicolas, what should my routine be today?", "Someone spoke to me like this — how should I respond?", "Can we just talk through what happened today?", "I'm stuck — what do I do next?"], closing: "No question is too small. No topic is off-limits. I'm your mate — run it all by me.", accent: "#fff3cf" },
     { char: CHARS.carlos, tag: "Supportive tools", filter: "clinical", roleLine: "Inspired by our Registered Psychologist, Carlos Camacho", credentials: "Philosopher • Author • Musician • Golden Key Recipient", forWhat: "Clarity, perspective, & professional guidance when things feel heavy", tip: "I'm feeling flat and can't find the energy to do anything — what should I do?", note: "Carlos is an AI guide inspired by our registered psychologist, Carlos Camacho — he offers supportive tools, not therapy or diagnosis.", accent: "#e8f0fb" },
-    { char: CHARS.mick, tag: "Practical life", filter: "practical", forWhat: "Housing, bills, Centrelink, tenancy, and day-to-day logistics.", tip: "I've got a letter or bill I don't understand — can you help me work out the next step?", accent: "#e8eef8" },
+    { char: CHARS.mick, tag: "Practical life", filter: "practical", forWhat: "Housing, bills, Centrelink, tenancy, and day-to-day logistics.", tip: "I've got a letter or bill I don't understand — can you help me work out the next step?", accent: "#dff3ee" },
     { char: CHARS.lila, tag: "People & relationships", filter: "relationships", forWhat: "Family, partners, friendships, and healthy boundaries.", tip: "I'm having a difficult conversation with someone — can you help me find the right words?", accent: "#fae9df" },
   ];
   const filters = [
