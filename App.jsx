@@ -7080,7 +7080,7 @@ function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, set
 
   useEffect(() => () => stop(), [stop]);
 
-      const card = (onClick, tint, ic, Icon, title, sub, badge, options = {}) => (
+  const card = (onClick, tint, ic, Icon, title, sub, badge, options = {}) => (
     <button onClick={onClick} aria-label={`${title}: ${sub}`} style={{ width: "100%", background: options.background || "linear-gradient(110deg, #ffffff 0%, #fbfefc 100%)", borderRadius: 21, padding: 15,
       boxShadow: options.shadow || T.soft, border: options.border || `1px solid ${T.line}`, cursor: "pointer", display: "flex", alignItems: "center", gap: 13, textAlign: "left", transition: "transform .15s ease, box-shadow .15s ease", ...options.button }}>
       <div style={{ width: 50, height: 50, borderRadius: 17, background: options.iconBackground || `linear-gradient(145deg, ${tint}, #ffffff)`, display: "grid", placeItems: "center", position: "relative", flexShrink: 0, boxShadow: options.iconShadow || `inset 0 0 0 1px ${ic}18`, ...options.icon }}>
@@ -7097,6 +7097,16 @@ function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, set
       <ChevronRight size={21} color={options.arrowColor || T.sub} />
     </button>
   );
+
+  const supportIntroductions = [
+    { name: "Rex", role: "Your welcomer", helps: "A friendly starting point. Rex can show you around the Hub and help you choose the right next step.", tint: "#eaf8ee", color: T.greenDk },
+    { name: "Nicolas", role: "Your main mate", helps: "An AI guide for everyday support, a check-in, routines, or simply talking through what is on your mind.", tint: "#fff3cf", color: "#8a6415" },
+    { name: "Carlos", role: "Calm & coping", helps: "An AI guide inspired by our registered psychologist. He offers gentle tools for stress, low mood, perspective and coping.", tint: "#e8f0fb", color: "#345c8d" },
+    { name: "Mick", role: "Practical life", helps: "An AI guide for housing, bills, Centrelink, tenancy and working out the next practical step.", tint: "#dff3ee", color: "#28736f" },
+    { name: "Lila", role: "People & relationships", helps: "An AI guide for family, partners, friendships, boundaries and finding the words for a hard conversation.", tint: "#fae9df", color: "#a15c43" },
+    { name: "Dr Carlos Robalino", role: "Your GP", helps: "In-person appointments or phone consultations through Fairfield Medical Centre when medical care is what you need.", tint: "#eaf1ff", color: "#345c8d" },
+    { name: "Juan", role: "Founder & 8-week program", helps: "Free, in-person lived-experience support across Western Sydney through The Resilience Hub’s 8-week program.", tint: "#e8f6ec", color: T.greenDk },
+  ];
 
   return (
     <>
@@ -7166,19 +7176,31 @@ function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, set
 
       {/* A calm entry point: put the most likely decisions before the full catalogue. */}
       <section aria-labelledby="hub-start-title" style={{ background: "linear-gradient(135deg, #e8f6ec 0%, #f8fcf8 58%, #fff5e8 100%)", borderRadius: 24, padding: "21px 18px", boxShadow: T.soft, marginTop: 8, border: "1px solid rgba(77,159,104,0.16)", position: "relative", overflow: "hidden" }}>
-        <div style={{ display: "inline-flex", alignItems: "center", gap: 6, color: T.greenDk, fontSize: 11, fontWeight: 900, letterSpacing: 0.7, textTransform: "uppercase", marginBottom: 9 }}><Sparkles size={14} /> You’re in the right place</div>
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 6, color: T.greenDk, fontSize: 11, fontWeight: 900, letterSpacing: 0.7, textTransform: "uppercase", marginBottom: 9 }}><Sparkles size={14} /> Welcome to the Hub</div>
         <h1 id="hub-start-title" style={{ fontSize: 25, fontWeight: 900, lineHeight: 1.12, margin: "0 0 6px", color: T.greenDk }}>What would help right now{nm ? `, ${nm}` : ""}?</h1>
-        <p style={{ fontSize: 14, color: T.sub, lineHeight: 1.45, margin: 0 }}>You don’t need to work it out alone. Start with one small choice.</p>
+        <p style={{ fontSize: 14, color: T.sub, lineHeight: 1.45, margin: 0 }}>Start with one small choice. If you’d like to know who is here for you, open the support circle below.</p>
         <div style={{ display: "grid", gap: 8, marginTop: 15 }}>
           <button onClick={() => onOpenChat("juan")} aria-label="Talk it through with Nicolas" style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", minHeight: 48, border: "none", borderRadius: 14, padding: "10px 13px", background: T.greenDk, color: "#fff", fontWeight: 800, fontSize: 14, textAlign: "left", cursor: "pointer" }}><MessageCircle size={19} /> Talk it through with Nicolas <ChevronRight size={17} style={{ marginLeft: "auto" }} /></button>
           <button onClick={onOpenToolkit} aria-label="Open the Toolkit to help settle and feel safer" style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", minHeight: 48, border: "1px solid rgba(46,133,120,0.22)", borderRadius: 14, padding: "10px 13px", background: "rgba(255,255,255,0.78)", color: T.ink, fontWeight: 800, fontSize: 14, textAlign: "left", cursor: "pointer" }}><Wrench size={19} color="#28736f" /> Help me settle <ChevronRight size={17} color={T.sub} style={{ marginLeft: "auto" }} /></button>
           <button onClick={onOpenSafety} aria-label="Open Safety First for urgent human support" style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", minHeight: 48, border: "1px solid #efcccc", borderRadius: 14, padding: "10px 13px", background: "#fff7f5", color: "#963c43", fontWeight: 800, fontSize: 14, textAlign: "left", cursor: "pointer" }}><LifeBuoy size={19} /> Safety First <span style={{ fontSize: 12, fontWeight: 600, marginLeft: "auto" }}>urgent support</span><ChevronRight size={17} /></button>
         </div>
+        <details style={{ marginTop: 12, borderRadius: 14, background: "rgba(255,255,255,0.66)", border: "1px solid rgba(77,159,104,0.16)" }}>
+          <summary style={{ cursor: "pointer", padding: "12px 13px", color: T.greenDk, fontSize: 13.5, fontWeight: 800 }}>Meet the people here</summary>
+          <div style={{ display: "grid", gap: 7, padding: "0 9px 10px" }}>
+            {supportIntroductions.map(({ name, role, helps, tint, color }) => (
+              <details key={name} style={{ background: tint, borderRadius: 11, border: `1px solid ${color}22` }}>
+                <summary style={{ cursor: "pointer", padding: "10px 11px", color, fontSize: 13, fontWeight: 800 }}>{name} <span style={{ color: T.sub, fontWeight: 600 }}>· {role}</span></summary>
+                <p style={{ padding: "0 11px 11px", margin: 0, color: T.ink, fontSize: 12.5, lineHeight: 1.45 }}>{helps}</p>
+              </details>
+            ))}
+          </div>
+        </details>
       </section>
 
       <SectionTitle>Your next step</SectionTitle>
       <div className="rh-hub-card-stack" style={{ display: "flex", flexDirection: "column", gap: 9 }}>
         {card(onOpenGuides, "#f4e3d9", "#b56739", Users, "Choose a guide", "Nicolas, Carlos, Mick or Lila — chat any time", undefined, { background: "linear-gradient(135deg, #fff4eb 0%, #fffaf6 100%)", border: "1px solid rgba(201,128,63,0.20)", iconBackground: "linear-gradient(145deg, #e8b894, #fff3e7)", iconColor: "#b56739", arrowColor: "#b56739", subColor: "#7f6b60" })}
+        {card(onOpenResources, "#e8f2fb", "#3f7e9e", ResourcesIcon, "Support Directory", "Food, crisis support, recovery and local services", undefined, { background: "linear-gradient(135deg, #e8f2fb 0%, #f8fbff 100%)", border: "1px solid rgba(63,126,158,0.22)", iconBackground: "linear-gradient(145deg, #3f7e9e, #65bca7)", iconColor: "#fff", arrowColor: "#3f7e9e" })}
         {card(onOpenProgram, "#e7eefb", "#3f6faf", CalendarCheck, plan ? "Continue your 8-week plan" : "Try the 8-week plan", plan ? "Your progress and next small step" : "Optional structure if it helps", undefined, { background: "linear-gradient(135deg, #eaf1ff 0%, #f9fbff 100%)", border: "1px solid rgba(63,111,175,0.20)", iconBackground: "linear-gradient(145deg, #8eaddc, #eef4ff)", iconColor: "#345c8d", arrowColor: "#4e71a6", subColor: "#64758c" })}
         {card(onOpenJournal, "#f7f0dc", "#9a741a", BookOpen, "Private journal", journalCount ? `${journalCount} saved ${journalCount === 1 ? "entry" : "entries"}` : "A quiet place for a thought", undefined, { background: "linear-gradient(135deg, #fffdf7 0%, #f7f0dc 100%)", border: "1px solid rgba(201,162,39,0.20)", iconBackground: "linear-gradient(145deg, #e9d783, #fffaf0)", iconColor: "#9a741a", arrowColor: "#9a741a" })}
       </div>
@@ -7192,7 +7214,6 @@ function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, set
       <details style={{ marginTop: 18, borderRadius: 18, border: `1px solid ${T.line}`, background: "rgba(255,255,255,0.62)", boxShadow: T.soft }}>
         <summary style={{ cursor: "pointer", padding: "15px 16px", fontWeight: 800, color: T.ink, minHeight: 24 }}>More support and services</summary>
         <div style={{ display: "flex", flexDirection: "column", gap: 9, padding: "0 12px 13px" }}>
-          {card(onOpenResources, "#e8f2fb", "#3f7e9e", ResourcesIcon, "Support Directory", "Food, crisis support, recovery and local services", undefined, { background: "#f7fbff", border: "1px solid #d8e8f0", iconBackground: "linear-gradient(145deg, #3f7e9e, #65bca7)", iconColor: "#fff", arrowColor: "#3f7e9e" })}
           {card(onOpenProgramInfo, "#e8f6ec", T.greenDk, Users, "Juan’s 8-week support program", "Free, in-person support across Western Sydney", undefined, { background: "#f7fcf8", border: "1px solid #d6eadb", iconBackground: "linear-gradient(145deg, #75b98a, #e3f5e8)", iconColor: T.greenDk, arrowColor: T.greenDk })}
           {card(onOpenChaptly, "#fff1f1", "#d33d42", Heart, "Chaptly", "Trauma-informed recovery support in gentle daily quests", undefined, { background: "#fff8f6", border: "1px solid #f3d4d1", iconBackground: "#ff3341", iconColor: "#fff", arrowColor: "#d33d42" })}
           {card(onOpenSupportUs, "#fff0f0", "#c94f4f", Heart, "Support Us", "Help keep The Resilience Hub free", undefined, { background: "#fffaf7", border: "1px solid #f0dada", iconBackground: "linear-gradient(145deg, #e5484d, #f38a73)", iconColor: "#fff", arrowColor: "#c94f4f" })}
