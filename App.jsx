@@ -2156,22 +2156,31 @@ async function fetchTtsUrl(text, voiceId, languageCode = __speechLang) {
   const pending = __ttsPending.get(key);
   if (pending) return pending;
   const request = (async () => {
-    const res = await fetch("/api/tts", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text, voiceId, languageCode: lang }),
-    });
-    if (!res.ok) throw new Error("tts_failed");
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    __ttsCache.set(key, url);
-    if (__ttsCache.size > __TTS_CACHE_MAX) {
-      const oldestKey = __ttsCache.keys().next().value;
-      const oldUrl = __ttsCache.get(oldestKey);
-      __ttsCache.delete(oldestKey);
-      try { URL.revokeObjectURL(oldUrl); } catch {}
+    let lastError;
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      try {
+        const res = await fetch("/api/tts", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text, voiceId, languageCode: lang }),
+        });
+        if (!res.ok) throw new Error(`tts_failed_${res.status}`);
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        __ttsCache.set(key, url);
+        if (__ttsCache.size > __TTS_CACHE_MAX) {
+          const oldestKey = __ttsCache.keys().next().value;
+          const oldUrl = __ttsCache.get(oldestKey);
+          __ttsCache.delete(oldestKey);
+          try { URL.revokeObjectURL(oldUrl); } catch {}
+        }
+        return url;
+      } catch (error) {
+        lastError = error;
+        if (attempt < 2) await new Promise((resolve) => setTimeout(resolve, attempt === 0 ? 300 : 900));
+      }
     }
-    return url;
+    throw lastError || new Error("tts_failed");
   })();
   __ttsPending.set(key, request);
   try { return await request; }
@@ -2334,7 +2343,10 @@ function useVoice(voiceOn) {
     if (char && char.voiceId) {
       const chunks = splitForTts(text);
       const first = chunks[0] || text;
-      const firstVoiceWait = String(char.voiceId).startsWith("fish:") ? 7000 : 2200;
+      // The first TTS request after a long break can include a cold serverless
+      // function, provider connection, and Android audio wake-up. Do not mistake
+      // that normal cold-start window for a missing Google voice.
+      const firstVoiceWait = String(char.voiceId).startsWith("fish:") ? 9000 : 8000;
       try {
         // Start the first short request immediately. The remaining response no
         // longer blocks the first spoken sentence; the next chunk is warmed in
