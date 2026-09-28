@@ -48,6 +48,7 @@ const SCREEN_BACK_LABELS = {
 };
 const screenBackLabel = (screen) => SCREEN_BACK_LABELS[screen] || "Home";
 const LAST_SCREEN_STORAGE_KEY = (userId) => userId ? `rh_last_screen_${userId}` : "rh_last_screen_guest";
+const PENDING_AUTH_LANGUAGE_KEY = "rh_pending_auth_language";
 const RESTORABLE_SCREENS = new Set(["hub", "program", "guides", "chat", "journal", "toolkit", "resources", "intake", "virtualSupport", "campfire", "chaptly", "supportUs", "games", "merch", "carlosLibrary", "programInfo", "bookAppointment", "mensShed", "mensGroup", "settings", "profile", "memory", "notifications", "coordinator"]);
 const ACTIVITY_PREF_KEY = "rh_activity_tracking_on";
 const ACTIVITY_HEARTBEAT_MS = 60 * 1000;
@@ -979,14 +980,22 @@ export default function App() {
       const resolvedJournal = remoteFirst ? plain?.journal : (j || plain?.journal);
       const resolvedChats = remoteFirst ? plain?.chats : (c || plain?.chats);
       const resolvedMemories = remoteFirst ? plain?.memories : (mem || plain?.memories);
+      let pendingAuthLanguage = null;
+      try {
+        const pending = JSON.parse(sessionStorage.getItem(PENDING_AUTH_LANGUAGE_KEY) || "\"\"");
+        pendingAuthLanguage = isUiLanguage(pending) ? pending : null;
+      } catch {}
       if (resolvedProfile) {
-        setProfile(resolvedProfile);
-        if (isUiLanguage(resolvedProfile.uiLanguage)) {
-          const language = getUiLanguage(resolvedProfile.uiLanguage);
+        const hydratedProfile = pendingAuthLanguage ? { ...resolvedProfile, uiLanguage: pendingAuthLanguage } : resolvedProfile;
+        setProfile(hydratedProfile);
+        if (isUiLanguage(hydratedProfile.uiLanguage)) {
+          const language = getUiLanguage(hydratedProfile.uiLanguage);
           setUiLanguage(language.code); setSpeechLang(language.speechCode); __speechLang = language.speechCode;
         }
-        if (resolvedProfile.planPath === "short" || resolvedProfile.planPath === "full") setOnbMode(resolvedProfile.planPath);
+        if (hydratedProfile.planPath === "short" || hydratedProfile.planPath === "full") setOnbMode(hydratedProfile.planPath);
+        if (pendingAuthLanguage && pendingAuthLanguage !== resolvedProfile.uiLanguage) void syncMemberData({ profile: hydratedProfile });
       }
+      if (pendingAuthLanguage) { try { sessionStorage.removeItem(PENDING_AUTH_LANGUAGE_KEY); } catch {} }
       if (resolvedAnswers) setAnswers(resolvedAnswers);
       if (resolvedPlan) setPlan(resolvedPlan);
       if (resolvedProgress) setProgress(resolvedProgress);
@@ -1062,7 +1071,9 @@ export default function App() {
   }, [vaultStatus]);
   const saveProfile = useCallback((p) => {
     setProfile((current) => {
-      const merged = { ...(current || {}), ...(p || {}) };
+      const requestedLanguage = isUiLanguage(p?.uiLanguage) ? p.uiLanguage : null;
+      const existingLanguage = isUiLanguage(current?.uiLanguage) ? current.uiLanguage : null;
+      const merged = { ...(current || {}), ...(p || {}), uiLanguage: requestedLanguage || existingLanguage || __uiLanguage };
       void persistSensitiveCache("rh_profile", merged);
       void syncMemberData({ profile: merged });
       // Onboarding stores the user's introduction in member_data.profile.name.
@@ -1089,6 +1100,17 @@ export default function App() {
     void sset("rh_speech_lang", language.speechCode);
     saveProfile({ uiLanguage: language.code });
   }, [saveProfile]);
+  const selectAuthLanguage = useCallback((nextCode) => {
+    if (!isUiLanguage(nextCode)) return;
+    const language = getUiLanguage(nextCode);
+    setUiLanguage(language.code); __uiLanguage = language.code;
+    setSpeechLang(language.speechCode); __speechLang = language.speechCode;
+    void sset("rh_ui_language", language.code);
+    void sset("rh_speech_lang", language.speechCode);
+    // This survives the current sign-in flow (including a Google redirect), then
+    // is written to the authenticated profile once the account has loaded.
+    try { sessionStorage.setItem(PENDING_AUTH_LANGUAGE_KEY, JSON.stringify(language.code)); } catch {}
+  }, []);
   useEffect(() => {
     // A new account can finish onboarding before sessionRef is populated. Once
     // the account and member data are hydrated, make one reliable follow-up
@@ -1575,7 +1597,7 @@ export default function App() {
         {authEnabled && !authChecked ? (
           <div style={{ paddingTop: 120, textAlign: "center", color: T.sub }}>Loading…</div>
         ) : showAuth && !session ? (
-          <Login stayLoggedIn={stayLoggedIn} onStayLoggedInChange={changeStayLoggedIn} />
+          <Login stayLoggedIn={stayLoggedIn} onStayLoggedInChange={changeStayLoggedIn} uiLanguage={uiLanguage} onChangeUiLanguage={selectAuthLanguage} />
         ) : !ready ? (
           <div style={{ paddingTop: 120, textAlign: "center", color: T.sub }}>Warming up…</div>
         ) : !consented ? (
@@ -3456,7 +3478,7 @@ function QuickCalm({ onBack }) {
 }
 
 /* ---------- auth: login ---------- */
-function Login({ stayLoggedIn = true, onStayLoggedInChange }) {
+function Login({ stayLoggedIn = true, onStayLoggedInChange, uiLanguage = DEFAULT_UI_LANGUAGE, onChangeUiLanguage }) {
   const [mode, setMode] = useState("signin");
   const [email, setEmail] = useState("");
   const [pw, setPw] = useState("");
@@ -3529,6 +3551,15 @@ function Login({ stayLoggedIn = true, onStayLoggedInChange }) {
     <>
       <Brand />
       <div style={{ paddingTop: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 12px", margin: "0 0 12px", borderRadius: 16, background: "rgba(255,255,255,0.78)", border: "1px solid rgba(77,159,104,0.20)", boxShadow: "0 4px 12px rgba(47,97,72,0.06)" }}>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <label htmlFor="auth-app-language" style={{ display: "block", color: T.greenDk, fontWeight: 850, fontSize: 13.5 }}>Choose your language</label>
+          </div>
+          <select id="auth-app-language" value={uiLanguage} onChange={(event) => onChangeUiLanguage?.(event.target.value)} aria-label="Choose your language"
+            style={{ width: 174, minHeight: 44, boxSizing: "border-box", border: `1px solid ${T.line}`, borderRadius: 12, padding: "8px 9px", background: "#fff", color: T.ink, fontSize: 12.5, fontWeight: 700, fontFamily: "inherit", cursor: "pointer" }}>
+            {UI_LANGUAGES.map((language) => <option key={language.code} value={language.code}>{language.nativeLabel}</option>)}
+          </select>
+        </div>
         <div className="rh-in" style={{ background: T.card, borderRadius: 22, padding: 18, boxShadow: T.soft, margin: "0 0 16px" }}>
           <p style={{ margin: "0 0 14px", fontSize: 14, lineHeight: 1.55, color: T.ink }}>
             The Resilience Hub is a free, judgment-free space for everyday mental health and
