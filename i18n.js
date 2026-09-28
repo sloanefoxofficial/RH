@@ -18,6 +18,8 @@ export const UI_LANGUAGES = [
   { code: "it-IT", label: "Italian", nativeLabel: "Italiano", htmlLang: "it", speechCode: "it-IT", ttsCode: "it-IT", rtl: false },
   { code: "hi-IN", label: "Hindi", nativeLabel: "हिन्दी", htmlLang: "hi", speechCode: "hi-IN", ttsCode: "hi-IN", rtl: false },
   { code: "es-ES", label: "Spanish", nativeLabel: "Español", htmlLang: "es", speechCode: "es-ES", ttsCode: "es-ES", rtl: false },
+  { code: "es-AR", label: "Spanish (Argentina)", nativeLabel: "Español argentino", htmlLang: "es-AR", speechCode: "es-AR", ttsCode: "es-AR", localePack: "es-ES", rtl: false },
+  { code: "es-UY", label: "Spanish (Uruguay)", nativeLabel: "Español uruguayo", htmlLang: "es-UY", speechCode: "es-UY", ttsCode: "es-UY", localePack: "es-ES", rtl: false },
   { code: "ne-NP", label: "Nepali", nativeLabel: "नेपाली", htmlLang: "ne", speechCode: "ne-NP", ttsCode: "ne-NP", rtl: false },
   { code: "tl-PH", label: "Tagalog", nativeLabel: "Tagalog", htmlLang: "tl", speechCode: "fil-PH", ttsCode: "fil-PH", rtl: false },
   { code: "ko-KR", label: "Korean", nativeLabel: "한국어", htmlLang: "ko", speechCode: "ko-KR", ttsCode: "ko-KR", rtl: false },
@@ -56,9 +58,11 @@ export function defaultPack() {
 }
 
 export async function loadLocalePack(code) {
-  if (code === DEFAULT_UI_LANGUAGE) return defaultPack();
-  if (packCache.has(code)) return packCache.get(code);
-  const request = fetch(`/locales/${encodeURIComponent(code)}.json?v=${LOCALE_PACK_VERSION}`)
+  const language = getUiLanguage(code);
+  const packCode = language.localePack || language.code;
+  if (packCode === DEFAULT_UI_LANGUAGE) return defaultPack();
+  if (packCache.has(packCode)) return packCache.get(packCode);
+  const request = fetch(`/locales/${encodeURIComponent(packCode)}.json?v=${LOCALE_PACK_VERSION}`)
     .then(async (response) => {
       if (!response.ok) throw new Error(`locale_${response.status}`);
       const payload = await response.json();
@@ -68,7 +72,7 @@ export async function loadLocalePack(code) {
       };
     })
     .catch(() => defaultPack());
-  packCache.set(code, request);
+  packCache.set(packCode, request);
   return request;
 }
 

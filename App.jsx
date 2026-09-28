@@ -2012,6 +2012,7 @@ let __speechLang = "en-AU";
 const SPEECH_LANGS = [
   { code: "en-AU", label: "English (Australia)" },
   { code: "es-ES", label: "Spanish — Español" },
+  { code: "es-AR", label: "Spanish — Argentina (Español argentino)" },
   { code: "es-UY", label: "Spanish — Uruguay (Español uruguayo)" },
   { code: "it-IT", label: "Italian — Italiano" },
   { code: "el-GR", label: "Greek — Ελληνικά" },
@@ -2046,6 +2047,14 @@ const AUTO_INTRO_SPEECH = {
     program: "Hola, soy Juan, el fundador de The Resilience Hub. Este programa es gratuito y está pensado para ti. Escuchamos cómo estás, adaptamos el apoyo a tu ritmo y te conectamos con las personas adecuadas. Si necesitas ayuda, usa Mensaje a Juan para contactar conmigo, habla con una guía de inteligencia artificial o usa Ayuda ahora para recibir apoyo humano urgente.",
     planChoice: "Antes de continuar, ¿te gustaría que Carlos preparara para ti un plan personalizado de ocho semanas? Te haré unas preguntas para adaptarlo a lo que estás viviendo. Si prefieres usar primero las guías y el Kit de herramientas, también está bien.",
     chat: "Hola, soy tu guía de inteligencia artificial. Tómate tu tiempo: podemos hablar de lo que necesites a tu ritmo."
+  },
+  "es-AR": {
+    toolkit: "Bienvenido al Kit de herramientas: un conjunto de recursos que pueden ayudarte cuando los necesites. Tomate tu tiempo y elegí lo que te haga sentido hoy.",
+    guides: "Bienvenido a tus guías: apoyo acompañado por inteligencia artificial, disponible cuando lo necesites. Elegí la voz que te resulte más cómoda hoy.",
+    plan: "Este es tu plan personalizado de ocho semanas, armado a partir de lo que nos contaste sobre tu vida, tu energía y lo que querés alcanzar. Avanza semana a semana, empezando de forma tranquila y sumando pasos prácticos a un ritmo que te quede bien. Estoy acá para ayudarte a entender cada semana, responder tus preguntas y reconocer tus avances, sin presión ni juicios.",
+    program: "Hola, soy Juan, el fundador de The Resilience Hub. Este programa es gratuito y está pensado para vos. Escuchamos en qué estás, adaptamos el apoyo a tu ritmo y te conectamos con las personas indicadas. Si necesitás ayuda, usá Mensaje a Juan para contactarme, hablá con una guía de inteligencia artificial o usá Ayuda ahora para recibir apoyo humano urgente.",
+    planChoice: "Antes de seguir, ¿querés que Carlos te prepare un plan personalizado de ocho semanas? Te voy a hacer algunas preguntas para adaptarlo a lo que estás viviendo. Si preferís usar primero las guías y el Kit de herramientas, está perfecto.",
+    chat: "Hola, soy tu guía de inteligencia artificial. Tomate tu tiempo: podemos hablar de lo que necesites, a tu ritmo."
   },
   "es-UY": {
     toolkit: "Bienvenido al Kit de herramientas: un conjunto de recursos que pueden ayudarte cuando los necesites. Tomate tu tiempo y elegí lo que te haga sentido hoy.",
