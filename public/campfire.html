@@ -815,8 +815,19 @@
 
   function stopVoicePlayback(){
     voicePlaybackQueue.length = 0;
-    if(voicePlayer){ try{ voicePlayer.pause(); voicePlayer.src = ''; }catch(e){} voicePlayer = null; }
+    // A room change drops this Audio object. Its user-gesture permission belongs
+    // to that object too, so never leave the next room marked as unlocked with
+    // no player available — that made both automatic playback and Repeat silent.
+    voiceAudioUnlocked = false;
+    voiceUnlockPending = false;
+    if(voicePlayer){
+      try{ voicePlayer.pause(); voicePlayer.removeAttribute('src'); voicePlayer.load(); }catch(e){}
+      voicePlayer = null;
+    }
   }
+  const campfireVoiceUnlockEvents = ['pointerdown', 'touchend', 'click', 'keydown'];
+  const armCampfireVoiceUnlock = () => campfireVoiceUnlockEvents.forEach(event=>document.addEventListener(event, unlockCampfireVoice, { passive:true }));
+  const disarmCampfireVoiceUnlock = () => campfireVoiceUnlockEvents.forEach(event=>document.removeEventListener(event, unlockCampfireVoice));
   function unlockCampfireVoice(){
     if(voiceAudioUnlocked || voiceUnlockPending) return;
     voiceUnlockPending = true;
@@ -829,15 +840,23 @@
       try{ player.pause(); player.currentTime = 0; player.muted = false; }catch(e){}
       voiceAudioUnlocked = true;
       voiceUnlockPending = false;
+      disarmCampfireVoiceUnlock();
       if(voicePlaybackQueue.length) playCampfireVoice();
     };
-    if(ready && typeof ready.then === 'function') ready.then(finish).catch(()=>{ voiceUnlockPending = false; });
+    if(ready && typeof ready.then === 'function') ready.then(finish).catch(()=>{ voiceUnlockPending = false; armCampfireVoiceUnlock(); });
     else finish();
   }
   function playCampfireVoice(dataUrl, automatic = false){
     if((automatic && !voiceAutoPlay) || (!dataUrl && !voicePlaybackQueue.length)) return;
     if(dataUrl) voicePlaybackQueue.push(dataUrl);
-    if(!voiceAudioUnlocked || !voicePlayer || !voicePlayer.paused) return;
+    // A repeat tap must be able to recover from a blocked autoplay, a decode
+    // hiccup, or a prior room exit. Successful unlocking resumes this queue.
+    if(!voiceAudioUnlocked || !voicePlayer){
+      unlockCampfireVoice();
+      armCampfireVoiceUnlock();
+      return;
+    }
+    if(!voicePlayer.paused) return;
     const src = voicePlaybackQueue.shift();
     if(!src) return;
     const player = voicePlayer;
@@ -846,14 +865,18 @@
     player.onerror = () => {
       try{ voicePlayer.pause(); }catch(e){}
       voiceAudioUnlocked = false;
+      voiceUnlockPending = false;
       voicePlaybackQueue.unshift(src);
+      armCampfireVoiceUnlock();
     };
     player.src = src;
     const attempt = player.play();
     if(attempt && typeof attempt.catch === 'function') attempt.catch(()=>{
       voicePlaybackQueue.unshift(src);
       voiceAudioUnlocked = false;
+      voiceUnlockPending = false;
       try{ player.pause(); }catch(e){}
+      armCampfireVoiceUnlock();
     });
   }
 
@@ -1280,6 +1303,7 @@
 
   function leaveFire(){
     endActiveCall(true, true);
+    stopVoicePlayback();
     stopCallPresence();
     stopPresenceSweep();
     removeFromWaiting();
@@ -1582,7 +1606,9 @@
     if(mediaRecorder && mediaRecorder.state === 'recording') stopRecording();
     else if(!recordingStarting) beginRecording();
   });
-  document.addEventListener('pointerdown', unlockCampfireVoice, { once: true, passive: true });
+  // Keep trying early real gestures until the browser confirms audio is unlocked.
+  // A one-shot listener is unreliable on Android/iOS if the initial media play is blocked.
+  armCampfireVoiceUnlock();
 
   // ---------- private one-to-one video calls (Supabase signalling only) ----------
   const CALL_EVENT_TTL_MS = 2 * 60 * 1000;
