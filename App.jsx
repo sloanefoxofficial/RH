@@ -7099,13 +7099,13 @@ function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, set
   );
 
   const supportIntroductions = [
-    { name: "Rex", role: "Your welcomer", helps: "A friendly starting point. Rex can show you around the Hub and help you choose the right next step.", tint: "#eaf8ee", color: T.greenDk },
-    { name: "Nicolas", role: "Your main mate", helps: "An AI guide for everyday support, a check-in, routines, or simply talking through what is on your mind.", tint: "#fff3cf", color: "#8a6415" },
-    { name: "Carlos", role: "Calm & coping", helps: "An AI guide inspired by our registered psychologist. He offers gentle tools for stress, low mood, perspective and coping.", tint: "#e8f0fb", color: "#345c8d" },
-    { name: "Mick", role: "Practical life", helps: "An AI guide for housing, bills, Centrelink, tenancy and working out the next practical step.", tint: "#dff3ee", color: "#28736f" },
-    { name: "Lila", role: "People & relationships", helps: "An AI guide for family, partners, friendships, boundaries and finding the words for a hard conversation.", tint: "#fae9df", color: "#a15c43" },
-    { name: "Dr Carlos Robalino", role: "Your GP", helps: "In-person appointments or phone consultations through Fairfield Medical Centre when medical care is what you need.", tint: "#eaf1ff", color: "#345c8d" },
-    { name: "Juan", role: "Founder & 8-week program", helps: "Free, in-person lived-experience support across Western Sydney through The Resilience Hub’s 8-week program.", tint: "#e8f6ec", color: T.greenDk },
+    { name: "Rex", role: "Your welcomer", helps: "A friendly starting point. Rex can show you around the Hub and help you choose the right next step.", tint: "#d9f1f3", color: "#267780" },
+    { name: "Nicolas", role: "Your main mate", helps: "An AI guide for everyday support, a check-in, routines, or simply talking through what is on your mind.", tint: "#fff0c7", color: "#876416" },
+    { name: "Carlos", role: "Calm & coping", helps: "An AI guide inspired by our registered psychologist. He offers gentle tools for stress, low mood, perspective and coping.", tint: "#eee1f8", color: "#704b91" },
+    { name: "Mick", role: "Practical life", helps: "An AI guide for housing, bills, Centrelink, tenancy and working out the next practical step.", tint: "#e0f1d1", color: "#537a37" },
+    { name: "Lila", role: "People & relationships", helps: "An AI guide for family, partners, friendships, boundaries and finding the words for a hard conversation.", tint: "#fbe0ea", color: "#a54369" },
+    { name: "Dr Carlos Robalino", role: "Your GP", helps: "In-person appointments or phone consultations through Fairfield Medical Centre when medical care is what you need.", tint: "#e0e9fb", color: "#445f99" },
+    { name: "Juan", role: "Founder & 8-week program", helps: "Free, in-person lived-experience support across Western Sydney through The Resilience Hub’s 8-week program.", tint: "#fae7cb", color: "#956238" },
   ];
 
   return (
@@ -7184,8 +7184,8 @@ function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, set
           <button onClick={onOpenToolkit} aria-label="Open the Toolkit to help settle and feel safer" style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", minHeight: 48, border: "1px solid rgba(46,133,120,0.22)", borderRadius: 14, padding: "10px 13px", background: "rgba(255,255,255,0.78)", color: T.ink, fontWeight: 800, fontSize: 14, textAlign: "left", cursor: "pointer" }}><Wrench size={19} color="#28736f" /> Help me settle <ChevronRight size={17} color={T.sub} style={{ marginLeft: "auto" }} /></button>
           <button onClick={onOpenSafety} aria-label="Open Safety First for urgent human support" style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", minHeight: 48, border: "1px solid #efcccc", borderRadius: 14, padding: "10px 13px", background: "#fff7f5", color: "#963c43", fontWeight: 800, fontSize: 14, textAlign: "left", cursor: "pointer" }}><LifeBuoy size={19} /> Safety First <span style={{ fontSize: 12, fontWeight: 600, marginLeft: "auto" }}>urgent support</span><ChevronRight size={17} /></button>
         </div>
-        <details style={{ marginTop: 12, borderRadius: 14, background: "rgba(255,255,255,0.66)", border: "1px solid rgba(77,159,104,0.16)" }}>
-          <summary style={{ cursor: "pointer", padding: "12px 13px", color: T.greenDk, fontSize: 13.5, fontWeight: 800 }}>Meet the people here</summary>
+        <details style={{ marginTop: 12, borderRadius: 14, background: "rgba(255,255,255,0.66)", border: "1px solid rgba(38,119,128,0.26)", overflow: "hidden" }}>
+          <summary style={{ cursor: "pointer", padding: "13px 14px", display: "flex", alignItems: "center", gap: 9, listStyle: "none", background: "linear-gradient(100deg, #267780 0%, #55a4a3 100%)", color: "#fff", fontSize: 14, fontWeight: 900, letterSpacing: 0.15, boxShadow: "0 5px 13px rgba(38,119,128,0.18)" }}><Users size={18} /><span style={{ flex: 1 }}>Meet Your Support Team</span><ChevronRight size={18} /></summary>
           <div style={{ display: "grid", gap: 7, padding: "0 9px 10px" }}>
             {supportIntroductions.map(({ name, role, helps, tint, color }) => (
               <details key={name} style={{ background: tint, borderRadius: 11, border: `1px solid ${color}22` }}>
@@ -7229,7 +7229,7 @@ function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, set
       <details style={{ marginTop: 10, borderRadius: 18, border: `1px solid ${T.line}`, background: "rgba(255,255,255,0.62)", boxShadow: T.soft }}>
         <summary style={{ cursor: "pointer", padding: "15px 16px", fontWeight: 800, color: T.ink, minHeight: 24 }}>Need help choosing?</summary>
         <div style={{ padding: "0 12px 13px", display: "flex", flexDirection: "column", gap: 9 }}>
-          <button onClick={() => onOpenChat("rex")} aria-label="Chat with Rex, your welcomer" style={{ display: "flex", alignItems: "center", gap: 12, border: "none", borderRadius: 14, background: "#eef9f1", padding: 11, textAlign: "left", cursor: "pointer" }}><Portrait src={CHARS.rex.img} name="Rex" size={46} speaking={false} tint={CHARS.rex.tint} /><span style={{ flex: 1 }}><strong style={{ display: "block", color: T.ink }}>Say hi to Rex</strong><span style={{ color: T.sub, fontSize: 12.5 }}>He’ll point you in the right direction.</span></span><ChevronRight size={18} color={T.sub} /></button>
+          <button onClick={() => onOpenChat("rex")} aria-label="Chat with Rex, your welcomer" style={{ display: "flex", alignItems: "center", gap: 12, border: "none", borderRadius: 14, background: "#eef9f1", padding: 11, textAlign: "left", cursor: "pointer" }}><Portrait src={CHARS.rex.img} name="Rex" size={46} speaking={false} tint={CHARS.rex.tint} /><span style={{ flex: 1 }}><strong style={{ display: "block", color: T.ink }}>Not sure who to talk to? Rex can help</strong><span style={{ color: T.sub, fontSize: 12.5 }}>He’ll point you in the right direction.</span></span><ChevronRight size={18} color={T.sub} /></button>
           <button onClick={onOpenRexTutorial} aria-label="Watch Rex’s tutorial" style={{ display: "flex", alignItems: "center", gap: 12, border: "1px solid #d6eadb", borderRadius: 14, background: "#fff", padding: 12, textAlign: "left", cursor: "pointer" }}><Play size={21} color={T.greenDk} /><span style={{ flex: 1 }}><strong style={{ display: "block", color: T.ink }}>Watch Rex’s tutorial</strong><span style={{ color: T.sub, fontSize: 12.5 }}>A short tour of the Hub.</span></span><ChevronRight size={18} color={T.sub} /></button>
         </div>
       </details>
