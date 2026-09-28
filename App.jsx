@@ -3,7 +3,7 @@ import {
   Phone, LifeBuoy, X, Mic, Send, Square, Volume2, VolumeX,
   ArrowLeft, ArrowUp, LogOut, BookOpen, CheckCircle2, Circle, ChevronRight, ChevronUp, ChevronDown,
   ChevronLeft, Sparkles, Heart, Wind, Anchor, Play, Pause, RotateCcw, Wrench,
-  Shield, Eye, EyeOff, User, Megaphone, Youtube, ExternalLink, Radio, Paperclip, MessageCircle, Share2, Flame, HelpCircle, Plus, Search, Settings as SettingsIcon, CalendarCheck, Users, ShoppingBag, Gamepad2, Zap, Download, FileText, Clock, MapPin, DollarSign, Wifi,
+  Shield, Eye, EyeOff, User, Megaphone, Youtube, ExternalLink, Radio, Paperclip, MessageCircle, Share2, Flame, HelpCircle, Plus, Search, Settings as SettingsIcon, CalendarCheck, Users, ShoppingBag, Gamepad2, Zap, Download, FileText, Clock, MapPin, DollarSign, Wifi, Compass, Home, List,
 } from "lucide-react";
 import { IMG } from "./images.js";
 import { supabase, authEnabled, setAuthSessionPersistence } from "./supabase.js";
@@ -1629,7 +1629,7 @@ export default function App() {
         ) : screen === "toolkit" ? (
           <Toolkit voiceOn={voiceOn} speechLang={speechLang} initial={toolkitInitial} onUseTool={tickToolTask} onOpenJournal={() => { if (planOriginRef.current) openPlanDestination("journal"); else go("journal"); }} onOpenGames={() => go("games")} onBack={planOriginRef.current ? returnToPlan : back} />
         ) : screen === "resources" ? (
-          <ResourcesPage onOpenSafety={() => openTool("safety")} onOpenMensShed={() => go("mensShed")} onBack={back} />
+          <ResourcesPage onOpenSafety={() => openTool("safety")} onOpenMensShed={() => go("mensShed")} onOpenProgramInfo={() => go("programInfo")} onBack={back} />
         ) : screen === "intake" ? (
           <ProgramIntake session={session} profile={profile} onBack={back} onReturnToProgram={() => { histRef.current = []; __backDestinationLabel = "Home"; setScreen("programInfo"); setTimeout(() => document.getElementById("program-join-the-program")?.scrollIntoView({ behavior: "smooth", block: "start" }), 80); }} />
         ) : screen === "virtualSupport" ? (
@@ -8461,8 +8461,9 @@ function ProgramIntake({ session, profile, onBack, onReturnToProgram }) {
   </>;
 }
 
-function ResourcesPage({ onOpenSafety, onOpenMensShed, onBack }) {
+function ResourcesPage({ onOpenSafety, onOpenMensShed, onOpenProgramInfo, onBack }) {
   const [resourceQuery, setResourceQuery] = useState("");
+  const [tocOpen, setTocOpen] = useState(false);
   const searchAliases = {
     crisis: ["lifeline", "emergency", "suicide", "unsafe", "urgent", "danger", "safety"],
     emergency: ["crisis", "000", "ambulance", "police", "fire", "urgent", "danger"],
@@ -8485,6 +8486,10 @@ function ResourcesPage({ onOpenSafety, onOpenMensShed, onBack }) {
     youth: ["young", "children", "kids", "family"],
     community: ["connection", "group", "mateship", "social", "support"],
     local: ["fairfield", "liverpool", "western", "sydney", "bonnyrigg", "villawood", "nsw"],
+    talk: ["counselling", "counseling", "chat", "phone", "mensline", "lifeline", "support"],
+    someone: ["talk", "counselling", "counseling", "chat", "connection", "support"],
+    lonely: ["connection", "community", "group", "mateship", "support"],
+    rent: ["housing", "homeless", "accommodation", "tenancy", "money", "bills"],
   };
   const ignoredSearchWords = new Set(["a", "an", "and", "for", "find", "get", "help", "i", "in", "me", "near", "of", "the", "to", "with"]);
   const hasSearch = resourceQuery.trim().length > 0;
@@ -8500,7 +8505,7 @@ function ResourcesPage({ onOpenSafety, onOpenMensShed, onBack }) {
   const resourceCard = ({ Icon, image, imageAlt, tint, color, eyebrow, title, children, href, phone, email, onClick, actionLabel }) => {
     const searchableText = `${eyebrow} ${title} ${children} ${phone || ""} ${email || ""}`.toLowerCase();
     const searchWords = resourceQuery.toLowerCase().split(/[^a-z0-9]+/).filter((word) => word && !ignoredSearchWords.has(word));
-    const matches = !hasSearch || searchWords.length === 0 || searchWords.every((word) => searchableText.includes(word) || (searchAliases[word] || []).some((alias) => searchableText.includes(alias)));
+    const matches = !hasSearch || searchWords.length === 0 || searchWords.some((word) => searchableText.includes(word) || (searchAliases[word] || []).some((alias) => searchableText.includes(alias)));
     if (!matches) return null;
     matchedAny = true;
     const opensExternal = /^https?:\/\//i.test(href || "");
@@ -8511,30 +8516,42 @@ function ResourcesPage({ onOpenSafety, onOpenMensShed, onBack }) {
     return <button type="button" onClick={onClick} style={style}>{body}</button>;
   };
   const toc = [
-    ["resources-immediate", "Immediate support"], ["resources-virtual", "Virtual support from home"], ["resources-community", "Community and connection"], ["resources-food", "Food and meals"], ["resources-housing", "Housing and essentials"], ["resources-money", "Legal, money and bills"], ["resources-recovery", "Addiction recovery"], ["resources-wellbeing", "Wellbeing and activities"], ["resources-family", "Family, children and youth"], ["resources-health", "Health and wellbeing"], ["resources-safety", "Stay safe"],
+    ["resources-juan", "Juan’s program"], ["resources-immediate", "Immediate support"], ["resources-virtual", "Support from home"], ["resources-community", "Connection"], ["resources-food", "Food and meals"], ["resources-housing", "Housing"], ["resources-money", "Money and bills"], ["resources-recovery", "Recovery"], ["resources-wellbeing", "Wellbeing"], ["resources-family", "Family and youth"], ["resources-health", "Health"], ["resources-safety", "Stay safe"],
+  ];
+  const quickSearches = [
+    ["crisis", "I need urgent help", LifeBuoy, "#c94f4f"],
+    ["talk", "Someone to talk to", MessageCircle, "#28736f"],
+    ["housing", "A place to live", Home, "#4e7c9e"],
+    ["food", "Food or essentials", ShoppingBag, "#9a7419"],
   ];
   return (
     <>
       <Brand right={<BackBtn onBack={onBack} />} />
-      <div style={{ background: "linear-gradient(135deg, #e5f5ea 0%, #f8fcf9 54%, #fff0e4 100%)", borderRadius: 24, padding: "22px 19px 20px", marginTop: 7, boxShadow: T.soft, border: `1px solid ${T.line}`, position: "relative", overflow: "hidden" }}>
-        <div style={{ position: "absolute", width: 170, height: 170, borderRadius: "50%", background: "rgba(255,255,255,0.45)", top: -95, right: -55 }} />
-        <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 8, color: T.greenDk, fontSize: 11, fontWeight: 900, letterSpacing: 1, textTransform: "uppercase" }}><BookOpen size={15} /> Practical support, services &amp; connection</div>
-        <h1 style={{ position: "relative", fontSize: 28, lineHeight: 1.12, margin: "9px 0 7px", color: T.greenDk }}>Support Directory</h1>
-        <div style={{ position: "relative", display: "flex", alignItems: "flex-start", gap: 7, padding: "9px 10px", margin: "0 0 10px", borderRadius: 12, background: "rgba(255,255,255,0.64)", border: "1px solid rgba(77,159,104,0.14)", color: T.sub, fontSize: 11.5, lineHeight: 1.42 }}><Shield size={15} color={T.greenDk} style={{ flexShrink: 0, marginTop: 1 }} /><span>All listed services are recommendations only. We do not run or manage them. Always check directly with each provider for current details.</span></div>
-        <p style={{ position: "relative", fontSize: 13.5, color: T.sub, lineHeight: 1.55, margin: 0 }}>A clear starting place for practical services, community connections, recovery support, safety, and everyday help. Information and availability can change, so check before travelling.</p>
-        <div style={{ position: "relative", marginTop: 14 }}>
-          <label htmlFor="resource-directory-search" style={{ display: "block", fontSize: 12.5, fontWeight: 800, color: T.greenDk, marginBottom: 6 }}>What kind of help are you looking for?</label>
+      <div style={{ background: "linear-gradient(135deg, #dff4e8 0%, #f6fbf7 48%, #ffe8d7 100%)", borderRadius: 26, padding: "22px 18px 18px", marginTop: 7, boxShadow: "0 12px 28px rgba(37,78,54,0.10)", border: `1px solid ${T.line}`, position: "relative", overflow: "hidden" }}>
+        <div style={{ position: "absolute", width: 190, height: 190, borderRadius: "50%", background: "rgba(255,255,255,0.48)", top: -105, right: -60 }} />
+        <div style={{ position: "relative", display: "inline-flex", alignItems: "center", gap: 7, color: T.greenDk, fontSize: 10.5, fontWeight: 900, letterSpacing: 1, textTransform: "uppercase", background: "rgba(255,255,255,0.7)", borderRadius: 999, padding: "7px 10px" }}><Compass size={14} /> Start where you are</div>
+        <h1 style={{ position: "relative", fontSize: 29, lineHeight: 1.08, margin: "12px 0 7px", color: T.greenDk }}>Find your next step</h1>
+        <p style={{ position: "relative", fontSize: 14, color: T.sub, lineHeight: 1.5, margin: 0, maxWidth: 460 }}>Search by what you need today — or choose a starting point below. You do not need to know the name of a service first.</p>
+        <div style={{ position: "relative", marginTop: 15 }}>
+          <label htmlFor="resource-directory-search" style={{ display: "block", fontSize: 12.5, fontWeight: 850, color: T.greenDk, marginBottom: 6 }}>What would help right now?</label>
           <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
             <Search size={18} color={T.sub} style={{ position: "absolute", left: 13, pointerEvents: "none" }} />
-            <input id="resource-directory-search" type="search" value={resourceQuery} onChange={(event) => setResourceQuery(event.target.value)} placeholder="Try: housing, food, doctor, crisis, bills…" aria-describedby="resource-search-hint" style={{ width: "100%", boxSizing: "border-box", border: `1px solid ${T.line}`, borderRadius: 14, padding: "11px 42px 11px 40px", background: "rgba(255,255,255,0.9)", color: T.ink, fontSize: 14, outline: "none", boxShadow: "0 4px 12px rgba(37,78,54,0.05)" }} />
-            {hasSearch && <button type="button" onClick={() => setResourceQuery("")} aria-label="Clear resource search" style={{ position: "absolute", right: 9, width: 28, height: 28, border: "none", borderRadius: 999, background: "#edf5ef", color: T.greenDk, display: "grid", placeItems: "center", cursor: "pointer" }}><X size={15} /></button>}
+            <input id="resource-directory-search" type="search" value={resourceQuery} onChange={(event) => setResourceQuery(event.target.value)} placeholder="Try “someone to talk to”, housing, food…" aria-describedby="resource-search-hint" style={{ width: "100%", boxSizing: "border-box", border: `2px solid rgba(77,159,104,0.24)`, borderRadius: 15, padding: "12px 42px 12px 40px", background: "rgba(255,255,255,0.94)", color: T.ink, fontSize: 14, outline: "none", boxShadow: "0 5px 14px rgba(37,78,54,0.08)" }} />
+            {hasSearch && <button type="button" onClick={() => setResourceQuery("")} aria-label="Clear resource search" style={{ position: "absolute", right: 9, width: 30, height: 30, border: "none", borderRadius: 999, background: "#edf5ef", color: T.greenDk, display: "grid", placeItems: "center", cursor: "pointer" }}><X size={15} /></button>}
           </div>
-          <div id="resource-search-hint" style={{ marginTop: 6, color: T.sub, fontSize: 11.5 }}>Searches service names and descriptions, including related words and common terms.</div>
+          <div id="resource-search-hint" style={{ marginTop: 6, color: T.sub, fontSize: 11.5 }}>Matches service names, descriptions, and related words. One matching idea is enough.</div>
         </div>
-        <div id="resources-toc" style={{ position: "relative", scrollMarginTop: 18, marginTop: 16, padding: 13, borderRadius: 17, background: "rgba(255,255,255,0.68)", border: "1px solid rgba(77,159,104,0.14)" }}>
-          <div style={{ fontWeight: 800, color: T.greenDk, fontSize: 13.5, marginBottom: 8 }}>On this page</div>
-          <div style={{ display: "grid", gap: 5 }}>{toc.map(([id, label]) => <button key={id} onClick={() => jump(id)} style={{ border: "none", background: "none", padding: "4px 0", textAlign: "left", color: T.ink, fontSize: 12.5, cursor: "pointer", display: "flex", alignItems: "center", gap: 7 }}><ChevronRight size={14} color={T.green} />{label}</button>)}</div>
+        <div style={{ position: "relative", display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 7, marginTop: 12 }}>
+          {quickSearches.map(([query, label, Icon, color]) => <button key={query} type="button" onClick={() => setResourceQuery(query)} style={{ display: "flex", alignItems: "center", gap: 7, minHeight: 42, border: `1px solid ${color}33`, borderRadius: 13, padding: "8px 9px", background: "rgba(255,255,255,0.7)", color: T.ink, textAlign: "left", fontSize: 11.5, fontWeight: 800, cursor: "pointer" }}><span style={{ width: 27, height: 27, borderRadius: 9, display: "grid", placeItems: "center", background: `${color}1b`, flexShrink: 0 }}><Icon size={15} color={color} /></span>{label}</button>)}
         </div>
+        <div id="resources-toc" style={{ position: "relative", scrollMarginTop: 18, marginTop: 14, borderRadius: 16, background: "rgba(255,255,255,0.72)", border: "1px solid rgba(77,159,104,0.14)", overflow: "hidden" }}>
+          <button type="button" onClick={() => setTocOpen((open) => !open)} aria-expanded={tocOpen} aria-controls="resources-toc-list" style={{ width: "100%", border: "none", background: "transparent", padding: "12px 13px", display: "flex", alignItems: "center", gap: 9, color: T.greenDk, cursor: "pointer", textAlign: "left" }}><span style={{ width: 31, height: 31, borderRadius: 10, background: "#e4f2e9", display: "grid", placeItems: "center" }}><List size={17} color={T.greenDk} /></span><span style={{ flex: 1 }}><strong style={{ display: "block", fontSize: 13.5 }}>Browse by need</strong><span style={{ display: "block", color: T.sub, fontSize: 11.5, marginTop: 2 }}>Jump straight to the kind of support you want</span></span><ChevronDown size={18} style={{ transform: tocOpen ? "rotate(180deg)" : "none", transition: "transform .18s ease" }} /></button>
+          {tocOpen && <div id="resources-toc-list" style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 7, padding: "0 10px 11px" }}>{toc.map(([id, label], index) => <button key={id} type="button" onClick={() => jump(id)} style={{ border: `1px solid ${index === 0 ? "#b9ddc3" : T.line}`, background: index === 0 ? "#edf8f0" : "rgba(255,255,255,0.76)", borderRadius: 11, padding: "9px 8px", textAlign: "left", color: T.ink, fontSize: 11.5, fontWeight: 750, cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}><ChevronRight size={14} color={index === 0 ? T.greenDk : T.sub} />{label}</button>)}</div>}
+        </div>
+      </div>
+
+      <div id="resources-juan" style={{ scrollMarginTop: 18, marginTop: 16 }}>
+        {resourceCard({ Icon: Users, tint: "#e2f3e8", color: T.greenDk, eyebrow: "The Resilience Hub · Western Sydney", title: "Juan’s free 8-week in-person support program", onClick: onOpenProgramInfo, actionLabel: "Learn about the program", children: "Practical, person-to-person support for men across Fairfield, Liverpool, Western Sydney and beyond — with lived experience, steady check-ins, and help finding your next step." })}
       </div>
 
       {sectionLabel("resources-immediate", LifeBuoy, "Immediate support", "If things feel urgent or unsafe, these are the first places to reach out.", "#c94f4f")}
