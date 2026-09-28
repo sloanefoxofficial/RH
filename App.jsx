@@ -275,7 +275,7 @@ You are Mick — calm, practical support for real-life logistics: housing, bills
   },
   lila: {
     slug: "lila", name: "Lila", role: "Family & relationships",
-    img: IMG.lila, tint: "#f4d8c8", voice: { pitch: 1.12, rate: 1.0 }, standby: true, voiceId: "en-AU-Chirp3-HD-Leda",
+    img: IMG.lila, tint: "#f4d8c8", voice: { pitch: 1.12, rate: 1.0 }, standby: true, voiceId: "en-AU-Chirp3-HD-Leda", voiceGender: "FEMALE",
     system: `${SHARED}
 You are Lila — warm, gentle support for connection: relationships, boundaries, and understanding or repairing family and friendships. You're tapped in when Nicolas or Carlos needs a specialist hand; you never take over the main journey. Help the person find their own words and small next steps. Never tell someone to stay in or leave a relationship — help them think it through, and where there's any risk of harm, gently surface support services.`,
   },
@@ -2248,9 +2248,10 @@ if (typeof window !== "undefined") {
 const __ttsCache = new Map(); // "voiceId|text" -> object URL
 const __ttsPending = new Map(); // same key -> in-flight request, preventing duplicate fetches during prefetch/playback
 const __TTS_CACHE_MAX = 24;
-async function fetchTtsUrl(text, voiceId, languageCode = __speechLang) {
+async function fetchTtsUrl(text, voiceId, languageCode = __speechLang, voiceGender = "MALE") {
   const lang = languageCode || __speechLang;
-  const key = lang + "|" + voiceId + "|" + text;
+  const gender = voiceGender === "FEMALE" ? "FEMALE" : "MALE";
+  const key = lang + "|" + gender + "|" + voiceId + "|" + text;
   const hit = __ttsCache.get(key);
   if (hit) return hit;
   const pending = __ttsPending.get(key);
@@ -2262,7 +2263,7 @@ async function fetchTtsUrl(text, voiceId, languageCode = __speechLang) {
         const res = await fetch("/api/tts", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text, voiceId, languageCode: lang }),
+          body: JSON.stringify({ text, voiceId, languageCode: lang, voiceGender: gender }),
         });
         if (!res.ok) throw new Error(`tts_failed_${res.status}`);
         const blob = await res.blob();
@@ -2455,7 +2456,7 @@ function useVoice(voiceOn) {
         // chunk was prefetched, so longer replies could pause after sentence
         // two while the following audio was still being generated.
         const chunkPromises = chunks.map(() => null);
-        if (chunks.length) chunkPromises[0] = fetchTtsUrl(chunks[0], char.voiceId);
+        if (chunks.length) chunkPromises[0] = fetchTtsUrl(chunks[0], char.voiceId, __speechLang, char.voiceGender);
         const playChunk = async (index, urlPromise, retry = 0) => {
           if (stale()) return;
           const chunk = chunks[index] || text;
@@ -2466,7 +2467,7 @@ function useVoice(voiceOn) {
           const failVoice = () => { setSpeaking(false); if (onDone) onDone(); };
           let url;
           try {
-            const audioPromise = urlPromise || fetchTtsUrl(chunk, char.voiceId);
+            const audioPromise = urlPromise || fetchTtsUrl(chunk, char.voiceId, __speechLang, char.voiceGender);
             if (index === 0) {
               const firstResult = await Promise.race([
                 audioPromise.then((value) => ({ kind: "audio", value })),
@@ -2483,7 +2484,7 @@ function useVoice(voiceOn) {
           catch { if (!stale()) fishVoice ? failVoice() : browserSpeak(chunk, char, index + 1 < chunks.length ? () => playChunk(index + 1, chunkPromises[index + 1]) : onDone); return; }
           if (stale()) return;
           if (index + 1 < chunks.length && !chunkPromises[index + 1]) {
-            chunkPromises[index + 1] = fetchTtsUrl(chunks[index + 1], char.voiceId);
+            chunkPromises[index + 1] = fetchTtsUrl(chunks[index + 1], char.voiceId, __speechLang, char.voiceGender);
           }
           const audio = getTtsAudio() || new Audio();
           audioRef.current = audio;
@@ -2494,7 +2495,7 @@ function useVoice(voiceOn) {
             if (index + 1 < chunks.length) {
               // Fetch the following chunk just-in-time; the prior prefetch makes
               // this normally a cache hit and keeps the transition quick.
-              if (!chunkPromises[index + 1]) chunkPromises[index + 1] = fetchTtsUrl(chunks[index + 1], char.voiceId);
+              if (!chunkPromises[index + 1]) chunkPromises[index + 1] = fetchTtsUrl(chunks[index + 1], char.voiceId, __speechLang, char.voiceGender);
               playChunk(index + 1, chunkPromises[index + 1]);
             } else {
               setSpeaking(false);
@@ -2546,7 +2547,7 @@ function useVoice(voiceOn) {
   // Warm the cache for a line we're about to need (no playback).
   const prefetch = useCallback((text, char) => {
     if (!voiceOn || !text || !char || !char.voiceId) return;
-    fetchTtsUrl(text, char.voiceId).catch(() => {});
+    fetchTtsUrl(text, char.voiceId, __speechLang, char.voiceGender).catch(() => {});
   }, [voiceOn]);
 
   return { speak, stop, speaking, paused, pauseResume, prefetch };

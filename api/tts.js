@@ -5,12 +5,14 @@ const FISH_ENDPOINT = "https://api.fish.audio/v1/tts";
 const FISH_MODEL = process.env.FISH_MODEL || "s2.1-pro-free";
 const FISH_KEY = process.env.FISH_API_KEY || process.env.FISH_AUDIO_API_KEY || process.env.FISH_AUDIO_KEY || "";
 
-async function googleSynth(text, voiceName, key, languageCode = "en-AU") {
+async function googleSynth(text, voiceName, key, languageCode = "en-AU", voiceGender = "MALE") {
   const voice = { languageCode: languageCode || "en-AU" };
-  // Keep the male guide feel in every supported language. A named English
-  // persona voice is retained only for English; Google chooses an appropriate
-  // male multilingual voice from the requested locale for all other languages.
-  if (languageCode && languageCode !== "en-AU") voice.ssmlGender = "MALE";
+  // Keep the established male guide feel by default, while respecting Lila's
+  // dedicated female voice in both Guides and Journal. A named English persona
+  // voice is retained for English; Google chooses a matching locale voice for
+  // every other selected app language.
+  const requestedGender = voiceGender === "FEMALE" ? "FEMALE" : "MALE";
+  if (languageCode && languageCode !== "en-AU") voice.ssmlGender = requestedGender;
   if (!languageCode || languageCode === "en-AU") voice.name = voiceName;
   try {
     const response = await fetch(`https://texttospeech.googleapis.com/v1beta1/text:synthesize?key=${key}`, {
@@ -22,7 +24,7 @@ async function googleSynth(text, voiceName, key, languageCode = "en-AU") {
     if (!response.ok || !data.audioContent) {
       // Some Google locales expose no separately gendered voice. Preserve
       // language accuracy in that case rather than failing into browser speech.
-      if (voice.ssmlGender === "MALE") {
+      if (voice.ssmlGender) {
         const fallback = await fetch(`https://texttospeech.googleapis.com/v1beta1/text:synthesize?key=${key}`, {
           method: "POST",
           headers: { "content-type": "application/json" },
@@ -78,6 +80,7 @@ export default async function handler(req, res) {
     const text = String(body.text || "").slice(0, 2500);
     const voiceId = body.voiceId;
     const languageCode = typeof body.languageCode === "string" ? body.languageCode : "en-AU";
+    const voiceGender = body.voiceGender === "FEMALE" ? "FEMALE" : "MALE";
     if (!text || !voiceId) {
       res.status(400).json({ error: "missing_text_or_voice" });
       return;
@@ -92,11 +95,11 @@ export default async function handler(req, res) {
     if (useFishVoice) {
       audio = await fishSynth(text, voiceId.slice(5));
       if (!audio && process.env.GOOGLE_TTS_KEY) {
-        audio = await googleSynth(text, process.env.FISH_FALLBACK_VOICE || "en-AU-Chirp3-HD-Umbriel", process.env.GOOGLE_TTS_KEY, languageCode);
+        audio = await googleSynth(text, process.env.FISH_FALLBACK_VOICE || "en-AU-Chirp3-HD-Umbriel", process.env.GOOGLE_TTS_KEY, languageCode, voiceGender);
       }
     } else {
       if (process.env.GOOGLE_TTS_KEY) {
-        audio = await googleSynth(text, voiceId, process.env.GOOGLE_TTS_KEY, languageCode);
+        audio = await googleSynth(text, voiceId, process.env.GOOGLE_TTS_KEY, languageCode, voiceGender);
       }
       // Cloud TTS does not publish every language represented in the Hub (for
       // example, some Persian/Dari variants). Fish's current model supports a
