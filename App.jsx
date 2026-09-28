@@ -3568,11 +3568,7 @@ function Login({ stayLoggedIn = true, onStayLoggedInChange, uiLanguage = DEFAULT
             tools whenever you need them. It's a support tool — not a replacement for a doctor,
             psychologist, or emergency service.
           </p>
-          <div style={{ marginTop: 14, padding: "12px 13px", borderRadius: 15, background: "linear-gradient(135deg, #f2faf4, #fffaf0)", border: "1px solid rgba(77,159,104,0.18)" }}>
-            <div style={{ fontWeight: 800, fontSize: 13.5, color: T.ink, marginBottom: 4 }}>A quick update from The Resilience Hub</div>
-            <div style={{ fontSize: 12.5, color: T.sub, lineHeight: 1.45 }}>We’ve made privacy, account-access, and reliability improvements. If anything seems unusual, please contact us rather than repeatedly resetting your account or clearing browser data.</div>
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 14 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             {[
               { Icon: MessageCircle, label: "AI guides, any time" },
               { Icon: CalendarCheck, label: "An optional 8-week plan" },
