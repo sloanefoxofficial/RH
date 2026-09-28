@@ -8,6 +8,7 @@ import {
 import { IMG } from "./images.js";
 import { supabase, authEnabled, setAuthSessionPersistence } from "./supabase.js";
 import { createUserVault, unlockUserVault, encryptJson, decryptJson, isEncrypted, encryptForTeam, decryptTeamForUser, getConfiguredTeamPublicKey, importTeamPublicKey, enableDeviceUnlock, disableDeviceUnlock, unlockWithDevice } from "./securityVault.js";
+import { DEFAULT_UI_LANGUAGE, UI_LANGUAGES, getUiLanguage, isUiLanguage, loadLocalePack, setActiveLocalePack, localizedSpeech, localizeDom } from "./i18n.js";
 
 /* ------------------------------------------------------------------ *
  * The Resilience Hub — hosted build (React front end + /api/chat backend)
@@ -26,6 +27,11 @@ const T = {
   soft: "0 8px 24px rgba(47,97,72,0.08), 0 2px 7px rgba(47,97,72,0.05)",
   lift: "0 20px 50px rgba(47,97,72,0.15), 0 6px 16px rgba(47,97,72,0.09)",
 };
+
+// This is distinct from a device/browser locale. It persists inside the
+// member's encrypted profile and keeps visible copy, voice, and guide replies
+// aligned with the person's choice.
+let __uiLanguage = DEFAULT_UI_LANGUAGE;
 
 // The router records the actual screen a person came from. Any top back
 // button without a fixed local parent uses this label, rather than a vague
@@ -308,7 +314,7 @@ async function extractMemories(existing, conversation) {
   try {
     const convo = conversation.slice(-12).map((m) => `${m.role === "user" ? "Person" : "Guide"}: ${typeof m.content === "string" ? m.content : "[photo]"}`).join("\n");
     const reply = await callModel({
-      system: MEMORY_EXTRACT_SYSTEM, maxTokens: 600,
+      system: MEMORY_EXTRACT_SYSTEM, maxTokens: 600, outputLanguage: false,
       messages: [{ role: "user", content: `Current notes: ${JSON.stringify(existing || [])}\n\nRecent conversation:\n${convo}\n\nReturn the updated notes.` }],
     });
     const clean = reply.split("\u0060\u0060\u0060json").join("").split("\u0060\u0060\u0060").join("").trim();
@@ -332,7 +338,13 @@ function contextBlock(profile, answers) {
   return s;
 }
 
-async function callModel({ system, messages, maxTokens = 1000, timeoutMs = 90000, onText }) {
+function selectedGuideLanguageInstruction() {
+  const language = getUiLanguage(__uiLanguage);
+  if (language.code === DEFAULT_UI_LANGUAGE) return "";
+  return `\n\nLANGUAGE REQUIREMENT: Reply entirely in ${language.label} (${language.nativeLabel}). Keep phone numbers, 000, Lifeline 13 11 14, MensLine 1300 78 99 78, names, and service names accurate. Do not translate the user's own quoted words unless they ask you to.`;
+}
+
+async function callModel({ system, messages, maxTokens = 1000, timeoutMs = 90000, onText, outputLanguage = true }) {
   let res;
   let timer;
   let controller;
@@ -343,7 +355,7 @@ async function callModel({ system, messages, maxTokens = 1000, timeoutMs = 90000
       res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ system, messages, max_tokens: maxTokens }),
+        body: JSON.stringify({ system: outputLanguage ? `${system}${selectedGuideLanguageInstruction()}` : system, messages, max_tokens: maxTokens }),
         signal: controller.signal,
       });
     } catch (error) {
@@ -529,6 +541,14 @@ export default function App() {
   const [dataHydrated, setDataHydrated] = useState(false);
   const [screen, setScreen] = useState("welcome"); // welcome | onboarding | hub | chat | journal
   const [profile, setProfile] = useState(null);
+  const [uiLanguage, setUiLanguage] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem("rh_ui_language") || "\"\"");
+      return isUiLanguage(saved) ? saved : DEFAULT_UI_LANGUAGE;
+    } catch { return DEFAULT_UI_LANGUAGE; }
+  });
+  const [localePack, setLocalePack] = useState(null);
+  const appRootRef = useRef(null);
   const [answers, setAnswers] = useState({});
   const [plan, setPlan] = useState(null);
   const [progress, setProgress] = useState({});
@@ -599,6 +619,40 @@ export default function App() {
   const activeCharRef = useRef(activeChar);
   screenRef.current = screen;
   activeCharRef.current = activeChar;
+  useEffect(() => {
+    let cancelled = false;
+    const language = getUiLanguage(uiLanguage);
+    __uiLanguage = language.code;
+    __speechLang = language.speechCode;
+    document.documentElement.lang = language.htmlLang;
+    document.documentElement.dir = language.rtl ? "rtl" : "ltr";
+    document.documentElement.dataset.rhLanguage = language.code;
+    setActiveLocalePack({ strings: {}, speech: {} });
+    setLocalePack({ strings: {}, speech: {} });
+    document.title = language.code === DEFAULT_UI_LANGUAGE ? "The Resilience Hub" : (localePack?.strings?.["The Resilience Hub"] || "The Resilience Hub");
+    let observer;
+    (async () => {
+      const pack = await loadLocalePack(language.code);
+      if (cancelled) return;
+      const apply = () => localizeDom(appRootRef.current, pack);
+      setActiveLocalePack(pack);
+      setLocalePack(pack);
+      document.title = language.code === DEFAULT_UI_LANGUAGE ? "The Resilience Hub" : (pack.strings?.["The Resilience Hub"] || "The Resilience Hub");
+      apply();
+      observer = new MutationObserver(() => {
+        // React regularly replaces text nodes during state changes. Re-apply
+        // only after that render has settled; custom member content is never a
+        // source-key match and remains exactly as the person wrote it.
+        queueMicrotask(apply);
+      });
+      if (appRootRef.current) observer.observe(appRootRef.current, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ["aria-label", "placeholder", "title", "alt"] });
+    })();
+    return () => { cancelled = true; observer?.disconnect(); };
+  }, [uiLanguage]);
+  useEffect(() => {
+    if (!localePack) return;
+    localizeDom(appRootRef.current, localePack);
+  }, [localePack, screen]);
   const activityDisplayName = profile?.name || session?.user?.user_metadata?.full_name || "Member";
   useActivityTracking({ session, screen, displayName: activityDisplayName, enabled: activityTrackingOn, ready: ready && authChecked && !guestMode });
   const [vaultMeta, setVaultMeta] = useState(null);
@@ -892,8 +946,14 @@ export default function App() {
       const replyOn = typeof ar === "boolean" ? ar : (typeof oldAuto === "boolean" ? oldAuto : true);
       setAutoIntroVoiceOn(introOn); setAutoReplyVoiceOn(replyOn);
       __autoIntroVoiceOn = introOn; __autoReplyVoiceOn = replyOn;
-      const sl = await sget("rh_speech_lang");
-      if (sl && SPEECH_LANGS.some((l) => l.code === sl)) { setSpeechLang(sl); __speechLang = sl; }
+      const savedUiLanguage = await sget("rh_ui_language");
+      if (isUiLanguage(savedUiLanguage)) {
+        const language = getUiLanguage(savedUiLanguage);
+        setUiLanguage(language.code); setSpeechLang(language.speechCode); __speechLang = language.speechCode;
+      } else {
+        const sl = await sget("rh_speech_lang");
+        if (sl && SPEECH_LANGS.some((l) => l.code === sl)) { setSpeechLang(sl); __speechLang = sl; }
+      }
       const savedJournalPin = await sget(JOURNAL_PIN_STORAGE_KEY);
       if (savedJournalPin?.hash) setJournalPinSet(true);
       const consent = await sget("rh_consent");
@@ -919,7 +979,14 @@ export default function App() {
       const resolvedJournal = remoteFirst ? plain?.journal : (j || plain?.journal);
       const resolvedChats = remoteFirst ? plain?.chats : (c || plain?.chats);
       const resolvedMemories = remoteFirst ? plain?.memories : (mem || plain?.memories);
-      if (resolvedProfile) { setProfile(resolvedProfile); if (resolvedProfile.planPath === "short" || resolvedProfile.planPath === "full") setOnbMode(resolvedProfile.planPath); }
+      if (resolvedProfile) {
+        setProfile(resolvedProfile);
+        if (isUiLanguage(resolvedProfile.uiLanguage)) {
+          const language = getUiLanguage(resolvedProfile.uiLanguage);
+          setUiLanguage(language.code); setSpeechLang(language.speechCode); __speechLang = language.speechCode;
+        }
+        if (resolvedProfile.planPath === "short" || resolvedProfile.planPath === "full") setOnbMode(resolvedProfile.planPath);
+      }
       if (resolvedAnswers) setAnswers(resolvedAnswers);
       if (resolvedPlan) setPlan(resolvedPlan);
       if (resolvedProgress) setProgress(resolvedProgress);
@@ -1013,6 +1080,15 @@ export default function App() {
       return merged;
     });
   }, [persistSensitiveCache, syncMemberData]);
+  const saveUiLanguage = useCallback((nextCode) => {
+    if (!isUiLanguage(nextCode)) return;
+    const language = getUiLanguage(nextCode);
+    setUiLanguage(language.code); __uiLanguage = language.code;
+    setSpeechLang(language.speechCode); __speechLang = language.speechCode;
+    void sset("rh_ui_language", language.code);
+    void sset("rh_speech_lang", language.speechCode);
+    saveProfile({ uiLanguage: language.code });
+  }, [saveProfile]);
   useEffect(() => {
     // A new account can finish onboarding before sessionRef is populated. Once
     // the account and member data are hydrated, make one reliable follow-up
@@ -1154,15 +1230,16 @@ export default function App() {
     }
   }, []);
 
-  const saveSettings = useCallback(({ textScale: ts, reduceMotion: rm, responseSpeed: rs, speechLang: sl, autoIntroVoice: ai, autoReplyVoice: ar, activityTracking: at }) => {
+  const saveSettings = useCallback(({ textScale: ts, reduceMotion: rm, responseSpeed: rs, speechLang: sl, uiLanguage: ul, autoIntroVoice: ai, autoReplyVoice: ar, activityTracking: at }) => {
     if (typeof ts === "number") { setTextScale(ts); sset("rh_text_scale", ts); }
     if (typeof rm === "boolean") { setReduceMotion(rm); sset("rh_reduce_motion", rm); }
     if (rs === "chilled" || rs === "normal" || rs === "fast") { setResponseSpeed(rs); sset("rh_response_speed", rs); }
+    if (isUiLanguage(ul)) { saveUiLanguage(ul); }
     if (sl && SPEECH_LANGS.some((l) => l.code === sl)) { setSpeechLang(sl); __speechLang = sl; sset("rh_speech_lang", sl); }
     if (typeof ai === "boolean") { setAutoIntroVoiceOn(ai); __autoIntroVoiceOn = ai; sset("rh_auto_intro_voice", ai); }
     if (typeof ar === "boolean") { setAutoReplyVoiceOn(ar); __autoReplyVoiceOn = ar; sset("rh_auto_reply_voice", ar); }
     if (typeof at === "boolean") { setActivityTrackingOn(at); sset(ACTIVITY_PREF_KEY, at); }
-  }, []);
+  }, [saveUiLanguage]);
 
   const setJournalPin = useCallback(async (pin, question, answer) => {
     const hash = await hashJournalPin(pin);
@@ -1181,9 +1258,10 @@ export default function App() {
   }, [syncMemberData]);
 
   const restoreDefaultSettings = useCallback(() => {
-    setTextScale(1); setReduceMotion(false); setResponseSpeed("normal"); setSpeechLang("en-AU"); setAutoIntroVoiceOn(true); setAutoReplyVoiceOn(true); __autoIntroVoiceOn = true; __autoReplyVoiceOn = true; __speechLang = "en-AU";
-    sset("rh_text_scale", 1); sset("rh_reduce_motion", false); sset("rh_response_speed", "normal"); sset("rh_speech_lang", "en-AU"); sset("rh_auto_intro_voice", true); sset("rh_auto_reply_voice", true);
-  }, []);
+    setTextScale(1); setReduceMotion(false); setResponseSpeed("normal"); setAutoIntroVoiceOn(true); setAutoReplyVoiceOn(true); __autoIntroVoiceOn = true; __autoReplyVoiceOn = true;
+    sset("rh_text_scale", 1); sset("rh_reduce_motion", false); sset("rh_response_speed", "normal"); sset("rh_auto_intro_voice", true); sset("rh_auto_reply_voice", true);
+    saveUiLanguage(DEFAULT_UI_LANGUAGE);
+  }, [saveUiLanguage]);
 
   useEffect(() => {
     const lockWhenHidden = () => {
@@ -1487,10 +1565,10 @@ export default function App() {
   const signOut = async () => { const accountId = sessionRef.current?.user?.id; try { await supabase.auth.signOut(); } catch {} clearLocalDeviceCache(accountId); setIsAdmin(false); setScreen("hub"); };
 
   return (
-    <div style={{ minHeight: "100vh", color: T.ink,
+    <div ref={appRootRef} className={getUiLanguage(uiLanguage).rtl ? "rh-app-shell rh-app-rtl" : "rh-app-shell"} style={{ minHeight: "100vh", color: T.ink,
       background: `radial-gradient(90% 55% at 12% 0%, rgba(63,111,175,0.07), transparent 60%), radial-gradient(80% 50% at 92% 12%, rgba(47,158,147,0.07), transparent 55%), linear-gradient(180deg, ${T.bgTop} 0%, ${T.bgMid} 46%, ${T.bgBot} 100%)`,
       backgroundAttachment: "fixed",
-      fontFamily: "'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif" }}>
+      fontFamily: "'Inter', 'Noto Sans Arabic', 'Noto Sans Devanagari', 'Noto Sans Bengali', 'Noto Sans Tamil', 'Noto Sans Malayalam', 'Noto Sans SC', 'Noto Sans TC', 'Segoe UI', system-ui, -apple-system, sans-serif" }}>
       <StyleTag />
       {reduceMotion && <style>{`*{animation:none!important;transition:none!important}`}</style>}
       <div style={{ maxWidth: 460, margin: "0 auto", padding: "0 16px 132px", position: "relative", zIndex: 1, zoom: textScale }}>
@@ -1650,7 +1728,7 @@ export default function App() {
         ) : screen === "admin" ? (
           <Admin isAdmin={isAdmin} guidePrompts={guidePrompts} onSaveGuidePrompt={saveGuidePrompt} onBack={back} />
         ) : screen === "profile" ? (
-          <Profile session={session} profile={profile} answers={answers} saveProfile={saveProfile} saveAnswers={saveAnswers} persistCampfireAccess={persistCampfireAccess} onReset={resetAll} onOpenMemory={() => go("memory")} onBack={back} />
+          <Profile session={session} profile={profile} answers={answers} saveProfile={saveProfile} saveAnswers={saveAnswers} persistCampfireAccess={persistCampfireAccess} uiLanguage={uiLanguage} onChangeUiLanguage={saveUiLanguage} onReset={resetAll} onOpenMemory={() => go("memory")} onBack={back} />
         ) : screen === "notifications" ? (
           <Notifications session={session} onBack={back} />
         ) : screen === "coordinator" ? (
@@ -1673,7 +1751,7 @@ export default function App() {
           <MemoryManager memories={memories} memoryOn={memoryOn}
             onSave={(list, on) => saveMemories(list, on)} onBack={back} />
         ) : screen === "settings" ? (
-              <Settings textScale={textScale} reduceMotion={reduceMotion} responseSpeed={responseSpeed} speechLang={speechLang} autoIntroVoice={autoIntroVoiceOn} autoReplyVoice={autoReplyVoiceOn} activityTrackingOn={activityTrackingOn}
+              <Settings textScale={textScale} reduceMotion={reduceMotion} responseSpeed={responseSpeed} speechLang={speechLang} uiLanguage={uiLanguage} onChangeUiLanguage={saveUiLanguage} autoIntroVoice={autoIntroVoiceOn} autoReplyVoice={autoReplyVoiceOn} activityTrackingOn={activityTrackingOn}
               journalPinSet={journalPinSet} journalPinQuestion={journalPinQuestion} journalPinHash={journalPinHash} journalPinAnswerHash={journalPinAnswerHash} onSetJournalPin={setJournalPin} onClearJournalPin={clearJournalPin} deviceUnlockEnabled={deviceUnlockEnabled} onSetDeviceUnlock={setDeviceUnlockPreference}
             installPromptAvailable={Boolean(installPromptEvent)} isStandalone={isStandalone} onPromptInstall={promptAppInstall}
             session={session} authEnabled={showAuth} onSave={saveSettings} onRestoreDefaults={restoreDefaultSettings} onExportVaultRecovery={exportVaultRecoveryPackage} onBack={back}
@@ -2061,7 +2139,7 @@ const AUTO_INTRO_SPEECH = {
   }
 };
 function spokenIntro(key, fallback, lang = __speechLang) {
-  return AUTO_INTRO_SPEECH[lang]?.[key] || AUTO_INTRO_SPEECH["en-AU"][key] || fallback;
+  return localizedSpeech(key, AUTO_INTRO_SPEECH[lang]?.[key] || AUTO_INTRO_SPEECH["en-AU"][key] || fallback);
 }
 
 // This is a valid 50 ms 8 kHz WAV with real silent samples. The old zero-length WAV
@@ -2359,7 +2437,10 @@ function useVoice(voiceOn) {
         const playChunk = async (index, urlPromise, retry = 0) => {
           if (stale()) return;
           const chunk = chunks[index] || text;
-          const fishVoice = String(char?.voiceId || "").startsWith("fish:");
+          // A Fish clone is natural for its English persona. In another
+          // selected language the server deliberately uses Google multilingual
+          // TTS instead, so browser speech is an appropriate final fallback.
+          const fishVoice = String(char?.voiceId || "").startsWith("fish:") && /^en(?:-|$)/i.test(__speechLang || "en-AU");
           const failVoice = () => { setSpeaking(false); if (onDone) onDone(); };
           let url;
           try {
@@ -4206,7 +4287,7 @@ function resizeImage(file, max, cb) {
   } catch {}
 }
 
-function Profile({ session, profile, answers, saveProfile, saveAnswers, persistCampfireAccess, onReset, onOpenMemory, onBack }) {
+function Profile({ session, profile, answers, saveProfile, saveAnswers, persistCampfireAccess, uiLanguage = DEFAULT_UI_LANGUAGE, onChangeUiLanguage, onReset, onOpenMemory, onBack }) {
   const [confirmReset, setConfirmReset] = useState(false);
   const [p, setP] = useState({ preferred_name: "", pronouns: "", bio: "", contact_private: "", avatar: "" });
   const [status, setStatus] = useState("");
@@ -4293,6 +4374,14 @@ function Profile({ session, profile, answers, saveProfile, saveAnswers, persistC
       <p style={{ fontSize: 13, color: T.sub, margin: "0 2px 12px", lineHeight: 1.5 }}>
         This space is yours. Fill in as much or as little as you like — you can change it any time.
       </p>
+
+      <SectionTitle>App language</SectionTitle>
+      <div style={{ background: "linear-gradient(135deg, #edf7f0 0%, #fff 88%)", border: "1px solid #cfe4d5", borderRadius: 20, padding: 16, boxShadow: T.soft, marginBottom: 14 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}><span style={{ width: 38, height: 38, borderRadius: 12, display: "grid", placeItems: "center", background: "#dff0e4", color: T.greenDk, fontSize: 19 }}>🌐</span><div><div style={{ fontWeight: 850 }}>Choose your language</div><div style={{ fontSize: 12.5, color: T.sub, lineHeight: 1.4 }}>The Hub, voice, microphone, and AI guides will use this language.</div></div></div>
+        <select value={uiLanguage} onChange={(event) => onChangeUiLanguage?.(event.target.value)} aria-label="Choose app language" style={{ ...inputStyle, appearance: "auto", marginTop: 8 }}>
+          {UI_LANGUAGES.map((language) => <option key={language.code} value={language.code}>{language.label} — {language.nativeLabel}</option>)}
+        </select>
+      </div>
 
       <SectionTitle>Campfire access</SectionTitle>
       <div style={{ background: "linear-gradient(135deg, #fff8ee 0%, #fff 78%)", border: "1px solid #ead8c7", borderRadius: 20, padding: 16, boxShadow: T.soft, marginBottom: 14 }}>
@@ -5076,7 +5165,7 @@ function MemoryManager({ memories, memoryOn, onSave, onBack }) {
 }
 
 /* ---------- accessibility settings ---------- */
-function Settings({ textScale, reduceMotion, responseSpeed, speechLang, autoIntroVoice, autoReplyVoice, activityTrackingOn = true, journalPinSet, journalPinQuestion = "", journalPinHash = null, journalPinAnswerHash = null, onSetJournalPin, onClearJournalPin, deviceUnlockEnabled = false, onSetDeviceUnlock, installPromptAvailable, isStandalone, onPromptInstall, session, authEnabled, onSave, onRestoreDefaults, onExportVaultRecovery, onBack, onOpenBugReport, onOpenFeedback }) {
+function Settings({ textScale, reduceMotion, responseSpeed, speechLang, uiLanguage = DEFAULT_UI_LANGUAGE, onChangeUiLanguage, autoIntroVoice, autoReplyVoice, activityTrackingOn = true, journalPinSet, journalPinQuestion = "", journalPinHash = null, journalPinAnswerHash = null, onSetJournalPin, onClearJournalPin, deviceUnlockEnabled = false, onSetDeviceUnlock, installPromptAvailable, isStandalone, onPromptInstall, session, authEnabled, onSave, onRestoreDefaults, onExportVaultRecovery, onBack, onOpenBugReport, onOpenFeedback }) {
   const [pushState, setPushState] = useState("checking"); // "checking" | "on" | "off" | "denied" | "unsupported" | "error"
   const [pushDetail, setPushDetail] = useState("");
   const [pushBusy, setPushBusy] = useState(false);
@@ -5228,15 +5317,13 @@ function Settings({ textScale, reduceMotion, responseSpeed, speechLang, autoIntr
           {[{ key: "intro", label: "Automatic welcomes and introductions", value: autoIntroVoice, save: { autoIntroVoice: !autoIntroVoice } }, { key: "reply", label: "Automatic chat replies", value: autoReplyVoice, save: { autoReplyVoice: !autoReplyVoice } }].map((item) => <div key={item.key} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "9px 0" }}><span style={{ fontSize: 13.5, color: T.ink }}>{item.label}</span><button onClick={() => onSave(item.save)} aria-pressed={Boolean(item.value)} aria-label={`Toggle ${item.label.toLowerCase()}`} style={{ width: 50, height: 29, borderRadius: 999, border: "none", padding: 3, background: item.value ? T.green : "#cbd7d0", cursor: "pointer", flexShrink: 0 }}><span style={{ display: "block", width: 23, height: 23, borderRadius: "50%", background: "#fff", transform: `translateX(${item.value ? 21 : 0}px)`, transition: "transform .18s" }} /></button></div>)}
         </div>
         <div style={{ height: 1, background: T.line, margin: "14px 0" }} />
-        <div style={{ fontWeight: 700, marginBottom: 4 }}>Speech language</div>
+        <div style={{ fontWeight: 700, marginBottom: 4 }}>App language</div>
         <p style={{ fontSize: 12.5, color: T.sub, margin: "0 0 12px", lineHeight: 1.45 }}>
-          This sets the language used for automatic welcomes and introductions, browser voice fallback, and the language the mic listens for when you tap to talk. Guides still reply to typed messages in the language you use.
+          One choice changes the Hub’s visible interface, guide replies, voice language, and the language the microphone listens for. Your own notes and messages always stay exactly as you wrote them.
         </p>
-        <select value={speechLang || "en-AU"} onChange={(e) => onSave({ speechLang: e.target.value })}
+        <select value={uiLanguage} onChange={(event) => onChangeUiLanguage?.(event.target.value)} aria-label="Choose app language"
           style={{ ...inputStyle, appearance: "auto" }}>
-          {SPEECH_LANGS.map((l) => (
-            <option key={l.code} value={l.code}>{l.label}</option>
-          ))}
+          {UI_LANGUAGES.map((language) => <option key={language.code} value={language.code}>{language.label} — {language.nativeLabel}</option>)}
         </select>
       </div>
 
@@ -7643,7 +7730,7 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
                   {((m.images && m.images.length > 1) || page.page) && <span style={{ fontSize: 10.5, color: T.sub, marginBottom: 5 }}>Page {page.page || pageIndex + 1}</span>}
                 </div>
               ))}
-              <div
+              <div data-rh-no-localize
                 onPointerDown={m.role === "assistant" ? (e) => { tapRef.current = { x: e.clientX, y: e.clientY, t: Date.now(), moved: false }; } : undefined}
                 onPointerMove={m.role === "assistant" ? (e) => { const s = tapRef.current; if (s && Math.abs(e.clientX - s.x) + Math.abs(e.clientY - s.y) > 8) s.moved = true; } : undefined}
                 onPointerUp={m.role === "assistant" ? (e) => {
@@ -8876,5 +8963,5 @@ function Journal({ profile, journal, saveJournal, voiceOn, onBack }) {
 
 function EntryList({ title, entries }) {
   if (!entries.length) return <div style={{ background: T.card, borderRadius: 16, padding: 15, boxShadow: T.soft, marginTop: 18, color: T.sub, fontSize: 13.5 }}>Nothing here yet. It is okay to start small.</div>;
-  return <><SectionTitle>{title}</SectionTitle><div style={{ display: "flex", flexDirection: "column", gap: 10 }}>{entries.map((e) => <div key={e.id} style={{ background: T.card, borderRadius: 16, padding: 14, boxShadow: T.soft }}><div style={{ fontSize: 11.5, color: T.sub, marginBottom: 6 }}>{new Date(e.ts).toLocaleString()}</div><div style={{ fontSize: 14.5, lineHeight: 1.5, whiteSpace: "pre-wrap" }}>{e.text}</div></div>)}</div></>;
+  return <><SectionTitle>{title}</SectionTitle><div style={{ display: "flex", flexDirection: "column", gap: 10 }}>{entries.map((e) => <div key={e.id} data-rh-no-localize style={{ background: T.card, borderRadius: 16, padding: 14, boxShadow: T.soft }}><div style={{ fontSize: 11.5, color: T.sub, marginBottom: 6 }}>{new Date(e.ts).toLocaleString()}</div><div style={{ fontSize: 14.5, lineHeight: 1.5, whiteSpace: "pre-wrap" }}>{e.text}</div></div>)}</div></>;
 }

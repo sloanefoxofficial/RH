@@ -67,7 +67,12 @@ export default async function handler(req, res) {
     }
 
     let audio = null;
-    if (typeof voiceId === "string" && voiceId.startsWith("fish:")) {
+    // The cloned Fish voices are used for the English personas. For every
+    // other selected app language, route through Google Cloud TTS with only a
+    // locale code so it selects a voice that can actually pronounce that
+    // writing system instead of attempting an English voice clone.
+    const useFishVoice = typeof voiceId === "string" && voiceId.startsWith("fish:") && /^en(?:-|$)/i.test(languageCode || "en-AU");
+    if (useFishVoice) {
       audio = await fishSynth(text, voiceId.slice(5));
       if (!audio && process.env.GOOGLE_TTS_KEY) {
         audio = await googleSynth(text, process.env.FISH_FALLBACK_VOICE || "en-AU-Chirp3-HD-Umbriel", process.env.GOOGLE_TTS_KEY, languageCode);

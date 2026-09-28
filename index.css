@@ -2,6 +2,17 @@
 * { box-sizing: border-box; }
 html, body, #root { margin: 0; min-height: 100%; }
 body { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+.rh-app-shell {
+  font-family: "Inter", "Noto Sans Arabic", "Noto Sans Devanagari", "Noto Sans Bengali", "Noto Sans Tamil", "Noto Sans Malayalam", "Noto Sans SC", "Noto Sans TC", "Segoe UI", system-ui, sans-serif;
+}
+html[dir="rtl"] .rh-app-rtl { direction: rtl; }
+html[dir="rtl"] .rh-app-rtl [style*="text-align: left"] { text-align: right !important; }
+html[dir="rtl"] .rh-app-rtl textarea,
+html[dir="rtl"] .rh-app-rtl input:not([type="email"]):not([type="password"]),
+html[dir="rtl"] .rh-app-rtl select { direction: rtl; text-align: right; }
+html[dir="rtl"] .rh-app-rtl input[type="email"],
+html[dir="rtl"] .rh-app-rtl input[type="password"],
+html[dir="rtl"] .rh-app-rtl input[inputmode="numeric"] { direction: ltr; text-align: left; }
 
 /* Game view: go truly fullscreen when a phone is held in landscape,
    so the play area isn't stuck in a short portrait strip. */

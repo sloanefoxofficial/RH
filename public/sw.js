@@ -3,6 +3,23 @@
 self.addEventListener("install", () => { self.skipWaiting(); });
 self.addEventListener("activate", (event) => { event.waitUntil(self.clients.claim()); });
 
+self.addEventListener("fetch", (event) => {
+  const url = new URL(event.request.url);
+  // Locale packs are public and contain only interface copy. Retain a cached
+  // copy so switching languages remains dependable during a brief outage.
+  if (event.request.method !== "GET" || !url.pathname.startsWith("/locales/") || !url.pathname.endsWith(".json")) return;
+  event.respondWith(caches.open("rh-locales-v1").then(async (cache) => {
+    const cached = await cache.match(event.request);
+    const network = fetch(event.request).then((response) => {
+      if (response && response.ok) cache.put(event.request, response.clone());
+      return response;
+    }).catch(() => cached);
+    // Go to the network first so a future deployment can correct a translation;
+    // the cached copy remains a resilient fallback for a temporary outage.
+    return network;
+  }));
+});
+
 self.addEventListener("push", (event) => {
   let data = { title: "The Resilience Hub", body: "You have a new notification." };
   try {
