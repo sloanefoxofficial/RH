@@ -3,7 +3,7 @@ import {
   Phone, LifeBuoy, X, Mic, Send, Square, Volume2, VolumeX,
   ArrowLeft, ArrowUp, LogOut, BookOpen, CheckCircle2, Circle, ChevronRight, ChevronUp, ChevronDown,
   ChevronLeft, Sparkles, Heart, Wind, Anchor, Play, Pause, RotateCcw, Wrench,
-  Shield, Eye, EyeOff, User, Megaphone, Youtube, ExternalLink, Radio, Paperclip, MessageCircle, Share2, Flame, HelpCircle, Plus, Search, Settings as SettingsIcon, CalendarCheck, Users, ShoppingBag, Gamepad2, Zap, Download, FileText, Clock, MapPin, DollarSign, Wifi, Compass, Home, List,
+  Shield, Eye, EyeOff, User, Megaphone, Youtube, ExternalLink, Radio, Paperclip, MessageCircle, Share2, Flame, HelpCircle, Plus, Search, Settings as SettingsIcon, CalendarCheck, Users, ShoppingBag, Gamepad2, Zap, Download, FileText, Clock, MapPin, DollarSign, Wifi, Compass, Home, List, Menu as MenuIcon, Sprout,
 } from "lucide-react";
 import { IMG } from "./images.js";
 import { supabase, authEnabled, setAuthSessionPersistence } from "./supabase.js";
@@ -1799,7 +1799,9 @@ function StyleTag() {
       @keyframes rh-glow { 0%,100%{box-shadow:0 0 0 0 rgba(55,160,101,0)} 50%{box-shadow:0 0 0 8px rgba(55,160,101,0.10)} }
       @keyframes rh-in { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:none} }
       @keyframes rh-slide { 0%{transform:translateX(-100%)} 100%{transform:translateX(300%)} }
+      @keyframes rh-menu-in { from{opacity:0;transform:translateX(18px) scale(.985)} to{opacity:1;transform:translateX(0) scale(1)} }
       .rh-in{animation:rh-in .4s ease both}
+      .rh-frosted-menu{animation:rh-menu-in .24s cubic-bezier(.2,.8,.2,1) both}
       *{box-sizing:border-box}
       body{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;letter-spacing:0.1px}
       button{font-family:inherit}
@@ -1808,24 +1810,27 @@ function StyleTag() {
       body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opacity:0.42;
         background-image:radial-gradient(rgba(77,159,104,0.07) 1px, transparent 1px);background-size:24px 24px}
       @media (prefers-reduced-motion: no-preference){ button:hover,a:hover{transform:translateY(-1px)} }
-      @media (prefers-reduced-motion: reduce){ .rh-float,.rh-in,button:hover,a:hover{animation:none!important;transform:none!important} }
+      @media (prefers-reduced-motion: reduce){ .rh-float,.rh-in,.rh-frosted-menu,button:hover,a:hover{animation:none!important;transform:none!important} }
       /* Keep the Hub’s navigation cards generous and visually consistent. */
       .rh-hub-card-stack > button,.rh-hub-card-stack > a{height:108px;min-height:108px;overflow:hidden}
     `}</style>
   );
 }
 
-function Brand({ right }) {
+function Brand({ right, inlineRight }) {
   return (
     <header style={{ padding: "14px 2px 10px" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
-        <div style={{ width: 48, height: 48, borderRadius: 16, background: "#ffffff", display: "grid", placeItems: "center", boxShadow: T.soft, flexShrink: 0, overflow: "hidden" }}>
-          <img src="/resilience-hub-logo.png" alt="Resilience Hub" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 11 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 11, minWidth: 0 }}>
+          <div style={{ width: 48, height: 48, borderRadius: 16, background: "#ffffff", display: "grid", placeItems: "center", boxShadow: T.soft, flexShrink: 0, overflow: "hidden" }}>
+            <img src="/resilience-hub-logo.png" alt="Resilience Hub" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+          </div>
+          <div style={{ lineHeight: 1.15, minWidth: 0 }}>
+            <div style={{ fontWeight: 800, fontSize: 16, color: T.greenDk, whiteSpace: "nowrap" }}>The Resilience Hub</div>
+            <div style={{ fontSize: 11.5, color: T.sub, marginTop: 4, whiteSpace: "nowrap" }}>You never have to walk it alone</div>
+          </div>
         </div>
-        <div style={{ lineHeight: 1.15, minWidth: 0 }}>
-          <div style={{ fontWeight: 800, fontSize: 16, color: T.greenDk, whiteSpace: "nowrap" }}>The Resilience Hub</div>
-          <div style={{ fontSize: 11.5, color: T.sub, marginTop: 4, whiteSpace: "nowrap" }}>You never have to walk it alone</div>
-        </div>
+        {inlineRight && <div style={{ flexShrink: 0 }}>{inlineRight}</div>}
       </div>
       {right && (
         <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", alignItems: "center", gap: 8, marginTop: 12,
@@ -7184,10 +7189,77 @@ function RexHubTour({ voiceOn, onOpenJournal, onOpenProgram, onOpenSafety, onOpe
   );
 }
 
+function FrostedHubMenu({ open, onClose, voiceOn, onToggleVoice, authEnabled, isAdmin, unreadCount, unreadAdminMsgs, onOpenNotifications, onOpenProfile, onOpenAdmin, onOpenAdminMessages, onOpenSettings, onShare }) {
+  const closeRef = useRef(null);
+  const panelRef = useRef(null);
+  useEffect(() => {
+    if (!open) return undefined;
+    const timer = setTimeout(() => closeRef.current?.focus(), 0);
+    return () => clearTimeout(timer);
+  }, [open]);
+  if (!open) return null;
+
+  const go = (action) => {
+    onClose();
+    action?.();
+  };
+  const onKeyDown = (event) => {
+    if (event.key === "Escape") { event.preventDefault(); onClose(); return; }
+    if (event.key !== "Tab") return;
+    const focusables = Array.from(panelRef.current?.querySelectorAll('button:not([disabled]), a[href]') || []);
+    if (!focusables.length) return;
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+  };
+  const items = [
+    { label: voiceOn ? "Mute" : "Turn voice on", detail: voiceOn ? "Guide voice is on" : "Guide voice is off", Icon: voiceOn ? Volume2 : VolumeX, color: "#2e8578", action: onToggleVoice },
+    authEnabled && { label: "Announcements", detail: unreadCount ? <>{unreadCount} <span>unread</span></> : "Updates from the Hub", Icon: Megaphone, color: "#447aa0", badge: unreadCount, action: onOpenNotifications },
+    authEnabled && { label: "Profile", detail: "Your details and privacy", Icon: User, color: "#7652a6", action: onOpenProfile },
+    isAdmin && { label: "Admin Panel", detail: "Hub administration", Icon: Shield, color: T.greenDk, action: onOpenAdmin },
+    isAdmin && { label: "Member Messages", detail: unreadAdminMsgs ? <>{unreadAdminMsgs} <span>unread</span></> : "Messages from members", Icon: MessageCircle, color: "#2e8578", badge: unreadAdminMsgs, action: onOpenAdminMessages },
+    { label: "Settings", detail: "Language, accessibility and preferences", Icon: SettingsIcon, color: "#657981", action: onOpenSettings },
+    { label: "Share", detail: "Invite someone to the Hub", Icon: Share2, color: "#28736f", action: onShare },
+  ].filter(Boolean);
+
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 260, display: "flex", justifyContent: "flex-end", alignItems: "flex-start", padding: "max(14px, env(safe-area-inset-top)) 14px max(14px, env(safe-area-inset-bottom))" }}>
+      <button type="button" onClick={onClose} aria-label="Close menu" style={{ position: "absolute", inset: 0, border: "none", padding: 0, background: "rgba(26,54,45,0.24)", backdropFilter: "blur(3px)", cursor: "pointer" }} />
+      <aside id="hub-main-menu" ref={panelRef} className="rh-frosted-menu" role="dialog" aria-modal="true" aria-labelledby="hub-menu-title" onKeyDown={onKeyDown}
+        style={{ position: "relative", zIndex: 1, width: "min(100%, 390px)", maxHeight: "calc(100dvh - 28px)", overflowY: "auto", borderRadius: 28, padding: "18px 15px 17px", color: T.ink, background: "linear-gradient(155deg, rgba(250,255,252,0.93) 0%, rgba(228,246,239,0.87) 52%, rgba(216,238,229,0.84) 100%)", border: "1px solid rgba(255,255,255,0.92)", boxShadow: "0 30px 70px rgba(23,57,44,0.28), inset 0 1px 0 rgba(255,255,255,0.82)", backdropFilter: "blur(24px) saturate(125%)", WebkitBackdropFilter: "blur(24px) saturate(125%)" }}>
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, padding: "1px 3px 15px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+            <div style={{ width: 42, height: 42, borderRadius: 14, background: "rgba(255,255,255,0.76)", display: "grid", placeItems: "center", boxShadow: "0 5px 14px rgba(36,66,56,0.10)", overflow: "hidden", flexShrink: 0 }}><img src="/resilience-hub-logo.png" alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} /></div>
+            <div><div id="hub-menu-title" style={{ fontWeight: 900, fontSize: 17, color: T.greenDk }}>The Resilience Hub</div><div style={{ color: T.sub, fontSize: 11.5, marginTop: 3 }}>Your space, your settings</div></div>
+          </div>
+          <button ref={closeRef} type="button" onClick={onClose} aria-label="Close menu" style={{ width: 42, height: 42, borderRadius: "50%", border: "1px solid rgba(71,110,94,0.16)", background: "rgba(255,255,255,0.72)", color: T.greenDk, cursor: "pointer", display: "grid", placeItems: "center", flexShrink: 0 }}><X size={20} /></button>
+        </div>
+        <nav aria-label="Hub menu" style={{ display: "grid", gap: 9 }}>
+          {items.map(({ label, detail, Icon, color, badge, action }) => (
+            <button key={label} type="button" onClick={() => go(action)} style={{ minHeight: 56, width: "100%", border: "1px solid rgba(255,255,255,0.88)", borderRadius: 17, padding: "8px 10px", background: "rgba(255,255,255,0.68)", color: T.ink, cursor: "pointer", display: "flex", alignItems: "center", gap: 11, textAlign: "left", boxShadow: "0 6px 14px rgba(39,84,67,0.08), inset 0 1px 0 rgba(255,255,255,0.82)" }}>
+              <span style={{ width: 35, height: 35, borderRadius: 12, background: `${color}16`, color, display: "grid", placeItems: "center", position: "relative", flexShrink: 0 }}><Icon size={18} strokeWidth={2.25} />{badge > 0 && <span aria-label="Unread messages" style={{ position: "absolute", top: -6, right: -7, minWidth: 17, height: 17, padding: "0 4px", borderRadius: 999, background: "#df4e56", color: "#fff", fontSize: 9.5, fontWeight: 850, display: "grid", placeItems: "center", boxShadow: "0 2px 5px rgba(160,40,45,0.22)" }}>{badge}</span>}</span>
+              <span style={{ flex: 1, minWidth: 0 }}><span style={{ display: "block", fontWeight: 850, fontSize: 14.5, color: T.ink }}>{label}</span><span style={{ display: "block", color: T.sub, fontSize: 11.5, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{detail}</span></span>
+              <ChevronRight size={18} color={T.sub} aria-hidden="true" />
+            </button>
+          ))}
+        </nav>
+        <div style={{ textAlign: "center", padding: "18px 8px 1px", color: T.greenDk }}><Sprout size={20} strokeWidth={2.2} /><div style={{ marginTop: 5, color: T.sub, fontSize: 11.5, lineHeight: 1.35 }}>You never have to<br />walk it alone</div></div>
+      </aside>
+    </div>
+  );
+}
+
 function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, setVoiceOn, onOpenChat, onOpenRexTutorial, onOpenProgram, onOpenJournal, onOpenGuides, onOpenMerch, onOpenCarlosLibrary, onOpenGames, onOpenToolkit, onOpenResources, onOpenIntake, onOpenVirtualSupport, onOpenCampfire, onOpenChaptly, onOpenSupportUs, onOpenSafety, onOpenNotifications, onOpenCoordinator, onOpenSettings, onOpenMensGroup, onOpenMensShed, onOpenAdminMessages, onOpenProgramInfo, onReset, isAdmin, authEnabled, guestMode, onExitGuest, onOpenAdmin, onOpenProfile, onSignOut, session, rexHistory, onSaveRexChat, memories, onConversation, answers, rexPersona }) {
   const { speak, stop, speaking } = useVoice(voiceOn);
   const [notifRefresh, setNotifRefresh] = useState(0);
   const [shareMsg, setShareMsg] = useState("");
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuTriggerRef = useRef(null);
+  const closeMenu = useCallback(() => {
+    setMenuOpen(false);
+    setTimeout(() => menuTriggerRef.current?.focus(), 0);
+  }, []);
   const shareApp = async () => {
     const url = typeof window !== "undefined" ? window.location.origin : "";
     const data = { title: "The Resilience Hub", text: "The Resilience Hub — you never have to walk it alone.", url };
@@ -7241,51 +7313,8 @@ function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, set
         <div style={{ position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)", zIndex: 130,
           background: T.ink, color: "#fff", borderRadius: 999, padding: "10px 18px", fontSize: 13.5, boxShadow: T.lift }}>{shareMsg}</div>
       )}
-      <Brand right={<>
-        <VoiceToggle on={voiceOn} set={setVoiceOn} />
-        {authEnabled && (
-          <div style={{ position: "relative", flexShrink: 0 }}>
-            <button onClick={onOpenNotifications} aria-label="Notifications" title="Notifications" style={hubIconBtn(T.sub)}>
-              <Megaphone size={19} />
-            </button>
-            {unreadCount > 0 && (
-              <span style={{ position: "absolute", top: -4, right: -4, minWidth: 16, height: 16, borderRadius: 999,
-                background: "#e5484d", color: "#fff", fontSize: 9.5, fontWeight: 700, display: "grid", placeItems: "center", padding: "0 3px" }}>
-                {unreadCount}
-              </span>
-            )}
-          </div>
-        )}
-        {authEnabled && (
-          <button onClick={onOpenProfile} aria-label="Your profile" title="Your profile" style={hubIconBtn(T.sub)}>
-            <User size={20} />
-          </button>
-        )}
-        {isAdmin && (
-          <button onClick={onOpenAdmin} aria-label="Admin" title="Admin" style={hubIconBtn(T.green)}>
-            <Shield size={20} />
-          </button>
-        )}
-        {isAdmin && (
-          <div style={{ position: "relative", flexShrink: 0 }}>
-            <button onClick={onOpenAdminMessages} aria-label="Member messages" title="Member messages" style={hubIconBtn(T.green)}>
-              <MessageCircle size={20} />
-            </button>
-            {unreadAdminMsgs > 0 && (
-              <span style={{ position: "absolute", top: -4, right: -4, minWidth: 16, height: 16, borderRadius: 999,
-                background: "#e5484d", color: "#fff", fontSize: 9.5, fontWeight: 700, display: "grid", placeItems: "center", padding: "0 3px" }}>
-                {unreadAdminMsgs}
-              </span>
-            )}
-          </div>
-        )}
-        <button onClick={onOpenSettings} aria-label="Settings" title="Settings" style={hubIconBtn(T.sub)}>
-          <SettingsIcon size={19} />
-        </button>
-        <button onClick={shareApp} aria-label="Share the app" title="Share" style={hubIconBtn(T.sub)}>
-          <Share2 size={19} />
-        </button>
-      </>} />
+      <Brand inlineRight={<button ref={menuTriggerRef} type="button" onClick={() => setMenuOpen(true)} aria-label="Open menu" aria-expanded={menuOpen} aria-controls="hub-main-menu" style={{ minHeight: 44, border: "1px solid rgba(46,133,120,0.28)", borderRadius: 15, padding: "0 12px", background: "linear-gradient(145deg, #ffffff, #eaf6f1)", color: T.greenDk, boxShadow: T.soft, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 7, fontSize: 13, fontWeight: 850 }}><MenuIcon size={19} strokeWidth={2.5} /> Menu</button>} />
+      <FrostedHubMenu open={menuOpen} onClose={closeMenu} voiceOn={voiceOn} onToggleVoice={() => setVoiceOn((value) => !value)} authEnabled={authEnabled} isAdmin={isAdmin} unreadCount={unreadCount} unreadAdminMsgs={unreadAdminMsgs} onOpenNotifications={onOpenNotifications} onOpenProfile={onOpenProfile} onOpenAdmin={onOpenAdmin} onOpenAdminMessages={onOpenAdminMessages} onOpenSettings={onOpenSettings} onShare={shareApp} />
 
       {guestMode && (
         <div style={{ background: "#fff6da", border: "1px solid #ecd98f", borderRadius: 16, padding: "10px 14px",
@@ -7377,9 +7406,6 @@ function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, set
 
 const navBtn = (dis) => ({ width: 36, height: 36, borderRadius: 12, border: `1px solid ${T.line}`, background: "#fff",
   display: "grid", placeItems: "center", cursor: dis ? "default" : "pointer", opacity: dis ? 0.4 : 1, color: T.ink });
-
-const hubIconBtn = (color) => ({ background: "linear-gradient(145deg, #ffffff, #f1f8f3)", border: `1px solid ${T.line}`, borderRadius: 15, width: 42, height: 42,
-  display: "grid", placeItems: "center", cursor: "pointer", color, boxShadow: T.soft, flexShrink: 0, transition: "transform .15s ease, box-shadow .15s ease" });
 
 function Stat({ label, value }) {
   return (
