@@ -28,6 +28,8 @@ const T = {
   lift: "0 20px 50px rgba(47,97,72,0.15), 0 6px 16px rgba(47,97,72,0.09)",
 };
 
+const HubMenuContext = React.createContext(null);
+
 // This is distinct from a device/browser locale. It persists inside the
 // member's encrypted profile and keeps visible copy, voice, and guide replies
 // aligned with the person's choice.
@@ -564,6 +566,10 @@ export default function App() {
   const gameScoresRef = useRef({});
   const gameProgressRef = useRef({});                  // { gameKey: savedState } — resume in-progress games
   const [voiceOn, setVoiceOn] = useState(true);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [menuRefresh, setMenuRefresh] = useState(0);
+  const [shareMsg, setShareMsg] = useState("");
+  const menuTriggerRef = useRef(null);
   const [autoIntroVoiceOn, setAutoIntroVoiceOn] = useState(true);
   const [autoReplyVoiceOn, setAutoReplyVoiceOn] = useState(true);
   const [consented, setConsented] = useState(false);
@@ -1559,6 +1565,30 @@ export default function App() {
   };
   const openTool = (k) => { setToolkitInitial(k); go("toolkit"); tickToolTask(k); };
 
+  const closePersistentMenu = useCallback(() => {
+    setMenuOpen(false);
+    setTimeout(() => menuTriggerRef.current?.focus(), 0);
+  }, []);
+  const shareApp = async () => {
+    const url = typeof window !== "undefined" ? window.location.origin : "";
+    const data = { title: "The Resilience Hub", text: "The Resilience Hub — you never have to walk it alone.", url };
+    try {
+      if (navigator.share) { await navigator.share(data); return; }
+      await navigator.clipboard.writeText(url);
+      setShareMsg("Link copied!"); setTimeout(() => setShareMsg(""), 2000);
+    } catch { /* cancelled or blocked */ }
+  };
+  const unreadCount = useUnreadNotifications(showAuth ? session : null, menuRefresh);
+  const unreadAdminMsgs = useUnreadAdminMessages(isAdmin, menuRefresh);
+  const menuVisible = dataHydrated && consented && (!showAuth || Boolean(session)) && (vaultStatus === "unlocked" || vaultStatus === "plain");
+  const menuButton = menuVisible ? (
+    <button ref={menuTriggerRef} type="button" onClick={() => setMenuOpen(true)} aria-label="Open menu" aria-expanded={menuOpen} aria-controls="hub-main-menu"
+      className="rh-menu-trigger" style={{ minHeight: 44, border: "1px solid rgba(46,133,120,0.30)", borderRadius: 15, padding: "0 13px", background: "linear-gradient(145deg, rgba(255,255,255,0.96), rgba(225,244,236,0.94))", color: T.greenDk, boxShadow: "0 7px 18px rgba(39,101,79,0.11), inset 0 1px 0 rgba(255,255,255,0.92)", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 7, fontSize: 13, fontWeight: 850 }}>
+      <MenuIcon size={18} strokeWidth={2.5} /><span>Menu</span><ChevronDown size={14} strokeWidth={2.5} aria-hidden="true" />
+    </button>
+  ) : null;
+  const menuContext = { button: menuButton };
+
   useEffect(() => {
     if (!authEnabled) return;
     let sub;
@@ -1593,6 +1623,7 @@ export default function App() {
       fontFamily: "'Inter', 'Noto Sans Arabic', 'Noto Sans Devanagari', 'Noto Sans Bengali', 'Noto Sans Tamil', 'Noto Sans Malayalam', 'Noto Sans SC', 'Noto Sans TC', 'Segoe UI', system-ui, -apple-system, sans-serif" }}>
       <StyleTag />
       {reduceMotion && <style>{`*{animation:none!important;transition:none!important}`}</style>}
+      <HubMenuContext.Provider value={menuContext}>
       <div style={{ maxWidth: 460, margin: "0 auto", padding: "0 16px 132px", position: "relative", zIndex: 1, zoom: textScale }}>
         {authEnabled && !authChecked ? (
           <div style={{ paddingTop: 120, textAlign: "center", color: T.sub }}>Loading…</div>
@@ -1662,6 +1693,7 @@ export default function App() {
             onOpenAdminMessages={() => go("adminMessages")}
             onOpenProgramInfo={() => go("programInfo")}
             onOpenSettings={() => go("settings")}
+            onNotificationsChanged={() => setMenuRefresh((k) => k + 1)}
             onReset={resetAll}
             isAdmin={isAdmin}
             authEnabled={showAuth}
@@ -1786,6 +1818,12 @@ export default function App() {
         <GlobalJumpToTop screen={screen} />
         <CrisisBar />
       </div>
+      {shareMsg && (
+        <div role="status" aria-live="polite" style={{ position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)", zIndex: 280,
+          background: T.ink, color: "#fff", borderRadius: 999, padding: "10px 18px", fontSize: 13.5, boxShadow: T.lift }}>{shareMsg}</div>
+      )}
+      <FrostedHubMenu open={menuOpen && menuVisible} onClose={closePersistentMenu} voiceOn={voiceOn} onToggleVoice={() => setVoiceOn((value) => !value)} authEnabled={showAuth} isAdmin={isAdmin} unreadCount={unreadCount} unreadAdminMsgs={unreadAdminMsgs} onOpenNotifications={() => go("notifications")} onOpenProfile={() => go("profile")} onOpenAdmin={() => go("admin")} onOpenAdminMessages={() => go("adminMessages")} onOpenSettings={() => go("settings")} onShare={shareApp} />
+      </HubMenuContext.Provider>
     </div>
   );
 }
@@ -1802,6 +1840,11 @@ function StyleTag() {
       @keyframes rh-menu-in { from{opacity:0;transform:translateX(18px) scale(.985)} to{opacity:1;transform:translateX(0) scale(1)} }
       .rh-in{animation:rh-in .4s ease both}
       .rh-frosted-menu{animation:rh-menu-in .24s cubic-bezier(.2,.8,.2,1) both}
+      .rh-menu-trigger{position:relative;overflow:hidden;isolation:isolate;transition:transform .18s ease,box-shadow .18s ease,background .18s ease}
+      .rh-menu-trigger::before{content:"";position:absolute;inset:0 24% 0 -30%;background:linear-gradient(105deg,transparent,rgba(255,255,255,.72),transparent);transform:translateX(-120%);transition:transform .55s ease;z-index:-1}
+      .rh-menu-trigger:hover::before{transform:translateX(390%)}
+      .rh-menu-trigger:focus-visible{outline:3px solid rgba(46,133,120,.38);outline-offset:3px}
+      .rh-frosted-menu::before{content:"";display:block;height:4px;border-radius:999px;background:linear-gradient(90deg,#2e8578 0%,#74b89a 52%,#e9bd72 100%);opacity:.9;margin:-3px 5px 15px;box-shadow:0 2px 8px rgba(46,133,120,.18)}
       *{box-sizing:border-box}
       body{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;letter-spacing:0.1px}
       button{font-family:inherit}
@@ -1818,6 +1861,8 @@ function StyleTag() {
 }
 
 function Brand({ right, inlineRight }) {
+  const menu = React.useContext(HubMenuContext);
+  const headerRight = inlineRight || menu?.button;
   return (
     <header style={{ padding: "14px 2px 10px" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 11 }}>
@@ -1830,7 +1875,7 @@ function Brand({ right, inlineRight }) {
             <div style={{ fontSize: 11.5, color: T.sub, marginTop: 4, whiteSpace: "nowrap" }}>You never have to walk it alone</div>
           </div>
         </div>
-        {inlineRight && <div style={{ flexShrink: 0 }}>{inlineRight}</div>}
+        {headerRight && <div style={{ flexShrink: 0 }}>{headerRight}</div>}
       </div>
       {right && (
         <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", alignItems: "center", gap: 8, marginTop: 12,
@@ -7250,28 +7295,8 @@ function FrostedHubMenu({ open, onClose, voiceOn, onToggleVoice, authEnabled, is
   );
 }
 
-function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, setVoiceOn, onOpenChat, onOpenRexTutorial, onOpenProgram, onOpenJournal, onOpenGuides, onOpenMerch, onOpenCarlosLibrary, onOpenGames, onOpenToolkit, onOpenResources, onOpenIntake, onOpenVirtualSupport, onOpenCampfire, onOpenChaptly, onOpenSupportUs, onOpenSafety, onOpenNotifications, onOpenCoordinator, onOpenSettings, onOpenMensGroup, onOpenMensShed, onOpenAdminMessages, onOpenProgramInfo, onReset, isAdmin, authEnabled, guestMode, onExitGuest, onOpenAdmin, onOpenProfile, onSignOut, session, rexHistory, onSaveRexChat, memories, onConversation, answers, rexPersona }) {
+function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, setVoiceOn, onOpenChat, onOpenRexTutorial, onOpenProgram, onOpenJournal, onOpenGuides, onOpenMerch, onOpenCarlosLibrary, onOpenGames, onOpenToolkit, onOpenResources, onOpenIntake, onOpenVirtualSupport, onOpenCampfire, onOpenChaptly, onOpenSupportUs, onOpenSafety, onOpenNotifications, onOpenCoordinator, onOpenSettings, onNotificationsChanged, onOpenMensGroup, onOpenMensShed, onOpenAdminMessages, onOpenProgramInfo, onReset, isAdmin, authEnabled, guestMode, onExitGuest, onOpenAdmin, onOpenProfile, onSignOut, session, rexHistory, onSaveRexChat, memories, onConversation, answers, rexPersona }) {
   const { speak, stop, speaking } = useVoice(voiceOn);
-  const [notifRefresh, setNotifRefresh] = useState(0);
-  const [shareMsg, setShareMsg] = useState("");
-  const [menuOpen, setMenuOpen] = useState(false);
-  const menuTriggerRef = useRef(null);
-  const closeMenu = useCallback(() => {
-    setMenuOpen(false);
-    setTimeout(() => menuTriggerRef.current?.focus(), 0);
-  }, []);
-  const shareApp = async () => {
-    const url = typeof window !== "undefined" ? window.location.origin : "";
-    const data = { title: "The Resilience Hub", text: "The Resilience Hub — you never have to walk it alone.", url };
-    try {
-      if (navigator.share) { await navigator.share(data); return; }
-      await navigator.clipboard.writeText(url);
-      setShareMsg("Link copied!"); setTimeout(() => setShareMsg(""), 2000);
-    } catch { /* cancelled or blocked */ }
-  };
-  const unreadCount = useUnreadNotifications(authEnabled ? session : null, notifRefresh);
-  const unreadCoord = useUnreadCoordinator(authEnabled ? session : null, notifRefresh);
-  const unreadAdminMsgs = useUnreadAdminMessages(isAdmin, notifRefresh);
   const nm = profile?.name && profile.name !== "friend" ? profile.name : "";
 
   useEffect(() => () => stop(), [stop]);
@@ -7307,14 +7332,9 @@ function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, set
   return (
     <>
       {authEnabled && session && (
-        <NotificationPopup session={session} onClosed={() => setNotifRefresh((k) => k + 1)} />
+        <NotificationPopup session={session} onClosed={onNotificationsChanged} />
       )}
-      {shareMsg && (
-        <div style={{ position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)", zIndex: 130,
-          background: T.ink, color: "#fff", borderRadius: 999, padding: "10px 18px", fontSize: 13.5, boxShadow: T.lift }}>{shareMsg}</div>
-      )}
-      <Brand inlineRight={<button ref={menuTriggerRef} type="button" onClick={() => setMenuOpen(true)} aria-label="Open menu" aria-expanded={menuOpen} aria-controls="hub-main-menu" style={{ minHeight: 44, border: "1px solid rgba(46,133,120,0.28)", borderRadius: 15, padding: "0 12px", background: "linear-gradient(145deg, #ffffff, #eaf6f1)", color: T.greenDk, boxShadow: T.soft, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 7, fontSize: 13, fontWeight: 850 }}><MenuIcon size={19} strokeWidth={2.5} /> Menu</button>} />
-      <FrostedHubMenu open={menuOpen} onClose={closeMenu} voiceOn={voiceOn} onToggleVoice={() => setVoiceOn((value) => !value)} authEnabled={authEnabled} isAdmin={isAdmin} unreadCount={unreadCount} unreadAdminMsgs={unreadAdminMsgs} onOpenNotifications={onOpenNotifications} onOpenProfile={onOpenProfile} onOpenAdmin={onOpenAdmin} onOpenAdminMessages={onOpenAdminMessages} onOpenSettings={onOpenSettings} onShare={shareApp} />
+      <Brand />
 
       {guestMode && (
         <div style={{ background: "#fff6da", border: "1px solid #ecd98f", borderRadius: 16, padding: "10px 14px",
