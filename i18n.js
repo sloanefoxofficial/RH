@@ -5,7 +5,7 @@
 export const DEFAULT_UI_LANGUAGE = "en-AU";
 // Bump this with any locale-pack release. Query-versioning prevents a browser
 // that saw an older deployment from holding on to a partial static pack.
-const LOCALE_PACK_VERSION = "2026-09-28-03";
+const LOCALE_PACK_VERSION = "2026-09-30-01";
 
 export const UI_LANGUAGES = [
   { code: "en-AU", label: "English", nativeLabel: "English", htmlLang: "en-AU", speechCode: "en-AU", ttsCode: "en-AU", rtl: false },

@@ -1748,7 +1748,11 @@
     "Close menu": "Tutup menu",
     "Hub menu": "Menu Hub",
     "Unread messages": "Pesan belum dibaca",
-    "unread": "belum dibaca"
+    "unread": "belum dibaca",
+    "Book a 1-1 chat with Juan": "Pesan percakapan 1-1 dengan Juan",
+    "Admissions are currently closed": "Penerimaan saat ini ditutup",
+    "The program has active participants at the moment. You can still book a 1-1 chat with Juan to discuss your needs.": "Program saat ini memiliki peserta aktif. Anda masih bisa memesan percakapan 1-1 dengan Juan untuk membahas kebutuhan Anda.",
+    "✉️ resiliencehubnsw@gmail.com": "✉️ resiliencehubnsw@gmail.com"
   },
   "speech": {
     "toolkit": "Selamat datang di Toolkit — koleksi hal yang bisa membantu, kapan pun Anda butuhkan. Santai saja, jelajahi, dan pilih apa yang terasa tepat hari ini.",

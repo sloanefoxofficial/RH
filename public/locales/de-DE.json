@@ -1748,7 +1748,11 @@
     "Close menu": "Menü schließen",
     "Hub menu": "Hub‑Menü",
     "Unread messages": "Ungelesene Nachrichten",
-    "unread": "ungelesen"
+    "unread": "ungelesen",
+    "Book a 1-1 chat with Juan": "Buche ein 1:1-Gespräch mit Juan",
+    "Admissions are currently closed": "Aufnahmen sind derzeit geschlossen",
+    "The program has active participants at the moment. You can still book a 1-1 chat with Juan to discuss your needs.": "Das Programm hat derzeit aktive Teilnehmende. Du kannst trotzdem ein 1:1-Gespräch mit Juan buchen, um deine Bedürfnisse zu besprechen.",
+    "✉️ resiliencehubnsw@gmail.com": "✉️ resiliencehubnsw@gmail.com"
   },
   "speech": {
     "toolkit": "Willkommen im Toolkit — eine Sammlung von Dingen, die dir helfen können, wann immer du sie brauchst. Nimm dir Zeit, schau dich um und wähle, was sich heute richtig für dich anfühlt.",

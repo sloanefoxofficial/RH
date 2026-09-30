@@ -1748,7 +1748,11 @@
     "Close menu": "Isara ang menu",
     "Hub menu": "Menu ng Hub",
     "Unread messages": "Mga hindi nabasang mensahe",
-    "unread": "hindi nabasa"
+    "unread": "hindi nabasa",
+    "Book a 1-1 chat with Juan": "Mag-book ng 1-1 na pag-uusap kay Juan",
+    "Admissions are currently closed": "Pansamantala sarado ang pagpasok",
+    "The program has active participants at the moment. You can still book a 1-1 chat with Juan to discuss your needs.": "May mga aktibong kalahok ang programa sa ngayon. Maaari ka pa ring mag-book ng 1-1 na pag-uusap kay Juan upang talakayin ang iyong mga pangangailangan.",
+    "✉️ resiliencehubnsw@gmail.com": "✉️ resiliencehubnsw@gmail.com"
   },
   "speech": {
     "toolkit": "Maligayang pagdating sa Toolkit — isang koleksyon ng mga bagay na makakatulong, kapag kailangan mo. Mag-take ng oras, maglibot, at piliin ang anumang pakiramdam mong tama ngayon.",

@@ -1748,7 +1748,11 @@
     "Close menu": "關閉選單",
     "Hub menu": "中心選單",
     "Unread messages": "未讀訊息",
-    "unread": "未讀"
+    "unread": "未讀",
+    "Book a 1-1 chat with Juan": "預約與 Juan 的一對一談話",
+    "Admissions are currently closed": "現正暫停收生",
+    "The program has active participants at the moment. You can still book a 1-1 chat with Juan to discuss your needs.": "此計劃現時已有參與者。你仍可預約與 Juan 作一對一談話，討論你的需要。",
+    "✉️ resiliencehubnsw@gmail.com": "✉️ resiliencehubnsw@gmail.com"
   },
   "speech": {
     "toolkit": "歡迎使用工具箱 — 一系列可以在你需要時提供幫助的資源。慢慢來，隨意瀏覽，選擇今日覺得合適的項目。",

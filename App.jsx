@@ -7986,7 +7986,7 @@ function BookAppointment({ onBack }) {
       <Brand right={<BackBtn onBack={onBack} label="Program" />} />
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6, marginBottom: 4 }}>
         <CalendarCheck size={18} color={T.greenDk} />
-        <h2 style={{ fontSize: 18, margin: 0 }}>Book Intake Appointment</h2>
+        <h2 style={{ fontSize: 18, margin: 0 }}>Book a 1-1 chat with Juan</h2>
       </div>
       <p style={{ fontSize: 13.5, color: T.sub, margin: "0 2px 14px", lineHeight: 1.5 }}>
         Pick a time that works for you — it'll go straight onto Juan's calendar, no back and forth needed.
@@ -8426,7 +8426,7 @@ function ProgramInfo({ voiceOn, speechLang, onBack, onMessageJuan, onOpenIntake,
         </div>
         <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 9 }}>
           <Btn onClick={onOpenIntake}>Complete Program Intake Form</Btn>
-          <Btn onClick={onBookAppointment}>Book Intake Appointment</Btn>
+          <Btn onClick={onBookAppointment}>Book a 1-1 chat with Juan</Btn>
         </div>
       </ProgramInfoSection>
 
@@ -8434,7 +8434,8 @@ function ProgramInfo({ voiceOn, speechLang, onBack, onMessageJuan, onOpenIntake,
         <div style={{ background: "#eaf6ef", borderRadius: 16, padding: 16, marginBottom: 12 }}>
           <div style={{ fontSize: 13.5, lineHeight: 1.8 }}>
             <div>📍 42 Court Road, Fairfield 2165</div>
-            <div>📞 0489 059 833 — call or text any time, 24/7</div>
+            <div>📞 0489 059 833</div>
+            <div>✉️ resiliencehubnsw@gmail.com</div>
           </div>
         </div>
         <p style={{ fontSize: 13, color: T.sub, margin: "0 0 14px", lineHeight: 1.5 }}>
@@ -8627,7 +8628,16 @@ function ProgramIntake({ session, profile, onBack, onReturnToProgram }) {
     {section("7. Optional consent to share medical information", <><p style={{ fontSize: 12.5, color: T.sub, lineHeight: 1.55, marginTop: 0 }}>This is separate from joining the program. You can leave it unticked and discuss it at your intake appointment. Any sharing is limited to relevant professionals involved in your care and can be withdrawn in writing.</p>{field("Primary GP", "sharing_gp")}{field("Medical clinic", "sharing_clinic")}{multiChoice("I consent to exchange of:", "sharing_types", ["Physical health information", "Mental health treatment plans and progress", "Medications or special-care requirements"])}<label style={{ display: "flex", gap: 9, alignItems: "flex-start", fontSize: 12.5, lineHeight: 1.45, marginTop: 3 }}><input type="checkbox" checked={form.sharing_physical} onChange={(e) => update("sharing_physical", e.target.checked)} style={{ width: 18, height: 18, accentColor: T.green, flexShrink: 0 }} />I consent to the Resilience Hub sharing relevant information with my GP and clinical professionals involved in my care.</label></>)}
     {section("8. Privacy declaration & electronic sign-off", <><p style={{ fontSize: 12.5, color: T.sub, lineHeight: 1.55, marginTop: 0 }}>I declare that the information provided in this form is true, correct, and complete to the best of my knowledge. I consent to The Resilience Hub collecting and handling my personal and clinical information in accordance with the Privacy Act 1988 (Cth) for program delivery, record-keeping, safety, and WDO-related reporting. Information is shared only with authorised staff and clinicians, except where required by law or necessary to respond to immediate serious harm.</p>{field("Participant name (printed)", "participant_name_printed", { required: true })}{field("Typed signature", "signature", { required: true, placeholder: "Type your full name as your electronic signature" })}{field("Date", "signed_date", { type: "date" })}<label style={{ display: "flex", gap: 9, alignItems: "flex-start", fontSize: 12.5, lineHeight: 1.45, margin: "5px 0 14px" }}><input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} style={{ width: 19, height: 19, accentColor: T.green, flexShrink: 0 }} />I have read and understand the privacy notice and consent to submit this intake form.</label></>)}
     {status && <div role="status" style={{ marginTop: 13, background: status.includes("couldn't") || status.includes("Please") ? "#fff0f0" : "#eef7ef", border: `1px solid ${status.includes("couldn't") || status.includes("Please") ? "#efcccc" : "#c8e4ce"}`, color: T.ink, borderRadius: 15, padding: 12, fontSize: 13, lineHeight: 1.45 }}>{status}</div>}
-    <div style={{ display: "flex", gap: 9, marginTop: 15, marginBottom: 32 }}><Btn kind="outline" onClick={() => save(false)} disabled={busy} style={{ flex: 1 }}>{busy ? "Saving…" : "Save draft"}</Btn><Btn onClick={() => save(true)} disabled={busy} style={{ flex: 1 }}>{busy ? "Submitting…" : "Submit intake"}</Btn></div>
+    <div style={{ display: "flex", gap: 9, marginTop: 15, marginBottom: 32 }}>
+      <Btn kind="outline" onClick={() => save(false)} disabled={busy} style={{ flex: 1 }}>{busy ? "Saving…" : "Save draft"}</Btn>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <Btn disabled style={{ width: "100%", background: "#e7ece8", color: T.sub, boxShadow: "none", border: `1px solid ${T.line}`, opacity: 1 }}>{busy ? "Submitting…" : "Submit intake"}</Btn>
+        <div role="note" style={{ marginTop: 9, background: "linear-gradient(145deg, #fff8e7, #fffdf7)", border: "1px solid #ead9a7", borderRadius: 14, padding: "10px 11px", color: "#6d5a27", fontSize: 11.5, lineHeight: 1.45 }}>
+          <strong style={{ display: "block", color: "#5d4b1c", marginBottom: 2 }}>Admissions are currently closed</strong>
+          The program has active participants at the moment. You can still book a 1-1 chat with Juan to discuss your needs.
+        </div>
+      </div>
+    </div>
   </>;
 }
 

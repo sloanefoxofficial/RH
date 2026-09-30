@@ -1748,7 +1748,11 @@
     "Close menu": "मेन्यू बंद करें",
     "Hub menu": "हब मेन्यू",
     "Unread messages": "अनपढ़ संदेश",
-    "unread": "अनपढ़"
+    "unread": "अनपढ़",
+    "Book a 1-1 chat with Juan": "Juan के साथ 1-1 चैट बुक करें",
+    "Admissions are currently closed": "प्रवेश वर्तमान में बंद हैं",
+    "The program has active participants at the moment. You can still book a 1-1 chat with Juan to discuss your needs.": "कार्यक्रम में इस समय सक्रिय प्रतिभागी हैं। आप फिर भी अपनी ज़रूरतों पर चर्चा करने के लिए Juan के साथ 1-1 चैट बुक कर सकते हैं।",
+    "✉️ resiliencehubnsw@gmail.com": "✉️ resiliencehubnsw@gmail.com"
   },
   "speech": {
     "toolkit": "टूलकिट में आपका स्वागत है — ऐसे संसाधनों का संग्रह जो जब भी ज़रुरत हो मदद कर सकते हैं। अपना समय लें, इधर-उधर देखें, और जो आज सही लगे वह चुनें।",
