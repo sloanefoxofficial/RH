@@ -1618,7 +1618,7 @@ export default function App() {
 
   return (
     <div ref={appRootRef} className={getUiLanguage(uiLanguage).rtl ? "rh-app-shell rh-app-rtl" : "rh-app-shell"} style={{ minHeight: "100vh", color: T.ink,
-      background: "radial-gradient(82% 42% at 5% 4%, rgba(177,216,202,0.26), transparent 68%), radial-gradient(78% 44% at 96% 10%, rgba(199,224,238,0.28), transparent 68%), radial-gradient(72% 42% at 8% 86%, rgba(245,211,182,0.24), transparent 70%), radial-gradient(70% 40% at 94% 78%, rgba(222,205,237,0.18), transparent 72%), linear-gradient(180deg, #faf7ee 0%, #f8f8f0 45%, #fbf0e7 100%)",
+      background: "radial-gradient(110% 55% at 50% -10%, rgba(80,160,132,0.34), transparent 70%), radial-gradient(70% 42% at 8% 72%, rgba(215,232,199,0.28), transparent 72%), radial-gradient(70% 40% at 94% 82%, rgba(255,232,196,0.3), transparent 72%), linear-gradient(180deg, #06463f 0%, #0c5a4d 25%, #568a73 50%, #cbd9c4 74%, #f7f0df 100%)",
       backgroundAttachment: "fixed",
       fontFamily: "'Inter', 'Noto Sans Arabic', 'Noto Sans Devanagari', 'Noto Sans Bengali', 'Noto Sans Tamil', 'Noto Sans Malayalam', 'Noto Sans SC', 'Noto Sans TC', 'Segoe UI', system-ui, -apple-system, sans-serif" }}>
       <StyleTag />
@@ -1871,8 +1871,8 @@ function Brand({ right, inlineRight }) {
             <img src="/resilience-hub-logo.png" alt="Resilience Hub" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
           </div>
           <div style={{ lineHeight: 1.15, minWidth: 0 }}>
-            <div style={{ fontWeight: 800, fontSize: 16, color: T.greenDk, whiteSpace: "nowrap" }}>The Resilience Hub</div>
-            <div style={{ fontSize: 11.5, color: T.sub, marginTop: 4, whiteSpace: "nowrap" }}>You never have to walk it alone</div>
+            <div style={{ fontWeight: 800, fontSize: 16, color: "#f7f5e9", whiteSpace: "nowrap" }}>The Resilience Hub</div>
+            <div style={{ fontSize: 11.5, color: "rgba(247,245,233,0.78)", marginTop: 4, whiteSpace: "nowrap" }}>You never have to walk it alone</div>
           </div>
         </div>
         {headerRight && <div style={{ flexShrink: 0 }}>{headerRight}</div>}
