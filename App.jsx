@@ -19,13 +19,13 @@ import { DEFAULT_UI_LANGUAGE, UI_LANGUAGES, getUiLanguage, isUiLanguage, loadLoc
 
 
 const T = {
-  bgTop: "#edf7f0", bgMid: "#f6faf7", bgBot: "#fff4ea",
-  card: "#ffffff", ink: "#244238", sub: "#6f7f77",
-  line: "#dcece2", green: "#4d9f68", greenDk: "#205f48",
+  bgTop: "#0c5a4d", bgMid: "#cbd9c4", bgBot: "#f7f0df",
+  card: "#fffdf7", ink: "#244238", sub: "#5f7468",
+  line: "#d2e3d6", green: "#4d9f68", greenDk: "#174e3e",
   teal: "#55ae9b", tealDk: "#2e8578",
   blue: "#5b83b8", blueDk: "#345c8d",
-  soft: "0 8px 24px rgba(47,97,72,0.08), 0 2px 7px rgba(47,97,72,0.05)",
-  lift: "0 20px 50px rgba(47,97,72,0.15), 0 6px 16px rgba(47,97,72,0.09)",
+  soft: "0 12px 28px rgba(20,73,57,0.13), 0 3px 9px rgba(20,73,57,0.08), inset 0 1px 0 rgba(255,255,255,0.72)",
+  lift: "0 22px 54px rgba(20,73,57,0.18), 0 7px 18px rgba(20,73,57,0.11), inset 0 1px 0 rgba(255,255,255,0.78)",
 };
 
 const HubMenuContext = React.createContext(null);
@@ -7370,7 +7370,7 @@ function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, set
         </details>
       </section>
 
-      <SectionTitle>Your next step</SectionTitle>
+      <SectionTitle tone="light">Your next step</SectionTitle>
       <div className="rh-hub-card-stack" style={{ display: "flex", flexDirection: "column", gap: 9 }}>
         {card(onOpenGuides, "#f4e3d9", "#b56739", Users, "Choose a guide", "Nicolas, Carlos, Mick or Lila — chat any time", undefined, { background: "linear-gradient(115deg, #ffe8d7 0%, #f8d2c4 48%, #fff3df 100%)", border: "1px solid rgba(201,128,63,0.30)", iconBackground: "linear-gradient(145deg, #e8b894, #fff3e7)", iconColor: "#b56739", arrowColor: "#b56739", subColor: "#7f6b60" })}
         {card(onOpenProgram, "#e7eefb", "#3f6faf", CalendarCheck, plan ? "Continue your 8-week plan" : "Try the 8-week plan", plan ? "Your progress and next small step" : "Optional structure if it helps", undefined, { background: "linear-gradient(115deg, #dcecff 0%, #bcdcf5 52%, #eaf3ff 100%)", border: "1px solid rgba(63,111,175,0.30)", iconBackground: "linear-gradient(145deg, #8eaddc, #eef4ff)", iconColor: "#345c8d", arrowColor: "#4e71a6", subColor: "#64758c" })}
@@ -7378,7 +7378,7 @@ function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, set
         {card(onOpenResources, "#e8f2fb", "#3f7e9e", ResourcesIcon, "Support Directory", "Food, crisis support, recovery and local services", undefined, { background: "linear-gradient(115deg, #d9eff2 0%, #b9dfe4 52%, #eaf7f7 100%)", border: "1px solid rgba(63,126,158,0.32)", iconBackground: "linear-gradient(145deg, #3f7e9e, #65bca7)", iconColor: "#fff", arrowColor: "#3f7e9e" })}
       </div>
 
-      <SectionTitle>Connect from home</SectionTitle>
+      <SectionTitle tone="dark">Connect from home</SectionTitle>
       <div className="rh-hub-card-stack" style={{ display: "flex", flexDirection: "column", gap: 9 }}>
         {card(onOpenCampfire, "#fff0d9", "#a9511f", Flame, "Virtual Campfire", "Sit, talk straight, or simply not be alone", undefined, { background: "linear-gradient(115deg, #ffe5c7 0%, #f6b48a 52%, #fff0d7 100%)", border: "1px solid rgba(180,105,53,0.32)", iconBackground: "radial-gradient(circle at 45% 35%, #ffc36e, #e8703a 62%, #a9511f)", iconColor: "#fff7e8", arrowColor: "#a9511f" })}
         {card(onOpenVirtualSupport, "#e8f4f3", "#28736f", Wifi, "Virtual Support from Home", "Talk, connect or get support without travelling", undefined, { background: "linear-gradient(115deg, #d8f1ed 0%, #a9d9d0 52%, #eaf8f3 100%)", border: "1px solid rgba(47,126,126,0.32)", iconBackground: "linear-gradient(145deg, #2f807c, #65b99d)", iconColor: "#fff", arrowColor: "#28736f" })}
@@ -7436,10 +7436,11 @@ function Stat({ label, value }) {
   );
 }
 
-function SectionTitle({ children }) {
+function SectionTitle({ children, tone = "dark" }) {
+  const isLight = tone === "light";
   return (
-    <h2 style={{ fontSize: 18, fontWeight: 850, color: T.greenDk, letterSpacing: 0.15, margin: "27px 2px 12px", paddingBottom: 9, display: "flex", alignItems: "center", gap: 9, borderBottom: "1px solid rgba(77,159,104,0.18)" }}>
-      <span style={{ width: 7, height: 23, borderRadius: 999, background: `linear-gradient(180deg, ${T.teal}, ${T.green})`, display: "inline-block", boxShadow: "0 3px 8px rgba(77,159,104,0.18)" }} />
+    <h2 style={{ fontSize: 18, fontWeight: 850, color: isLight ? "#fff8e8" : "#123f32", letterSpacing: 0.15, margin: "27px 2px 12px", paddingBottom: 9, display: "flex", alignItems: "center", gap: 9, borderBottom: `1px solid ${isLight ? "rgba(255,248,232,0.34)" : "rgba(23,78,62,0.32)"}`, textShadow: isLight ? "0 1px 3px rgba(8,48,40,0.35)" : "none" }}>
+      <span style={{ width: 7, height: 23, borderRadius: 999, background: isLight ? "linear-gradient(180deg, #fff8e8, #d8e7c9)" : `linear-gradient(180deg, ${T.tealDk}, ${T.greenDk})`, display: "inline-block", boxShadow: isLight ? "0 3px 8px rgba(8,48,40,0.28)" : "0 3px 8px rgba(23,78,62,0.22)" }} />
       {children}
     </h2>
   );
