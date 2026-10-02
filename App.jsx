@@ -7302,7 +7302,7 @@ function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, set
   useEffect(() => () => stop(), [stop]);
 
   const card = (onClick, tint, ic, Icon, title, sub, badge, options = {}) => (
-    <button onClick={onClick} aria-label={`${title}: ${sub}`} style={{ width: "100%", background: options.background || "linear-gradient(110deg, #ffffff 0%, #fbfefc 100%)", borderRadius: 21, padding: 15,
+    <button className="rh-hub-card" onClick={onClick} aria-label={`${title}: ${sub}`} style={{ width: "100%", background: options.background || "linear-gradient(110deg, #ffffff 0%, #fbfefc 100%)", borderRadius: 21, padding: 15,
       boxShadow: options.shadow || T.soft, border: options.border || `1px solid ${T.line}`, cursor: "pointer", display: "flex", alignItems: "center", gap: 13, textAlign: "left", transition: "transform .15s ease, box-shadow .15s ease", ...options.button }}>
       <div style={{ width: 50, height: 50, borderRadius: 17, background: options.iconBackground || `linear-gradient(145deg, ${tint}, #ffffff)`, display: "grid", placeItems: "center", position: "relative", flexShrink: 0, boxShadow: options.iconShadow || `inset 0 0 0 1px ${ic}18`, ...options.icon }}>
         <Icon size={23} color={options.iconColor || ic} strokeWidth={2.2} />
@@ -7348,20 +7348,20 @@ function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, set
       )}
 
       {/* A calm entry point: put the most likely decisions before the full catalogue. */}
-      <section aria-labelledby="hub-start-title" style={{ background: "linear-gradient(135deg, #e8f6ec 0%, #f8fcf8 58%, #fff5e8 100%)", borderRadius: 24, padding: "21px 18px", boxShadow: T.soft, marginTop: 8, border: "1px solid rgba(77,159,104,0.16)", position: "relative", overflow: "hidden" }}>
+      <section className="rh-hub-hero" aria-labelledby="hub-start-title" style={{ background: "linear-gradient(135deg, #e8f6ec 0%, #f8fcf8 58%, #fff5e8 100%)", borderRadius: 24, padding: "21px 18px", boxShadow: T.soft, marginTop: 8, border: "1px solid rgba(77,159,104,0.16)", position: "relative", overflow: "hidden" }}>
         <div style={{ display: "inline-flex", alignItems: "center", gap: 6, color: T.greenDk, fontSize: 11, fontWeight: 900, letterSpacing: 0.7, textTransform: "uppercase", marginBottom: 9 }}><Sparkles size={14} /> Welcome to the Hub</div>
         <h1 id="hub-start-title" style={{ fontSize: 25, fontWeight: 900, lineHeight: 1.12, margin: "0 0 6px", color: T.greenDk }}>What would help right now{nm ? `, ${nm}` : ""}?</h1>
         <p style={{ fontSize: 14, color: T.sub, lineHeight: 1.45, margin: 0 }}>Start with one small choice. If you’d like to know who is here for you, open the support circle below.</p>
         <div style={{ display: "grid", gap: 8, marginTop: 15 }}>
-          <button onClick={() => onOpenChat("juan")} aria-label="Talk it through with Nicolas" style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", minHeight: 48, border: "none", borderRadius: 14, padding: "10px 13px", background: T.greenDk, color: "#fff", fontWeight: 800, fontSize: 14, textAlign: "left", cursor: "pointer" }}><MessageCircle size={19} /> Talk it through with Nicolas <ChevronRight size={17} style={{ marginLeft: "auto" }} /></button>
-          <button onClick={onOpenToolkit} aria-label="Open the Toolkit to help settle and feel safer" style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", minHeight: 48, border: "1px solid rgba(46,133,120,0.22)", borderRadius: 14, padding: "10px 13px", background: "rgba(255,255,255,0.78)", color: T.ink, fontWeight: 800, fontSize: 14, textAlign: "left", cursor: "pointer" }}><Wrench size={19} color="#28736f" /> Help me settle <ChevronRight size={17} color={T.sub} style={{ marginLeft: "auto" }} /></button>
-          <button onClick={onOpenSafety} aria-label="Open Safety First for urgent human support" style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", minHeight: 48, border: "1px solid #efcccc", borderRadius: 14, padding: "10px 13px", background: "#fff7f5", color: "#963c43", fontWeight: 800, fontSize: 14, textAlign: "left", cursor: "pointer" }}><LifeBuoy size={19} /> Safety First <span style={{ fontSize: 12, fontWeight: 600, marginLeft: "auto" }}>urgent support</span><ChevronRight size={17} /></button>
+          <button className="rh-hub-action" onClick={() => onOpenChat("juan")} aria-label="Talk it through with Nicolas" style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", minHeight: 48, border: "none", borderRadius: 14, padding: "10px 13px", background: T.greenDk, color: "#fff", fontWeight: 800, fontSize: 14, textAlign: "left", cursor: "pointer" }}><MessageCircle size={19} /> Talk it through with Nicolas <ChevronRight size={17} style={{ marginLeft: "auto" }} /></button>
+          <button className="rh-hub-action" onClick={onOpenToolkit} aria-label="Open the Toolkit to help settle and feel safer" style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", minHeight: 48, border: "1px solid rgba(46,133,120,0.22)", borderRadius: 14, padding: "10px 13px", background: "rgba(255,255,255,0.78)", color: T.ink, fontWeight: 800, fontSize: 14, textAlign: "left", cursor: "pointer" }}><Wrench size={19} color="#28736f" /> Help me settle <ChevronRight size={17} color={T.sub} style={{ marginLeft: "auto" }} /></button>
+          <button className="rh-hub-action" onClick={onOpenSafety} aria-label="Open Safety First for urgent human support" style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", minHeight: 48, border: "1px solid #efcccc", borderRadius: 14, padding: "10px 13px", background: "#fff7f5", color: "#963c43", fontWeight: 800, fontSize: 14, textAlign: "left", cursor: "pointer" }}><LifeBuoy size={19} /> Safety First <span style={{ fontSize: 12, fontWeight: 600, marginLeft: "auto" }}>urgent support</span><ChevronRight size={17} /></button>
         </div>
-        <details style={{ marginTop: 12, borderRadius: 14, background: "rgba(255,255,255,0.66)", border: "1px solid rgba(38,119,128,0.26)", overflow: "hidden" }}>
+        <details className="rh-hub-team" style={{ marginTop: 12, borderRadius: 14, background: "rgba(255,255,255,0.66)", border: "1px solid rgba(38,119,128,0.26)", overflow: "hidden", boxShadow: "0 8px 18px rgba(38,119,128,0.08), inset 0 1px 0 rgba(255,255,255,0.58)" }}>
           <summary style={{ cursor: "pointer", padding: "13px 14px", display: "flex", alignItems: "center", gap: 9, listStyle: "none", background: "linear-gradient(100deg, #267780 0%, #55a4a3 100%)", color: "#fff", fontSize: 14, fontWeight: 900, letterSpacing: 0.15, boxShadow: "0 5px 13px rgba(38,119,128,0.18)" }}><Users size={18} /><span style={{ flex: 1 }}>Meet Your Support Team</span><ChevronRight size={18} /></summary>
           <div style={{ display: "grid", gap: 7, padding: "0 9px 10px" }}>
             {supportIntroductions.map(({ name, role, helps, tint, color }) => (
-              <details key={name} style={{ background: tint, borderRadius: 11, border: `1px solid ${color}22` }}>
+              <details className="rh-hub-person" key={name} style={{ background: tint, borderRadius: 11, border: `1px solid ${color}22` }}>
                 <summary style={{ cursor: "pointer", padding: "10px 11px", color, fontSize: 13, fontWeight: 800 }}>{name} <span style={{ color: T.sub, fontWeight: 600 }}>· {role}</span></summary>
                 <p style={{ padding: "0 11px 11px", margin: 0, color: T.ink, fontSize: 12.5, lineHeight: 1.45 }}>{helps}</p>
               </details>
@@ -7384,7 +7384,7 @@ function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, set
         {card(onOpenVirtualSupport, "#e8f4f3", "#28736f", Wifi, "Virtual Support from Home", "Talk, connect or get support without travelling", undefined, { background: "linear-gradient(135deg, #e8f4f3 0%, #f7fbf8 100%)", border: "1px solid rgba(47,126,126,0.20)", iconBackground: "linear-gradient(145deg, #2f807c, #65b99d)", iconColor: "#fff", arrowColor: "#28736f" })}
       </div>
 
-      <details style={{ marginTop: 18, borderRadius: 18, border: `1px solid ${T.line}`, background: "rgba(255,255,255,0.62)", boxShadow: T.soft }}>
+      <details className="rh-hub-details" style={{ marginTop: 18, borderRadius: 18, border: `1px solid ${T.line}`, background: "rgba(255,255,255,0.62)", boxShadow: T.soft }}>
         <summary style={{ cursor: "pointer", padding: "15px 16px", fontWeight: 800, color: T.ink, minHeight: 24 }}>More support and services</summary>
         <div style={{ display: "flex", flexDirection: "column", gap: 9, padding: "0 12px 13px" }}>
           {card(onOpenProgramInfo, "#e8f6ec", T.greenDk, Users, "Juan’s 8-week support program", "Free, in-person support across Western Sydney", undefined, { background: "#f7fcf8", border: "1px solid #d6eadb", iconBackground: "linear-gradient(145deg, #75b98a, #e3f5e8)", iconColor: T.greenDk, arrowColor: T.greenDk })}
@@ -7399,7 +7399,7 @@ function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, set
         </div>
       </details>
 
-      <details style={{ marginTop: 10, borderRadius: 18, border: `1px solid ${T.line}`, background: "rgba(255,255,255,0.62)", boxShadow: T.soft }}>
+      <details className="rh-hub-details" style={{ marginTop: 10, borderRadius: 18, border: `1px solid ${T.line}`, background: "rgba(255,255,255,0.62)", boxShadow: T.soft }}>
         <summary style={{ cursor: "pointer", padding: "15px 16px", fontWeight: 800, color: T.ink, minHeight: 24 }}>Need help choosing?</summary>
         <div style={{ padding: "0 12px 13px", display: "flex", flexDirection: "column", gap: 9 }}>
           <button onClick={() => onOpenChat("rex")} aria-label="Chat with Rex, your welcomer" style={{ display: "flex", alignItems: "center", gap: 12, border: "none", borderRadius: 14, background: "#eef9f1", padding: 11, textAlign: "left", cursor: "pointer" }}><Portrait src={CHARS.rex.img} name="Rex" size={46} speaking={false} tint={CHARS.rex.tint} /><span style={{ flex: 1 }}><strong style={{ display: "block", color: T.ink }}>Not sure who to talk to? Rex can help</strong><span style={{ color: T.sub, fontSize: 12.5 }}>He’ll point you in the right direction.</span></span><ChevronRight size={18} color={T.sub} /></button>
