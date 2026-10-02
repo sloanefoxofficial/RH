@@ -1618,7 +1618,7 @@ export default function App() {
 
   return (
     <div ref={appRootRef} className={getUiLanguage(uiLanguage).rtl ? "rh-app-shell rh-app-rtl" : "rh-app-shell"} style={{ minHeight: "100vh", color: T.ink,
-      background: `radial-gradient(90% 55% at 12% 0%, rgba(63,111,175,0.07), transparent 60%), radial-gradient(80% 50% at 92% 12%, rgba(47,158,147,0.07), transparent 55%), linear-gradient(180deg, ${T.bgTop} 0%, ${T.bgMid} 46%, ${T.bgBot} 100%)`,
+      background: "radial-gradient(82% 42% at 5% 4%, rgba(177,216,202,0.26), transparent 68%), radial-gradient(78% 44% at 96% 10%, rgba(199,224,238,0.28), transparent 68%), radial-gradient(72% 42% at 8% 86%, rgba(245,211,182,0.24), transparent 70%), radial-gradient(70% 40% at 94% 78%, rgba(222,205,237,0.18), transparent 72%), linear-gradient(180deg, #faf7ee 0%, #f8f8f0 45%, #fbf0e7 100%)",
       backgroundAttachment: "fixed",
       fontFamily: "'Inter', 'Noto Sans Arabic', 'Noto Sans Devanagari', 'Noto Sans Bengali', 'Noto Sans Tamil', 'Noto Sans Malayalam', 'Noto Sans SC', 'Noto Sans TC', 'Segoe UI', system-ui, -apple-system, sans-serif" }}>
       <StyleTag />
