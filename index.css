@@ -6,13 +6,13 @@ body { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; 
   font-family: "Inter", "Noto Sans Arabic", "Noto Sans Devanagari", "Noto Sans Bengali", "Noto Sans Tamil", "Noto Sans Malayalam", "Noto Sans SC", "Noto Sans TC", "Segoe UI", system-ui, sans-serif;
 }
 .rh-hub-hero {
-  box-shadow: 0 14px 32px rgba(47,97,72,0.11), 0 3px 9px rgba(47,97,72,0.06), inset 0 1px 0 rgba(255,255,255,0.78) !important;
+  box-shadow: 0 16px 34px rgba(47,97,72,0.16), 0 4px 10px rgba(47,97,72,0.09), inset 0 1px 0 rgba(255,255,255,0.78) !important;
 }
 .rh-hub-card {
   position: relative;
   isolation: isolate;
   overflow: hidden;
-  box-shadow: 0 12px 28px rgba(47,97,72,0.10), 0 3px 8px rgba(47,97,72,0.05), inset 0 1px 0 rgba(255,255,255,0.72) !important;
+  box-shadow: 0 14px 30px rgba(47,97,72,0.15), 0 4px 10px rgba(47,97,72,0.08), inset 0 1px 0 rgba(255,255,255,0.72) !important;
 }
 .rh-hub-card::after {
   content: "";
@@ -25,7 +25,7 @@ body { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; 
 }
 .rh-hub-card:hover {
   transform: translateY(-1px);
-  box-shadow: 0 16px 32px rgba(47,97,72,0.13), 0 4px 10px rgba(47,97,72,0.06), inset 0 1px 0 rgba(255,255,255,0.82) !important;
+  box-shadow: 0 18px 36px rgba(47,97,72,0.19), 0 5px 12px rgba(47,97,72,0.10), inset 0 1px 0 rgba(255,255,255,0.82) !important;
 }
 .rh-hub-card:active { transform: translateY(0); }
 .rh-hub-card:focus-visible,
@@ -35,10 +35,10 @@ body { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; 
   outline-offset: 3px;
 }
 .rh-hub-action {
-  box-shadow: 0 6px 15px rgba(47,97,72,0.08), inset 0 1px 0 rgba(255,255,255,0.56);
+  box-shadow: 0 8px 18px rgba(47,97,72,0.12), inset 0 1px 0 rgba(255,255,255,0.56);
 }
 .rh-hub-details {
-  box-shadow: 0 10px 24px rgba(47,97,72,0.07), inset 0 1px 0 rgba(255,255,255,0.72) !important;
+  box-shadow: 0 12px 26px rgba(47,97,72,0.11), inset 0 1px 0 rgba(255,255,255,0.72) !important;
 }
 .rh-hub-details > summary,
 .rh-hub-team > summary,
