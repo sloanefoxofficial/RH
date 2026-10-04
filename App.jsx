@@ -2366,7 +2366,7 @@ function cleanTranscript(text) {
   return out.join(' ');
 }
 
-function splitForTts(text) {
+function splitForTts(text, maxChars = 260) {
   const clean = String(text || "").replace(/\s+/g, " ").trim();
   if (!clean) return [];
   const sentences = clean.match(/[^.!?…]+[.!?…]+(?:["')\]]+)?|\S[^.!?…]*$/g) || [clean];
@@ -2376,7 +2376,7 @@ function splitForTts(text) {
     const words = String(value || "").trim().split(/\s+/).filter(Boolean);
     for (const word of words) {
       const candidate = (cur ? cur + " " : "") + word;
-      if (candidate.length > 260 && cur.trim()) {
+      if (candidate.length > maxChars && cur.trim()) {
         chunks.push(cur.trim());
         cur = word;
       } else cur = candidate;
@@ -2385,12 +2385,12 @@ function splitForTts(text) {
   for (const s0 of sentences) {
     const s = s0.trim();
     if (!s) continue;
-    if (((cur ? cur + " " : "") + s).length > 260 && cur.trim()) {
+    if (((cur ? cur + " " : "") + s).length > maxChars && cur.trim()) {
       chunks.push(cur.trim()); cur = "";
     }
     // A single long sentence is split safely at word boundaries rather than
     // sent as an oversized TTS request that can be truncated by a provider.
-    if (s.length > 260) pushWords(s);
+    if (s.length > maxChars) pushWords(s);
     else cur = (cur ? cur + " " : "") + s;
   }
   if (cur.trim()) chunks.push(cur.trim());
@@ -2515,7 +2515,11 @@ function useVoice(voiceOn) {
     // Prefer natural voices when the guide has a voiceId; fall back to the
     // browser voice if the key isn't set, the call fails, or playback is blocked.
     if (char && char.voiceId) {
-      const chunks = splitForTts(text);
+      // Carlos’s natural voice sounds better when it can carry a few related
+      // sentences in one clip. Short 260-character chunks create an audible
+      // fetch/load handoff between nearly every sentence. Keep the shorter
+      // chunks for the other guides so their first response still starts fast.
+      const chunks = splitForTts(text, char.slug === "carlos" ? 440 : 260);
       const first = chunks[0] || text;
       // The first TTS request after a long break can include a cold serverless
       // function, provider connection, and Android audio wake-up. Do not mistake
