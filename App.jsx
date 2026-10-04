@@ -2407,6 +2407,8 @@ function useVoice(voiceOn) {
   const audioRef = useRef(null);
   const reqRef = useRef(0);
   const playbackRef = useRef(0);
+  const recoveryTimerRef = useRef(null);
+  const manualPauseRef = useRef(false);
 
   const stop = useCallback(() => {
     // Invalidate pending TTS fetches as well as the audio currently attached to
@@ -2414,11 +2416,13 @@ function useVoice(voiceOn) {
     // after a route change, replay tap, or emergency-call stop.
     playbackRef.current += 1;
     __synthEpoch++;
+    manualPauseRef.current = false;
+    if (recoveryTimerRef.current) { clearTimeout(recoveryTimerRef.current); recoveryTimerRef.current = null; }
     try { if (typeof window !== "undefined" && window.speechSynthesis) window.speechSynthesis.cancel(); } catch {}
     try {
       if (audioRef.current) {
         const a = audioRef.current;
-        a.onplay = null; a.onended = null; a.onerror = null; // no queued event can fire after this
+        a.onplay = null; a.onpause = null; a.onstalled = null; a.onwaiting = null; a.onended = null; a.onerror = null; // no queued event can fire after this
         a.pause(); a.removeAttribute("src");
         // iOS Safari can otherwise keep the page's audio session locked in
         // "playback" mode after a guide's voice plays, which silently blocks
@@ -2451,15 +2455,16 @@ function useVoice(voiceOn) {
         // tapping the bubble starts a clean replay instead — particularly important on iOS.
         if (a.ended) { audioRef.current = null; return false; }
         if (a.paused) {
+          manualPauseRef.current = false;
           const p = a.play();
           if (p && p.catch) p.catch(() => { if (audioRef.current === a) audioRef.current = null; setPaused(false); });
           setPaused(false);
-        } else { a.pause(); setPaused(true); }
+        } else { manualPauseRef.current = true; a.pause(); setPaused(true); }
         return true;
       }
       if (typeof window !== "undefined" && window.speechSynthesis && window.speechSynthesis.speaking) {
-        if (window.speechSynthesis.paused) { window.speechSynthesis.resume(); setPaused(false); }
-        else { window.speechSynthesis.pause(); setPaused(true); }
+        if (window.speechSynthesis.paused) { manualPauseRef.current = false; window.speechSynthesis.resume(); setPaused(false); }
+        else { manualPauseRef.current = true; window.speechSynthesis.pause(); setPaused(true); }
         return true;
       }
     } catch {}
@@ -2469,6 +2474,7 @@ function useVoice(voiceOn) {
   const browserSpeak = useCallback((text, char, onDone) => {
     if (typeof window === "undefined" || !window.speechSynthesis) { if (onDone) onDone(); return; }
     const myEpoch = ++__synthEpoch;
+    manualPauseRef.current = false;
     try { window.speechSynthesis.cancel(); } catch {}
     // Chrome/WebKit have a known race where speak() called immediately after
     // cancel() can let the old and new utterances both briefly play. A short
@@ -2479,6 +2485,14 @@ function useVoice(voiceOn) {
         const u = new SpeechSynthesisUtterance(text);
         u.pitch = char?.voice?.pitch ?? 1; u.rate = char?.voice?.rate ?? 1; u.lang = __speechLang;
         u.onstart = () => { if (myEpoch === __synthEpoch) { __lastVoiceAt = Date.now(); setSpeaking(true); } };
+        u.onpause = () => {
+          if (myEpoch !== __synthEpoch || manualPauseRef.current) return;
+          setTimeout(() => {
+            if (myEpoch === __synthEpoch && !manualPauseRef.current && window.speechSynthesis?.paused) {
+              try { window.speechSynthesis.resume(); } catch {}
+            }
+          }, 650);
+        };
         u.onend = () => { if (myEpoch === __synthEpoch) { setSpeaking(false); if (onDone) onDone(); } };
         window.speechSynthesis.speak(u);
       } catch { if (myEpoch === __synthEpoch && onDone) onDone(); }
@@ -2547,8 +2561,26 @@ function useVoice(voiceOn) {
           }
           const audio = getTtsAudio() || new Audio();
           audioRef.current = audio;
-          audio.onplay = () => { try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch {} __lastVoiceAt = Date.now(); setSpeaking(true); };
+          const scheduleAudioRecovery = () => {
+            if (recoveryTimerRef.current || manualPauseRef.current || stale() || audio.ended) return;
+            // Do not interfere with the initial load/play handshake. This path is
+            // only for a clip that was already making progress and then stalled.
+            if (audio.currentTime <= 0.05) return;
+            recoveryTimerRef.current = setTimeout(() => {
+              recoveryTimerRef.current = null;
+              if (stale() || manualPauseRef.current || audioRef.current !== audio || audio.ended) return;
+              try {
+                const retryPlay = audio.play();
+                if (retryPlay?.catch) retryPlay.catch(() => {});
+              } catch {}
+            }, 650);
+          };
+          audio.onplay = () => { if (recoveryTimerRef.current) { clearTimeout(recoveryTimerRef.current); recoveryTimerRef.current = null; } manualPauseRef.current = false; try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch {} __lastVoiceAt = Date.now(); setSpeaking(true); };
+          audio.onpause = scheduleAudioRecovery;
+          audio.onstalled = scheduleAudioRecovery;
+          audio.onwaiting = scheduleAudioRecovery;
           audio.onended = () => {
+            if (recoveryTimerRef.current) { clearTimeout(recoveryTimerRef.current); recoveryTimerRef.current = null; }
             if (stale()) return;
             if (audioRef.current === audio) audioRef.current = null;
             if (index + 1 < chunks.length) {
