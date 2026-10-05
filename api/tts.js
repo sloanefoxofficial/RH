@@ -56,7 +56,10 @@ async function fishSynth(text, referenceId) {
         reference_id: referenceId,
         format: "mp3",
         mp3_bitrate: 64,
-        latency: "low",
+        // Fish Audio currently supports "balanced" and "normal" here;
+        // "low" makes the request fail and silently triggers the generic
+        // Google/browser fallback for the cloned guide voices.
+        latency: "balanced",
         chunk_length: 100,
         min_chunk_length: 50,
         condition_on_previous_chunks: false,
