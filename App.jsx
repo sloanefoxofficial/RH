@@ -2540,8 +2540,6 @@ function useVoice(voiceOn) {
           // A Fish clone is natural for its English persona. In another
           // selected language the server deliberately uses Google multilingual
           // TTS instead, so browser speech is an appropriate final fallback.
-          const fishVoice = String(char?.voiceId || "").startsWith("fish:") && /^en(?:-|$)/i.test(__speechLang || "en-AU");
-          const failVoice = () => { setSpeaking(false); if (onDone) onDone(); };
           let url;
           try {
             const audioPromise = urlPromise || fetchTtsUrl(chunk, char.voiceId, __speechLang, char.voiceGender);
@@ -2552,19 +2550,30 @@ function useVoice(voiceOn) {
               ]);
               if (firstResult.kind === "timeout") {
                 audioPromise.catch(() => {});
-                if (!stale()) fishVoice ? failVoice() : browserSpeak(text, char, onDone);
+                if (!stale()) browserSpeak(text, char, onDone);
                 return;
               }
               url = firstResult.value;
             } else url = await audioPromise;
           }
-          catch { if (!stale()) fishVoice ? failVoice() : browserSpeak(chunk, char, index + 1 < chunks.length ? () => playChunk(index + 1, chunkPromises[index + 1]) : onDone); return; }
+          catch {
+            if (!stale()) {
+              const continueAfterFallback = index + 1 < chunks.length
+                ? () => playChunk(index + 1, chunkPromises[index + 1])
+                : onDone;
+              browserSpeak(chunk, char, continueAfterFallback);
+            }
+            return;
+          }
           if (stale()) return;
           if (index + 1 < chunks.length && !chunkPromises[index + 1]) {
             chunkPromises[index + 1] = fetchTtsUrl(chunks[index + 1], char.voiceId, __speechLang, char.voiceGender);
           }
           const audio = getTtsAudio() || new Audio();
           audioRef.current = audio;
+          const continueAfterChunk = index + 1 < chunks.length
+            ? () => playChunk(index + 1, chunkPromises[index + 1])
+            : onDone;
           const scheduleAudioRecovery = () => {
             if (recoveryTimerRef.current || manualPauseRef.current || stale() || audio.ended) return;
             // Do not interfere with the initial load/play handshake. This path is
@@ -2575,8 +2584,18 @@ function useVoice(voiceOn) {
               if (stale() || manualPauseRef.current || audioRef.current !== audio || audio.ended) return;
               try {
                 const retryPlay = audio.play();
-                if (retryPlay?.catch) retryPlay.catch(() => {});
-              } catch {}
+                if (retryPlay?.catch) {
+                  retryPlay.catch(() => {
+                    if (!stale() && audioRef.current === audio && !manualPauseRef.current) {
+                      browserSpeak(chunk, char, continueAfterChunk);
+                    }
+                  });
+                }
+              } catch {
+                if (!stale() && audioRef.current === audio && !manualPauseRef.current) {
+                  browserSpeak(chunk, char, continueAfterChunk);
+                }
+              }
             }, 650);
           };
           audio.onplay = () => { if (recoveryTimerRef.current) { clearTimeout(recoveryTimerRef.current); recoveryTimerRef.current = null; } manualPauseRef.current = false; try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch {} __lastVoiceAt = Date.now(); setSpeaking(true); };
@@ -2607,8 +2626,7 @@ function useVoice(voiceOn) {
               setTimeout(() => { if (!stale()) playChunk(index, urlPromise, retry + 1); }, 120);
               return;
             }
-            if (fishVoice) failVoice();
-            else if (index + 1 < chunks.length) browserSpeak(chunk, char, () => playChunk(index + 1, chunkPromises[index + 1]));
+            if (index + 1 < chunks.length) browserSpeak(chunk, char, continueAfterChunk);
             else { setSpeaking(false); browserSpeak(chunk, char, onDone); }
           };
           try {
@@ -2628,7 +2646,14 @@ function useVoice(voiceOn) {
               await audio.play();
               return;
             }
-            catch { if (!stale()) fishVoice ? failVoice() : browserSpeak(chunk, char, index + 1 < chunks.length ? () => playChunk(index + 1, chunkPromises[index + 1]) : onDone); }
+            catch {
+              if (!stale()) {
+                const continueAfterFallback = index + 1 < chunks.length
+                  ? () => playChunk(index + 1, chunkPromises[index + 1])
+                  : onDone;
+                browserSpeak(chunk, char, continueAfterFallback);
+              }
+            }
           }
         };
         await playChunk(0, chunkPromises[0]);
