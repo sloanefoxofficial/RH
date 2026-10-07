@@ -4533,12 +4533,12 @@ function Profile({ session, profile, answers, saveProfile, saveAnswers, persistC
   return (
     <>
       <Brand right={<BackBtn onBack={onBack} />} />
-      <SectionTitle>Your profile</SectionTitle>
+      <SectionTitle tone="light">Your profile</SectionTitle>
       <p style={{ fontSize: 13, color: T.sub, margin: "0 2px 12px", lineHeight: 1.5 }}>
         This space is yours. Fill in as much or as little as you like — you can change it any time.
       </p>
 
-      <SectionTitle>App language</SectionTitle>
+      <SectionTitle tone="light">App language</SectionTitle>
       <div style={{ background: "linear-gradient(135deg, #edf7f0 0%, #fff 88%)", border: "1px solid #cfe4d5", borderRadius: 20, padding: 16, boxShadow: T.soft, marginBottom: 14 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}><span style={{ width: 38, height: 38, borderRadius: 12, display: "grid", placeItems: "center", background: "#dff0e4", color: T.greenDk, fontSize: 19 }}>🌐</span><div><div style={{ fontWeight: 850 }}>Choose your language</div><div style={{ fontSize: 12.5, color: T.sub, lineHeight: 1.4 }}>The Hub, voice, microphone, and AI guides will use this language.</div></div></div>
         <select value={uiLanguage} onChange={(event) => onChangeUiLanguage?.(event.target.value)} aria-label="Choose app language" style={{ ...inputStyle, appearance: "auto", marginTop: 8 }}>
@@ -4546,7 +4546,7 @@ function Profile({ session, profile, answers, saveProfile, saveAnswers, persistC
         </select>
       </div>
 
-      <SectionTitle>Campfire access</SectionTitle>
+      <SectionTitle tone="light">Campfire access</SectionTitle>
       <div style={{ background: "linear-gradient(135deg, #fff8ee 0%, #fff 78%)", border: "1px solid #ead8c7", borderRadius: 20, padding: 16, boxShadow: T.soft, marginBottom: 14 }}>
         <div style={{ fontWeight: 800, color: T.ink, marginBottom: 5 }}>Which Campfire space is right for you?</div>
         <p style={{ margin: "0 0 12px", color: T.sub, fontSize: 13, lineHeight: 1.48 }}>Choose one space to access. You’ll also be able to use the Common Fire. To protect everyone’s privacy, this choice cannot be changed later.</p>
@@ -4602,7 +4602,7 @@ function Profile({ session, profile, answers, saveProfile, saveAnswers, persistC
         {status && <div style={{ fontSize: 13, color: status === "Saved." ? T.greenDk : T.sub, marginTop: 10, textAlign: "center" }}>{status}</div>}
       </div>
 
-      <SectionTitle>Password</SectionTitle>
+      <SectionTitle tone="light">Password</SectionTitle>
       <div style={{ background: T.card, borderRadius: 20, padding: 18, boxShadow: T.soft }}>
         <p style={{ fontSize: 13, color: T.sub, margin: "0 0 12px", lineHeight: 1.5 }}>
           Set or change a password. (If you sign in with Google, you don't need one — but you can add one here.)
@@ -4624,7 +4624,7 @@ function Profile({ session, profile, answers, saveProfile, saveAnswers, persistC
         {pwStatus && <div style={{ fontSize: 13, color: pwStatus.startsWith("Password updated") ? T.greenDk : "#c0392b", marginTop: 10, textAlign: "center", lineHeight: 1.4 }}>{pwStatus}</div>}
       </div>
 
-      <SectionTitle>What the guides remember</SectionTitle>
+      <SectionTitle tone="light">What the guides remember</SectionTitle>
       <button onClick={onOpenMemory} style={{ width: "100%", background: T.card, borderRadius: 20, padding: 16,
         boxShadow: T.soft, border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 12, textAlign: "left" }}>
         <div style={{ width: 44, height: 44, borderRadius: 14, background: "#eef1fb", display: "grid", placeItems: "center" }}>
@@ -4637,10 +4637,10 @@ function Profile({ session, profile, answers, saveProfile, saveAnswers, persistC
         <ChevronRight size={20} color={T.sub} />
       </button>
 
-      <SectionTitle>Privacy</SectionTitle>
+      <SectionTitle tone="light">Privacy</SectionTitle>
       <PrivacyLink variant="menu" />
 
-      <SectionTitle>Start over</SectionTitle>
+      <SectionTitle tone="light">Start over</SectionTitle>
       <div style={{ background: T.card, borderRadius: 20, padding: 18, boxShadow: T.soft }}>
         <p style={{ fontSize: 13, color: T.sub, margin: "0 0 12px", lineHeight: 1.5 }}>
           This clears your profile details and photo, journey, plan progress, journal entries, and saved conversations with the guides.
@@ -5419,12 +5419,12 @@ function Settings({ textScale, reduceMotion, responseSpeed, speechLang, uiLangua
   return (
     <>
       <Brand right={<BackBtn onBack={onBack} />} />
-      <SectionTitle>Settings</SectionTitle>
+      <SectionTitle tone="light">Settings</SectionTitle>
       <p style={{ fontSize: 13.5, color: T.sub, margin: "0 2px 16px", lineHeight: 1.5 }}>
         Set up the Hub in a way that feels comfortable. Your choices are saved on this device.
       </p>
 
-      <div style={{ fontSize: 15, color: T.greenDk, fontWeight: 900, letterSpacing: 0.7, textTransform: "uppercase", margin: "7px 2px 10px" }}>Make it comfortable</div>
+      <div style={{ fontSize: 15, color: "#fff8e8", fontWeight: 900, letterSpacing: 0.7, textTransform: "uppercase", margin: "7px 2px 10px", padding: "9px 11px", borderRadius: 14, background: "rgba(7,74,62,0.34)", border: "1px solid rgba(255,248,232,0.22)", textShadow: "0 1px 3px rgba(8,48,40,0.35)" }}>Make it comfortable</div>
       <div style={{ background: T.card, borderRadius: 18, padding: 16, boxShadow: T.soft, marginBottom: 14 }}>
         <div style={{ fontWeight: 700, marginBottom: 4 }}>Text size</div>
         <p style={{ fontSize: 12.5, color: T.sub, margin: "0 0 12px" }}>Make everything a little smaller or larger.</p>
@@ -5447,7 +5447,7 @@ function Settings({ textScale, reduceMotion, responseSpeed, speechLang, uiLangua
         </p>
       </div>
 
-      <div style={{ fontSize: 15, color: T.greenDk, fontWeight: 900, letterSpacing: 0.7, textTransform: "uppercase", margin: "22px 2px 10px" }}>Voice &amp; speech</div>
+      <div style={{ fontSize: 15, color: "#fff8e8", fontWeight: 900, letterSpacing: 0.7, textTransform: "uppercase", margin: "22px 2px 10px", padding: "9px 11px", borderRadius: 14, background: "rgba(7,74,62,0.34)", border: "1px solid rgba(255,248,232,0.22)", textShadow: "0 1px 3px rgba(8,48,40,0.35)" }}>Voice &amp; speech</div>
       <div style={{ background: T.card, borderRadius: 18, padding: 16, boxShadow: T.soft, marginBottom: 14 }}>
         <div style={{ fontWeight: 700, marginBottom: 4 }}>Response speed</div>
         <p style={{ fontSize: 12.5, color: T.sub, margin: "0 0 12px", lineHeight: 1.45 }}>
@@ -5490,7 +5490,7 @@ function Settings({ textScale, reduceMotion, responseSpeed, speechLang, uiLangua
         </select>
       </div>
 
-      <div style={{ fontSize: 15, color: T.greenDk, fontWeight: 900, letterSpacing: 0.7, textTransform: "uppercase", margin: "22px 2px 10px" }}>Privacy &amp; service improvement</div>
+      <div style={{ fontSize: 15, color: "#fff8e8", fontWeight: 900, letterSpacing: 0.7, textTransform: "uppercase", margin: "22px 2px 10px", padding: "9px 11px", borderRadius: 14, background: "rgba(7,74,62,0.34)", border: "1px solid rgba(255,248,232,0.22)", textShadow: "0 1px 3px rgba(8,48,40,0.35)" }}>Privacy &amp; service improvement</div>
       <div style={{ background: T.card, borderRadius: 18, padding: 16, boxShadow: T.soft, marginBottom: 14, display: "flex", alignItems: "center", gap: 12 }}>
         <div style={{ flex: 1 }}>
           <div style={{ fontWeight: 700 }}>Allow anonymous usage tracking</div>
@@ -5502,7 +5502,7 @@ function Settings({ textScale, reduceMotion, responseSpeed, speechLang, uiLangua
         </button>
       </div>
 
-      <div style={{ fontSize: 15, color: T.greenDk, fontWeight: 900, letterSpacing: 0.7, textTransform: "uppercase", margin: "22px 2px 10px" }}>Your device</div>
+      <div style={{ fontSize: 15, color: "#fff8e8", fontWeight: 900, letterSpacing: 0.7, textTransform: "uppercase", margin: "22px 2px 10px", padding: "9px 11px", borderRadius: 14, background: "rgba(7,74,62,0.34)", border: "1px solid rgba(255,248,232,0.22)", textShadow: "0 1px 3px rgba(8,48,40,0.35)" }}>Your device</div>
       <div style={{ background: T.card, borderRadius: 18, padding: 16, boxShadow: T.soft, marginTop: 0, marginBottom: 14 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{ width: 40, height: 40, borderRadius: 12, background: "#e6f3ec", display: "grid", placeItems: "center", flexShrink: 0 }}>
@@ -5634,7 +5634,7 @@ function Settings({ textScale, reduceMotion, responseSpeed, speechLang, uiLangua
         <div style={{ fontSize: 12.5, color: T.sub, lineHeight: 1.5 }}>Your account login controls access across devices. The Journal PIN is an optional extra lock for the Journal itself and can be changed or recovered here without a vault passphrase.</div>
       </div>
 
-      <div style={{ fontSize: 15, color: T.greenDk, fontWeight: 900, letterSpacing: 0.7, textTransform: "uppercase", margin: "22px 2px 10px" }}>Help &amp; feedback</div>
+      <div style={{ fontSize: 15, color: "#fff8e8", fontWeight: 900, letterSpacing: 0.7, textTransform: "uppercase", margin: "22px 2px 10px", padding: "9px 11px", borderRadius: 14, background: "rgba(7,74,62,0.34)", border: "1px solid rgba(255,248,232,0.22)", textShadow: "0 1px 3px rgba(8,48,40,0.35)" }}>Help &amp; feedback</div>
       <button onClick={onOpenBugReport} style={{ width: "100%", background: T.card, borderRadius: 18, padding: 16,
         boxShadow: T.soft, border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 12,
         textAlign: "left", marginTop: 14 }}>
