@@ -1120,9 +1120,12 @@ export default function App() {
   useEffect(() => {
     // A new account can finish onboarding before sessionRef is populated. Once
     // the account and member data are hydrated, make one reliable follow-up
-    // write to the profile row used by the Admin Members directory.
-    const introducedName = String(profile?.name || "").trim();
+    // write to the profile row used by the Admin Members directory. Signup
+    // metadata is the fallback for accounts that have not reached onboarding.
     const account = session?.user;
+    const metadataName = account?.user_metadata?.preferred_name || account?.user_metadata?.full_name || account?.user_metadata?.name || "";
+    const profileName = String(profile?.name || "").trim();
+    const introducedName = profileName && profileName.toLowerCase() !== "friend" ? profileName : String(metadataName).trim();
     if (!introducedName || !authEnabled || !supabase || !account?.id) return;
     void supabase.from("profiles").upsert({
       id: account.id,
@@ -3602,6 +3605,7 @@ function QuickCalm({ onBack }) {
 function Login({ stayLoggedIn = true, onStayLoggedInChange, uiLanguage = DEFAULT_UI_LANGUAGE, onChangeUiLanguage }) {
   const [mode, setMode] = useState("signin");
   const [email, setEmail] = useState("");
+  const [signupName, setSignupName] = useState("");
   const [pw, setPw] = useState("");
   const [err, setErr] = useState(null);
   const [notice, setNotice] = useState(null);
@@ -3612,10 +3616,12 @@ function Login({ stayLoggedIn = true, onStayLoggedInChange, uiLanguage = DEFAULT
     setErr(null); setNotice(null);
     const normalizedEmail = email.trim().toLowerCase();
     if (!normalizedEmail || !pw) { setErr("Please enter your email and password."); return; }
+    const normalizedName = signupName.trim();
+    if (mode === "signup" && !normalizedName) { setErr("Please enter your name so we know what to call you."); return; }
     setBusy(true);
     try {
       if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({ email: normalizedEmail, password: pw });
+        const { error } = await supabase.auth.signUp({ email: normalizedEmail, password: pw, options: { data: { preferred_name: normalizedName } } });
         if (error) throw error;
         setNotice("Account created. If prompted, confirm via the email we sent, then sign in.");
         setMode("signin");
@@ -3714,6 +3720,11 @@ function Login({ stayLoggedIn = true, onStayLoggedInChange, uiLanguage = DEFAULT
           <p style={{ margin: "0 0 14px", fontSize: 13.5, color: T.sub, lineHeight: 1.5 }}>
             Sign in to continue — your space here is private to you.
           </p>
+          {mode === "signup" && <label style={{ display: "block", marginBottom: 10 }}>
+            <span style={{ ...fieldLabel, display: "block", marginBottom: 5 }}>Your name <span style={{ color: "#c0392b" }}>*</span></span>
+            <input value={signupName} onChange={(e) => setSignupName(e.target.value)} placeholder="What should we call you?"
+              autoComplete="name" required style={inputStyle} />
+          </label>}
           <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email"
             autoComplete="email" style={{ ...inputStyle, marginBottom: 10 }} />
           <div style={{ position: "relative" }}>
@@ -4211,7 +4222,7 @@ function MembersDirectory({ onOpen, onBack }) {
       if (!supabase) { setErr("Connect Supabase to see members."); setRows([]); return; }
       try {
         const { data, error } = await supabase.from("profiles")
-          .select("id,email,preferred_name,pronouns,bio,avatar").order("email", { ascending: true });
+          .select("id,email,preferred_name,pronouns,bio,avatar,created_at").order("created_at", { ascending: false });
         if (error) throw error;
         setRows(data || []);
       } catch (e) { setErr("Couldn't load members — have you run the members SQL in SUPABASE_SETUP.md?"); setRows([]); }
@@ -4242,7 +4253,10 @@ function MembersDirectory({ onOpen, onBack }) {
                 {m.avatar ? <img src={m.avatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : init}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 700 }}>{nm}</div>
+                <div style={{ display: "flex", alignItems: "baseline", gap: 7, flexWrap: "wrap" }}>
+                  <span style={{ fontWeight: 700 }}>{nm}</span>
+                  <span style={{ fontSize: 11.5, color: T.greenDk, fontWeight: 700 }}>Joined {m.created_at ? new Date(m.created_at).toLocaleDateString() : "—"}</span>
+                </div>
                 <div style={{ fontSize: 12.5, color: T.sub, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.email || "—"}</div>
               </div>
               <ChevronRight size={18} color={T.sub} />
@@ -4293,6 +4307,7 @@ function MemberDetail({ member, onBack }) {
           <div style={{ minWidth: 0 }}>
             <div style={{ fontWeight: 800, fontSize: 17 }}>{nm}</div>
             <div style={{ fontSize: 13, color: T.sub }}>{member.email || "—"}</div>
+            <div style={{ fontSize: 12.5, color: T.greenDk, fontWeight: 700, marginTop: 3 }}>Joined {member.created_at ? new Date(member.created_at).toLocaleDateString() : "—"}</div>
             {member.pronouns ? <div style={{ fontSize: 12.5, color: T.sub }}>{member.pronouns}</div> : null}
           </div>
         </div>

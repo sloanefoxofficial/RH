@@ -5,7 +5,8 @@ Run this whole block once in Supabase → **SQL Editor → New query → Run**. 
   WITHOUT ever seeing anyone's private contact info — keeping the promise to users),
 - lets admins read every member's public profile,
 - adds an admin-notes table only admins can read/write,
-- makes sure every signed-in person shows up in the directory (with their email).
+- makes sure every signed-in person shows up in the directory (with their email),
+- records the original join date and carries a required signup name into the directory.
 
 Admins are: `sloanefox.official@gmail.com` (Juan, founder) and `lisamaree1663@gmail.com`
 (Lisa, developer).
@@ -13,6 +14,7 @@ Admins are: `sloanefox.official@gmail.com` (Juan, founder) and `lisamaree1663@gm
 ```sql
 -- Directory needs each member's email on their profile row
 alter table public.profiles add column if not exists email text;
+alter table public.profiles add column if not exists created_at timestamptz not null default now();
 
 -- 1) Private contact -> its own table (own-row only; admins cannot read it)
 create table if not exists public.private_contact (
@@ -50,12 +52,21 @@ drop policy if exists "owner reads all profiles" on public.profiles;
 create policy "owner reads all profiles" on public.profiles
   for select using ((auth.jwt() ->> 'email') in ('sloanefox.official@gmail.com', 'lisamaree1663@gmail.com'));
 
--- 4) Auto-create a profile row (with email) on signup, and backfill existing users
+-- 4) Auto-create a profile row (with email, signup name, and join date) on signup,
+--    and backfill existing users from auth.users.
 create or replace function public.handle_new_user()
 returns trigger language plpgsql security definer set search_path = public as $$
 begin
-  insert into public.profiles (id, email) values (new.id, new.email)
-    on conflict (id) do update set email = excluded.email;
+  insert into public.profiles (id, email, preferred_name, created_at)
+  values (
+    new.id,
+    new.email,
+    nullif(trim(coalesce(new.raw_user_meta_data ->> 'preferred_name', new.raw_user_meta_data ->> 'full_name', new.raw_user_meta_data ->> 'name', '')), ''),
+    new.created_at
+  )
+  on conflict (id) do update set
+    email = excluded.email,
+    preferred_name = coalesce(nullif(trim(public.profiles.preferred_name), ''), excluded.preferred_name);
   return new;
 end; $$;
 drop trigger if exists on_auth_user_created on auth.users;
@@ -63,8 +74,19 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
 
-insert into public.profiles (id, email)
-  select id, email from auth.users
+update public.profiles p
+set created_at = u.created_at,
+    preferred_name = coalesce(nullif(trim(p.preferred_name), ''), nullif(trim(coalesce(u.raw_user_meta_data ->> 'preferred_name', u.raw_user_meta_data ->> 'full_name', u.raw_user_meta_data ->> 'name', '')), '')),
+    email = coalesce(p.email, u.email)
+from auth.users u
+where p.id = u.id;
+
+insert into public.profiles (id, email, preferred_name, created_at)
+  select id,
+    email,
+    nullif(trim(coalesce(raw_user_meta_data ->> 'preferred_name', raw_user_meta_data ->> 'full_name', raw_user_meta_data ->> 'name', '')), ''),
+    created_at
+  from auth.users
   on conflict (id) do update set email = excluded.email;
 ```
 
