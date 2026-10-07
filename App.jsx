@@ -8874,6 +8874,7 @@ function ResourcesPage({ onOpenSafety, onOpenMensShed, onOpenProgramInfo, onBack
       {sectionLabel("resources-health", Heart, "Health and wellbeing", "Low-cost health pathways, mental wellbeing support, and help finding the right service.", "#c56e68")}
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {resourceCard({ Icon: Heart, tint: "#fbe1e1", color: "#c56e68", eyebrow: "Mental wellbeing", title: "Beyond Blue", href: "https://www.beyondblue.org.au/get-support", phone: "1300 22 4636", children: "Information, counselling, and support for anxiety, depression, and suicide prevention." })}
+        {resourceCard({ Icon: Heart, image: "/community/awareness-services.jpg", imageAlt: "Awareness Services logo", tint: "#e5f4fb", color: "#087fb5", eyebrow: "Holistic wellbeing", title: "Awareness Services", href: "https://awareness-services.com/", children: "General information, reflection prompts, and resources supporting mental, financial, and physical wellbeing. Visit the website to explore Awareness Services and its available pathways." })}
         {resourceCard({ Icon: Search, tint: "#e9f5ee", color: T.greenDk, eyebrow: "Find local help", title: "Ask Izzy — health and support search", href: "https://askizzy.org.au/", children: "Search for health, counselling, medical, and community services near your location." })}
       </div>
 
