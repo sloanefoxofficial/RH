@@ -8741,6 +8741,9 @@ function ResourcesPage({ onOpenSafety, onOpenMensShed, onOpenProgramInfo, onBack
     family: ["children", "youth", "carer", "domestic", "relationship", "parenting"],
     children: ["family", "youth", "kids", "parenting", "carer"],
     youth: ["young", "children", "kids", "family"],
+    grief: ["bereavement", "child loss", "loss", "parent", "family"],
+    bereavement: ["grief", "child loss", "loss", "parent", "family"],
+    workplace: ["job", "employment", "leave", "parent", "bereavement"],
     community: ["connection", "group", "mateship", "social", "support"],
     local: ["fairfield", "liverpool", "western", "sydney", "bonnyrigg", "villawood", "nsw"],
     talk: ["counselling", "counseling", "chat", "phone", "mensline", "lifeline", "support"],
@@ -8867,6 +8870,7 @@ function ResourcesPage({ onOpenSafety, onOpenMensShed, onOpenProgramInfo, onBack
 
       {sectionLabel("resources-family", Users, "Family, children and youth", "Support for family safety, young people, carers, and children.", "#b56739")}
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        {resourceCard({ Icon: Heart, image: "/community/lumina-project.png", imageAlt: "The Lumina Project logo", tint: "#e3f0ed", color: "#17656b", eyebrow: "Bereavement and workplace support", title: "The Lumina Project", href: "https://theluminaproject.org.au/index.html", children: "No parent should have to choose between grieving their child and keeping their job." })}
         {resourceCard({ Icon: Shield, tint: "#f4e3d9", color: "#b56739", eyebrow: "Family and domestic violence", title: "1800RESPECT", href: "https://www.1800respect.org.au/", phone: "1800 737 732", children: "National counselling, information, and support for people affected by domestic, family, or sexual violence." })}
         {resourceCard({ Icon: Users, tint: "#e8f0fb", color: T.blueDk, eyebrow: "For young people", title: "Kids Helpline", href: "https://kidshelpline.com.au/", phone: "1800 55 1800", children: "Free, private counselling and support for children and young people up to age 25." })}
       </div>
