@@ -154,6 +154,23 @@ function isRetryableGeminiError(error) {
   return status === 429 || status === 500 || status === 502 || status === 503 || status === 504 || /RESOURCE_EXHAUSTED|rate.?limit|temporarily unavailable/i.test(message);
 }
 
+async function fetchWithTimeout(url, options, timeoutMs = 45000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } catch (error) {
+    if (error?.name === "AbortError") {
+      const timeoutError = new Error(`Provider request timed out after ${timeoutMs}ms.`);
+      timeoutError.code = "PROVIDER_TIMEOUT";
+      throw timeoutError;
+    }
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function readProviderError(response, provider) {
   const raw = await response.text().catch(() => "");
   let message = raw;
@@ -169,7 +186,7 @@ async function readProviderError(response, provider) {
 async function streamClaude({ res, apiKey, model, system, rawMessages, maxTokens }) {
   const messages = cleanClaudeMessages(rawMessages);
   if (!messages.length) throw new Error("No message to send.");
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
+  const response = await fetchWithTimeout("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
       "content-type": "application/json",

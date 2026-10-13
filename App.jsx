@@ -363,6 +363,9 @@ async function callModel({ system, messages, maxTokens = 1000, timeoutMs = 90000
       });
     } catch (error) {
       clearTimeout(timer);
+      if (error?.name === "AbortError") {
+        throw new Error("The guides took too long to reply — please try again.");
+      }
       throw new Error("Couldn't reach the guides just now — check your connection and try again.");
     }
     if (res.status !== 429 || attempt === 1) break;
