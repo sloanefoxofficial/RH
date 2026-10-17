@@ -7572,6 +7572,7 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
   const [pendingImages, setPendingImages] = useState([]); // [{ dataUrl, mediaType, name, page }]
   const imgFileRef = useRef(null);
   const composerRef = useRef(null);
+  const lastEnterAtRef = useRef(0);
   const tapRef = useRef(null); // tracks pointer-down so a scroll drag isn't treated as a tap
   // Grow the message box as they type — plenty of room before it starts scrolling.
   useEffect(() => {
@@ -7813,7 +7814,7 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
     : ["A family thing is stressing me", "How do I set a boundary?", "I had an argument"];
 
   return (
-    <div style={embedded ? {} : { minHeight: "100vh", display: "flex", flexDirection: "column" }}>
+    <div className="rh-guide-chat" style={embedded ? {} : { minHeight: "100vh", display: "flex", flexDirection: "column" }}>
       {!embedded && (
         <Brand right={<BackBtn onBack={onBack} />} />
       )}
@@ -7961,7 +7962,7 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
         </div>
       )}
 
-      <div style={{ display: "flex", alignItems: "flex-end", gap: 8, paddingTop: 6 }}>
+      <div className="rh-guide-composer" style={{ display: "flex", alignItems: "flex-end", gap: 8, paddingTop: 6 }}>
         <HoldToTalk onText={(t) => send(t)} onStart={stop} size={48} />
         <button onClick={() => imgFileRef.current && imgFileRef.current.click()} aria-label={`Attach up to ${GUIDE_MAX_IMAGES} document pages`} title={`Attach up to ${GUIDE_MAX_IMAGES} document pages`}
           style={{ width: 44, height: 44, borderRadius: "50%", border: `1px solid ${T.line}`, background: "#fff",
@@ -7970,10 +7971,24 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
         </button>
         <input ref={imgFileRef} type="file" accept="image/*" multiple onChange={pickPhoto} style={{ display: "none" }} />
         <textarea ref={composerRef} value={input} onChange={(e) => setInput(e.target.value)} rows={1}
-          onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
+          aria-label={`Message ${char.name}. Press Enter for a new line; press Enter twice to send.`}
+          onKeyDown={(e) => {
+            if (e.key !== "Enter") { lastEnterAtRef.current = 0; return; }
+            if (e.shiftKey || e.isComposing) { lastEnterAtRef.current = 0; return; }
+            const now = Date.now();
+            if (now - lastEnterAtRef.current < 500) {
+              e.preventDefault();
+              lastEnterAtRef.current = 0;
+              send();
+            } else {
+              // The first Enter inserts a normal newline. A second Enter
+              // within the short window is the deliberate send gesture.
+              lastEnterAtRef.current = now;
+            }
+          }}
           placeholder={pendingImages.length ? "Say something about these pages (optional)…" : `Message ${char.name}…`}
           style={{ flex: 1, resize: "none", borderRadius: 16, border: `1px solid ${T.line}`, padding: "12px 14px",
-            fontSize: 15, lineHeight: 1.45, minHeight: 48, maxHeight: 260, overflowY: "auto", background: "#fff", color: T.ink,
+            fontSize: 15, lineHeight: 1.45, minHeight: 48, maxHeight: "min(260px, calc(100dvh - 300px))", overflowY: "auto", background: "#fff", color: T.ink,
             outline: "none", fontFamily: "inherit" }} />
         <button onClick={() => send(undefined, { forceFast: true })} disabled={(!input.trim() && !pendingImages.length) || busy}
           aria-label="Fast Reply — send this message and get a quick, direct answer" title="Fast Reply — quick, direct answer just for this message"

@@ -51,6 +51,16 @@ body { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; 
   transition: filter .15s ease, transform .15s ease;
 }
 .rh-hub-person:hover { filter: saturate(1.04) brightness(1.01); transform: translateY(-1px); }
+.rh-guide-composer {
+  position: sticky;
+  bottom: 78px;
+  z-index: 25;
+  margin: 0 -2px;
+  padding: 8px 2px 10px;
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(203,217,196,0) 0%, rgba(203,217,196,.92) 28%, rgba(247,240,223,.98) 100%);
+}
+.rh-guide-composer textarea { scroll-margin-bottom: 96px; }
 html[dir="rtl"] .rh-app-rtl { direction: rtl; }
 html[dir="rtl"] .rh-app-rtl [style*="text-align: left"] { text-align: right !important; }
 html[dir="rtl"] .rh-app-rtl textarea,
