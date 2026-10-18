@@ -1491,6 +1491,20 @@ export default function App() {
     if (ch) setActiveChar(ch);
     setScreen(s);
   };
+  const openProgram = () => {
+    // The first plan welcome starts from ProgramPage's effect, which is after
+    // the navigation tap. Prime iOS/Android audio and warm Carlos's exact
+    // welcome while this tap still counts as a user gesture. The page effect
+    // reuses the pending request/cache rather than issuing a duplicate call.
+    if (voiceOn && __autoIntroVoiceOn) {
+      try { primeAudio(); } catch {}
+      try {
+        const welcome = spokenIntro("plan", PROGRAM_WELCOME_TEXT, speechLang);
+        fetchTtsUrl(welcome, CHARS.carlos.voiceId, speechLang, CHARS.carlos.voiceGender).catch(() => {});
+      } catch {}
+    }
+    go("program");
+  };
   const back = () => {
     const prev = histRef.current.pop();
     if (prev) {
@@ -1678,7 +1692,7 @@ export default function App() {
             journalCount={journal.length} voiceOn={voiceOn} setVoiceOn={setVoiceOn}
             onOpenChat={(slug) => go("chat", slug)}
             onOpenRexTutorial={() => go("rexTutorial")}
-            onOpenProgram={() => go("program")}
+            onOpenProgram={openProgram}
             onOpenJournal={() => go("journal")}
             onOpenGuides={() => go("guides")}
             onOpenMerch={() => go("merch")}
