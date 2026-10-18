@@ -1500,7 +1500,8 @@ export default function App() {
       try { primeAudio(); } catch {}
       try {
         const welcome = spokenIntro("plan", PROGRAM_WELCOME_TEXT, speechLang);
-        fetchTtsUrl(welcome, CHARS.carlos.voiceId, speechLang, CHARS.carlos.voiceGender).catch(() => {});
+        const firstWelcomeChunk = splitForTts(welcome, 260)[0] || welcome;
+        fetchTtsUrl(firstWelcomeChunk, CHARS.carlos.voiceId, speechLang, CHARS.carlos.voiceGender).catch(() => {});
       } catch {}
     }
     go("program");
@@ -2539,7 +2540,7 @@ function useVoice(voiceOn) {
       // sentences in one clip. Short 260-character chunks create an audible
       // fetch/load handoff between nearly every sentence. Keep the shorter
       // chunks for the other guides so their first response still starts fast.
-      const chunks = splitForTts(text, char.slug === "carlos" ? 440 : 260);
+      const chunks = splitForTts(text, Number(char.ttsMaxChars) || (char.slug === "carlos" ? 440 : 260));
       const first = chunks[0] || text;
       // The first TTS request after a long break can include a cold serverless
       // function, provider connection, and Android audio wake-up. Do not mistake
@@ -6830,14 +6831,16 @@ function ProgramPage({ profile, plan, progress, saveProgress, answers, journalCo
   const [coachOpen, setCoachOpen] = useState(false);
   const programWelcome = PROGRAM_WELCOME_TEXT;
   const spokenProgramWelcome = spokenIntro("plan", programWelcome, speechLang);
+  const programVoice = { ...CHARS.carlos, ttsMaxChars: 260 };
+  const firstProgramWelcomeChunk = splitForTts(spokenProgramWelcome, 260)[0] || spokenProgramWelcome;
   const { speak: speakProgramWelcome, stop: stopProgramWelcome, prefetch: prefetchProgramWelcome } = useVoice(voiceOn);
   useEffect(() => {
     if (!voiceOn || !__autoIntroVoiceOn) return undefined;
     // Begin the voice request as soon as the page mounts. The in-flight cache
     // lets the later playback call reuse this request instead of starting a
     // second network round-trip.
-    prefetchProgramWelcome(spokenProgramWelcome, CHARS.carlos);
-    const timer = setTimeout(() => speakProgramWelcome(spokenProgramWelcome, CHARS.carlos), 60);
+    prefetchProgramWelcome(firstProgramWelcomeChunk, programVoice);
+    const timer = setTimeout(() => speakProgramWelcome(spokenProgramWelcome, programVoice), 60);
     return () => { clearTimeout(timer); stopProgramWelcome(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [voiceOn, speechLang]);
