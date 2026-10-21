@@ -3499,6 +3499,7 @@ function SafetyTool({ onBack }) {
     { name: "Emergency", detail: "Call 000 now if someone is unconscious, not breathing normally, fitting, or you're scared for their life. Ambulances are there to help — not to get anyone in trouble.", tel: "000", accent: true },
     { name: "National Alcohol & Other Drug Hotline", detail: "Free, confidential advice and counselling, 24/7. Connects you to support in your state or territory.", tel: "1800250015", num: "1800 250 015" },
     { name: "Lifeline", detail: "24/7 crisis support for anyone doing it tough.", tel: "131114", num: "13 11 14" },
+    { name: "Suicide Call Back Service", detail: "Free phone and online counselling for people affected by suicide, suicidal thoughts, or concern for someone else.", tel: "1300659467", num: "1300 659 467" },
   ];
   return (
     <>
