@@ -7095,7 +7095,7 @@ function ProgramPage({ profile, plan, progress, saveProgress, answers, journalCo
       {plan && (
         <>
           <SectionTitle>Your plan</SectionTitle>
-          {plan.summary && <p style={{ fontSize: 13.5, color: T.sub, margin: "0 2px 12px", lineHeight: 1.5 }}>{plan.summary}</p>}
+          {plan.summary && <p style={{ fontSize: 13.5, color: T.ink, margin: "0 2px 12px", padding: "11px 13px", lineHeight: 1.5, background: "rgba(255,255,255,0.78)", border: `1px solid rgba(255,255,255,0.9)`, borderRadius: 16, boxShadow: "0 8px 20px rgba(8,57,48,0.12), inset 0 1px 0 rgba(255,255,255,0.72)" }}>{plan.summary}</p>}
           <button onClick={() => setCoachOpen(true)} style={{ width: "100%", border: `1px solid ${T.line}`, borderRadius: 18, padding: "13px 14px", background: "linear-gradient(120deg, #e7f5eb, #f5f8ff 72%, #fff)", boxShadow: T.soft, display: "flex", alignItems: "center", gap: 11, textAlign: "left", cursor: "pointer", marginBottom: 12 }}>
             <div style={{ width: 42, height: 42, borderRadius: 14, overflow: "hidden", background: "#e8f0fb", flexShrink: 0 }}><img src={CHARS.carlos.img} alt="Carlos" style={{ width: "100%", height: "100%", objectFit: "contain" }} /></div>
             <div style={{ flex: 1 }}><div style={{ fontWeight: 800, fontSize: 14.5 }}>Ask Carlos about this week</div><div style={{ fontSize: 12.5, color: T.sub, lineHeight: 1.35 }}>Questions, encouragement, or a gentler way through a task</div></div>
