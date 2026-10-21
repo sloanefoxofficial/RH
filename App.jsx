@@ -3505,13 +3505,13 @@ function SafetyTool({ onBack }) {
     <>
       <Brand right={<BackBtn onBack={onBack} label="Toolkit" />} />
       <SectionTitle>Staying safe</SectionTitle>
-      <p style={{ fontSize: 13.5, color: T.sub, margin: "0 2px 14px", lineHeight: 1.5 }}>
+      <p style={{ fontSize: 13.5, color: "#eef7ef", margin: "0 2px 14px", lineHeight: 1.5, textShadow: "0 1px 2px rgba(8,57,48,0.22)" }}>
         No judgement here. If you or someone you know uses substances, these are the things that genuinely
         keep people safe and alive — and the people you can call any time.
       </p>
 
-      <div style={{ fontWeight: 700, margin: "0 2px 4px" }}>Detox &amp; rehab — Western Sydney</div>
-      <p style={{ fontSize: 12.5, color: T.sub, margin: "0 2px 10px", lineHeight: 1.5 }}>
+      <div style={{ fontWeight: 700, color: "#edf6ef", margin: "0 2px 4px", textShadow: "0 1px 2px rgba(8,57,48,0.22)" }}>Detox &amp; rehab — Western Sydney</div>
+      <p style={{ fontSize: 12.5, color: "rgba(239,247,240,0.86)", margin: "0 2px 10px", lineHeight: 1.5, textShadow: "0 1px 2px rgba(8,57,48,0.18)" }}>
         Free NSW Health drug &amp; alcohol services (detox, rehab, opioid treatment, counselling). You can call to
         ask about options for yourself or someone else — self-referral is accepted, no Medicare fee.
       </p>
