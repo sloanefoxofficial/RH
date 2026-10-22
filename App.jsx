@@ -2042,11 +2042,16 @@ function CrisisBar() {
             </p>
           </div>
         ) : (
-          <button onClick={() => setOpen(true)} style={{ margin: "0 auto", display: "flex", alignItems: "center", gap: 8,
-            borderRadius: 999, padding: "10px 18px", background: "rgba(255,255,255,0.97)", backdropFilter: "blur(6px)",
-            border: `1px solid ${T.line}`, boxShadow: T.soft, cursor: "pointer", fontSize: 14, fontWeight: 600, color: T.ink }}>
-            <LifeBuoy size={16} color={T.green} /> Safety First
-          </button>
+          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <a href="tel:000" onClick={stopGuideSpeechForCall} aria-label="Triple Zero — 000" title="Triple Zero — 000" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, minHeight: 44, borderRadius: 999, padding: "10px 15px", background: "linear-gradient(145deg, #d84949, #b72f3b)", border: "1px solid rgba(255,255,255,0.8)", boxShadow: "0 8px 18px rgba(160,44,54,0.28)", color: "#fff", textDecoration: "none", cursor: "pointer", fontSize: 14, fontWeight: 850 }}>
+              <Phone size={16} /> Triple Zero — 000
+            </a>
+            <button onClick={() => setOpen(true)} aria-label="Open Safety First" title="Open Safety First" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8,
+              minHeight: 44, borderRadius: 999, padding: "10px 18px", background: "rgba(255,255,255,0.97)", backdropFilter: "blur(6px)",
+              border: `1px solid ${T.line}`, boxShadow: T.soft, cursor: "pointer", fontSize: 14, fontWeight: 600, color: T.ink }}>
+              <LifeBuoy size={16} color={T.green} /> Safety First
+            </button>
+          </div>
         )}
       </div>
     </div>
