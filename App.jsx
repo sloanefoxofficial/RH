@@ -8758,7 +8758,9 @@ function ResourcesPage({ onOpenSafety, onOpenMensShed, onOpenProgramInfo, onBack
   const [resourceQuery, setResourceQuery] = useState("");
   const [tocOpen, setTocOpen] = useState(false);
   const searchAliases = {
-    crisis: ["lifeline", "emergency", "suicide", "unsafe", "urgent", "danger", "safety"],
+    crisis: ["lifeline", "emergency", "suicide", "unsafe", "urgent", "danger", "safety", "safe haven", "safehaven", "peer support"],
+    safe: ["safe haven", "safehaven", "crisis", "suicidal", "distress", "peer support", "quiet space"],
+    haven: ["safe haven", "safehaven", "crisis", "suicidal", "distress", "peer support", "quiet space"],
     emergency: ["crisis", "000", "ambulance", "police", "fire", "urgent", "danger"],
     doctor: ["gp", "medical", "health", "telehealth", "nurse", "clinic", "hospital"],
     gp: ["doctor", "medical", "health", "telehealth", "clinic"],
@@ -8855,6 +8857,7 @@ function ResourcesPage({ onOpenSafety, onOpenMensShed, onOpenProgramInfo, onBack
       {sectionLabel("resources-immediate", LifeBuoy, "Immediate support", "If things feel urgent or unsafe, these are the first places to reach out.", "#c94f4f")}
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {resourceCard({ Icon: Phone, image: "/community/lifeline-logo.png", imageAlt: "Lifeline Australia logo", tint: "#fff0f0", color: "#1769aa", eyebrow: "24/7 crisis support", title: "Lifeline", href: "https://www.lifeline.org.au/", phone: "13 11 14", children: "Australia-wide crisis support and suicide prevention services, available 24 hours a day by phone, text, and online chat." })}
+        {resourceCard({ Icon: LifeBuoy, tint: "#e4f2ec", color: "#17656b", eyebrow: "Free, no appointment needed", title: "NSW Safe Haven", href: "https://www.health.nsw.gov.au/towardszerosuicides/Pages/safe-haven.aspx", children: "A calm, culturally sensitive place to talk with suicide-prevention peer workers when you are experiencing distress or suicidal thoughts. Find a Safe Haven near you across NSW." })}
         {resourceCard({ Icon: Phone, tint: "#e7eefb", color: T.blueDk, eyebrow: "Emergency", title: "Police, ambulance or fire", href: "tel:000", phone: "000", children: "Call 000 if someone is in immediate danger or needs urgent medical help." })}
         {resourceCard({ Icon: Heart, tint: "#f4e3d9", color: "#b56739", eyebrow: "Mental health support", title: "Beyond Blue and MensLine Australia", href: "https://www.beyondblue.org.au/get-support", children: "Beyond Blue: 1300 22 4636. MensLine Australia: 1300 78 99 78 for men needing phone or online support." })}
       </div>
