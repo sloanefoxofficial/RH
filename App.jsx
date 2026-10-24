@@ -577,6 +577,7 @@ export default function App() {
   const [autoReplyVoiceOn, setAutoReplyVoiceOn] = useState(true);
   const [consented, setConsented] = useState(false);
   const [toolkitInitial, setToolkitInitial] = useState(null);
+  const suppressNextToolkitWelcomeRef = useRef(false);
   const [session, setSession] = useState(null);
   useEffect(() => {
     if (!session?.user?.id || !supabase || !pushSupported()) return undefined;
@@ -1718,7 +1719,10 @@ export default function App() {
             onOpenCampfire={() => go("campfire")}
             onOpenChaptly={() => go("chaptly")}
             onOpenSupportUs={() => go("supportUs")}
-            onOpenSafety={() => openTool("safety")}
+            onOpenSafety={() => {
+              suppressNextToolkitWelcomeRef.current = true;
+              openTool("safety");
+            }}
             onOpenNotifications={() => go("notifications")}
             onOpenCoordinator={() => go("coordinator")}
             onOpenMensGroup={() => go("mensGroup")}
@@ -1792,7 +1796,7 @@ export default function App() {
               onBack={() => { setJournalUnlocked(false); planOriginRef.current ? returnToPlan() : back(); }} />
           )
         ) : screen === "toolkit" ? (
-          <Toolkit voiceOn={voiceOn} speechLang={speechLang} initial={toolkitInitial} onUseTool={tickToolTask} onOpenJournal={() => { if (planOriginRef.current) openPlanDestination("journal"); else go("journal"); }} onOpenGames={() => go("games")} onBack={planOriginRef.current ? returnToPlan : back} />
+          <Toolkit voiceOn={voiceOn} speechLang={speechLang} initial={toolkitInitial} suppressWelcome={suppressNextToolkitWelcomeRef.current} onToolkitWelcomeSuppressed={() => { suppressNextToolkitWelcomeRef.current = false; }} onUseTool={tickToolTask} onOpenJournal={() => { if (planOriginRef.current) openPlanDestination("journal"); else go("journal"); }} onOpenGames={() => go("games")} onBack={planOriginRef.current ? returnToPlan : back} />
         ) : screen === "resources" ? (
           <ResourcesPage voiceOn={voiceOn} speechLang={speechLang} onOpenSafety={() => openTool("safety")} onOpenMensShed={() => go("mensShed")} onOpenProgramInfo={() => go("programInfo")} onBack={back} />
         ) : screen === "intake" ? (
@@ -3101,12 +3105,16 @@ function CarlosSpotlight() {
   );
 }
 
-function Toolkit({ voiceOn, speechLang, initial, onUseTool, onOpenJournal, onOpenGames, onBack }) {
+function Toolkit({ voiceOn, speechLang, initial, suppressWelcome = false, onToolkitWelcomeSuppressed, onUseTool, onOpenJournal, onOpenGames, onBack }) {
   const [tool, setTool] = useState(initial || null);
   const toolkitWelcome = "Welcome to the Toolkit — a collection of things that can help, whenever you need them. Take your time, look around, pick whatever feels right for you today. No rush at all — whenever you're ready.";
   const spokenToolkitWelcome = spokenIntro("toolkit", toolkitWelcome, speechLang);
   const { speak: speakToolkitWelcome, stop: stopToolkitWelcome } = useVoice(voiceOn);
   useEffect(() => {
+    if (suppressWelcome) {
+      onToolkitWelcomeSuppressed?.();
+      return undefined;
+    }
     if (!voiceOn || !__autoIntroVoiceOn) return undefined;
     const timer = setTimeout(() => speakToolkitWelcome(spokenToolkitWelcome, CHARS.rex), 220);
     return () => { clearTimeout(timer); stopToolkitWelcome(); };
