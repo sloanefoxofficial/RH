@@ -8956,8 +8956,10 @@ function ResourcesPage({ voiceOn, speechLang, onOpenSafety, onOpenMensShed, onOp
       </section>
 
     <div id="resources-juan" style={{ scrollMarginTop: 18, marginTop: 16 }}>
-      {resourceCard({ Icon: Users, tint: "#e2f3e8", color: T.greenDk, eyebrow: "The Resilience Hub · Western Sydney", title: "Juan’s free 8-week in-person support program", onClick: onOpenProgramInfo, actionLabel: "Learn about the program", children: "Practical, person-to-person support for men across Fairfield, Liverpool, Western Sydney and beyond — with lived experience, steady check-ins, and help finding your next step." })}
-      {resourceCard({ Icon: Heart, image: "/community/tarn-lee-training.jpg", imageAlt: "Tarn Lee Training", tint: "#fbe5ef", color: "#a33d70", eyebrow: "Mental health and suicide intervention training", title: "Tarn Lee Training", href: "https://www.tarnialeetraining.com/", children: "Practical, trauma-informed training and facilitation that helps build safer, more inclusive communities — from ASIST and SafeTALK to workshops, diversity training, and group facilitation.", actionLabel: "Visit Tarn Lee Training" })}
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        {resourceCard({ Icon: Users, tint: "#e2f3e8", color: T.greenDk, eyebrow: "The Resilience Hub · Western Sydney", title: "Juan’s free 8-week in-person support program", onClick: onOpenProgramInfo, actionLabel: "Learn about the program", children: "Practical, person-to-person support for men across Fairfield, Liverpool, Western Sydney and beyond — with lived experience, steady check-ins, and help finding your next step." })}
+        {resourceCard({ Icon: Heart, image: "/community/tarn-lee-training.jpg", imageAlt: "Tarn Lee Training", tint: "#fbe5ef", color: "#a33d70", eyebrow: "Mental health and suicide intervention training", title: "Tarn Lee Training", href: "https://www.tarnialeetraining.com/", children: "Practical, trauma-informed training and facilitation that helps build safer, more inclusive communities — from ASIST and SafeTALK to workshops, diversity training, and group facilitation.", actionLabel: "Visit Tarn Lee Training" })}
+      </div>
     </div>
 
       {sectionLabel("resources-immediate", LifeBuoy, "Immediate support", "If things feel urgent or unsafe, these are the first places to reach out.", "#c94f4f")}
