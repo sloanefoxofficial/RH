@@ -92,3 +92,21 @@ insert into public.profiles (id, email, preferred_name, created_at)
 
 If the admin list changes later (an email changes, or an admin is added/removed), update
 it in the two policies above (and in `App.jsx`'s `ADMIN_EMAILS` constant).
+
+## Coordinator message recipients
+
+The live `coordinator_messages` table also contains a recipient field. Existing rows
+default to `juan`; Campfire selection-change requests use `lisa`, so the admin inbox
+shows each request only to its intended admin account.
+
+```sql
+alter table public.coordinator_messages
+  add column if not exists recipient text not null default 'juan';
+
+update public.coordinator_messages
+set recipient = 'juan'
+where recipient is null or btrim(recipient) = '';
+
+create index if not exists coordinator_messages_recipient_created_idx
+  on public.coordinator_messages (recipient, created_at desc);
+```

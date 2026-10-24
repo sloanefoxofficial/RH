@@ -1599,8 +1599,20 @@ export default function App() {
       setShareMsg("Link copied!"); setTimeout(() => setShareMsg(""), 2000);
     } catch { /* cancelled or blocked */ }
   };
+  const requestCampfireChange = useCallback(async () => {
+    if (!supabase || !session?.user?.id) throw new Error("Please sign in before contacting support.");
+    const { error } = await supabase.from("coordinator_messages").insert({
+      user_id: session.user.id,
+      sender: "user",
+      body: "Campfire selection change request: this member would like support to review whether their Campfire space can be changed.",
+      recipient: "lisa",
+      user_public_key_jwk: userPublicKey || null,
+    });
+    if (error) throw error;
+    setMenuRefresh((key) => key + 1);
+  }, [session, userPublicKey]);
   const unreadCount = useUnreadNotifications(showAuth ? session : null, menuRefresh);
-  const unreadAdminMsgs = useUnreadAdminMessages(isAdmin, menuRefresh);
+  const unreadAdminMsgs = useUnreadAdminMessages(isAdmin, menuRefresh, session?.user?.email);
   const menuVisible = dataHydrated && consented && (!showAuth || Boolean(session)) && (vaultStatus === "unlocked" || vaultStatus === "plain");
   const menuButton = menuVisible ? (
     <button ref={menuTriggerRef} type="button" onClick={() => setMenuOpen(true)} aria-label="Open menu" aria-expanded={menuOpen} aria-controls="hub-main-menu"
@@ -1803,13 +1815,13 @@ export default function App() {
         ) : screen === "admin" ? (
           <Admin isAdmin={isAdmin} guidePrompts={guidePrompts} onSaveGuidePrompt={saveGuidePrompt} onBack={back} />
         ) : screen === "profile" ? (
-          <Profile session={session} profile={profile} answers={answers} saveProfile={saveProfile} saveAnswers={saveAnswers} persistCampfireAccess={persistCampfireAccess} uiLanguage={uiLanguage} onChangeUiLanguage={saveUiLanguage} onReset={resetAll} onOpenMemory={() => go("memory")} onBack={back} />
+          <Profile session={session} profile={profile} answers={answers} saveProfile={saveProfile} saveAnswers={saveAnswers} persistCampfireAccess={persistCampfireAccess} onRequestCampfireChange={requestCampfireChange} uiLanguage={uiLanguage} onChangeUiLanguage={saveUiLanguage} onReset={resetAll} onOpenMemory={() => go("memory")} onBack={back} />
         ) : screen === "notifications" ? (
           <Notifications session={session} onBack={back} />
         ) : screen === "coordinator" ? (
           <CoordinatorChat session={session} userPublicKey={userPublicKey} userPrivateKey={userPrivateKey} onBack={back} />
         ) : screen === "adminMessages" ? (
-          isAdmin ? <AdminInbox onBack={back} /> : <Admin isAdmin={isAdmin} guidePrompts={guidePrompts} onSaveGuidePrompt={saveGuidePrompt} onBack={back} />
+          isAdmin ? <AdminInbox onBack={back} adminEmail={session?.user?.email} /> : <Admin isAdmin={isAdmin} guidePrompts={guidePrompts} onSaveGuidePrompt={saveGuidePrompt} onBack={back} />
         ) : screen === "adminBugReports" ? (
           isAdmin ? <AdminBugReports onBack={back} /> : <Admin isAdmin={isAdmin} guidePrompts={guidePrompts} onSaveGuidePrompt={saveGuidePrompt} onBack={back} />
         ) : screen === "adminAppointments" ? (
@@ -2116,7 +2128,7 @@ const AUTO_INTRO_SPEECH = {
     planChoice: "Before we go any further, would you like Carlos to put together a personalised 8-week plan for you? I’ll ask a handful of questions so he can shape it around what you’re dealing with. If you’d rather use the guides and Toolkit for now, that’s completely fine.",
     chat: "Hi, I’m your AI guide. Take your time — we can talk things through at your pace.",
     resources: "Hi, I'm Rex. The Support Directory brings together crisis help, health services, housing, food, recovery, community groups and other local support. You can browse by need or use the search box — type what you're looking for in your own words, like someone to talk to, housing or food, and I'll show you matching services. Take your time; you don't need to know a service's name first.",
-    campfire: "Hi, I’m Rex. Before you enter, here are the ways you can use the Campfire: you can simply watch and listen without joining in, join the text chat, or use voice chat when you feel ready. There is also an in-app video chat feature if you’d like to connect face to face — you choose who to talk with, and they need to accept. One gentle reminder: because the Campfire you selected is connected to your access, your Campfire choice is locked in. If you ever need a different space, please speak with Juan or contact the Hub team. Take your time — you’re welcome to come and go as you need."
+    campfire: "Hi, I’m Rex. Before you enter, here are the ways you can use the Campfire: you can simply watch and listen without joining in, join the text chat, or use voice chat when you feel ready. There is also an in-app video chat feature if you’d like to connect face to face — you choose who to talk with, and they need to accept. One gentle reminder: because the Campfire you selected is connected to your access, your Campfire choice is locked in. If you need to change your Campfire selection, contact support from the Campfire selection screen in your profile. Take your time — you’re welcome to come and go as you need."
   },
   "es-ES": {
     toolkit: "Te damos la bienvenida al Kit de herramientas: una colección de recursos que pueden ayudarte cuando los necesites. Tómate tu tiempo y elige lo que te parezca adecuado hoy.",
@@ -4508,7 +4520,7 @@ function resizeImage(file, max, cb) {
   } catch {}
 }
 
-function Profile({ session, profile, answers, saveProfile, saveAnswers, persistCampfireAccess, uiLanguage = DEFAULT_UI_LANGUAGE, onChangeUiLanguage, onReset, onOpenMemory, onBack }) {
+function Profile({ session, profile, answers, saveProfile, saveAnswers, persistCampfireAccess, onRequestCampfireChange, uiLanguage = DEFAULT_UI_LANGUAGE, onChangeUiLanguage, onReset, onOpenMemory, onBack }) {
   const [confirmReset, setConfirmReset] = useState(false);
   const [p, setP] = useState({ preferred_name: "", pronouns: "", bio: "", contact_private: "", avatar: "" });
   const [status, setStatus] = useState("");
@@ -4517,6 +4529,8 @@ function Profile({ session, profile, answers, saveProfile, saveAnswers, persistC
   const [showPw, setShowPw] = useState(false);
   const [pwStatus, setPwStatus] = useState("");
   const [campfireStatus, setCampfireStatus] = useState("");
+  const [campfireRequestStatus, setCampfireRequestStatus] = useState("");
+  const [campfireRequestBusy, setCampfireRequestBusy] = useState(false);
   const fileRef = useRef(null);
   const rawCampfireAccess = answers?.campfire_access ?? profile?.campfireAccess ?? "";
   const campfireAccess = String(rawCampfireAccess);
@@ -4528,6 +4542,16 @@ function Profile({ session, profile, answers, saveProfile, saveAnswers, persistC
     saveProfile({ campfireAccess: index });
     void persistCampfireAccess(index);
     setCampfireStatus("Saved. This choice is now locked to protect the privacy of the spaces.");
+  };
+  const requestCampfireChange = async () => {
+    if (campfireRequestBusy) return;
+    setCampfireRequestBusy(true); setCampfireRequestStatus("");
+    try {
+      await onRequestCampfireChange?.();
+      setCampfireRequestStatus("Your request has been sent to Lisa in support. She’ll review it and get back to you.");
+    } catch (error) {
+      setCampfireRequestStatus(error?.message || "We couldn’t send that request just now. Please try again.");
+    } finally { setCampfireRequestBusy(false); }
   };
 
   useEffect(() => {
@@ -4592,7 +4616,7 @@ function Profile({ session, profile, answers, saveProfile, saveAnswers, persistC
     <>
       <Brand right={<BackBtn onBack={onBack} />} />
       <SectionTitle tone="light">Your profile</SectionTitle>
-      <p style={{ fontSize: 13, color: T.sub, margin: "0 2px 12px", lineHeight: 1.5 }}>
+      <p style={{ fontSize: 13, color: "#dff3e7", margin: "0 2px 12px", lineHeight: 1.5, textShadow: "0 1px 2px rgba(8,48,40,0.28)" }}>
         This space is yours. Fill in as much or as little as you like — you can change it any time.
       </p>
 
@@ -4613,6 +4637,13 @@ function Profile({ session, profile, answers, saveProfile, saveAnswers, persistC
           <ChoiceRow label="Ladies’ Fire — the women’s support space" onClick={() => chooseCampfire(1)} />
         </div>}
         {campfireStatus && <div style={{ marginTop: 10, color: T.greenDk, fontSize: 12.5, lineHeight: 1.4 }}>{campfireStatus}</div>}
+        {campfireChoice && <>
+          <button type="button" onClick={requestCampfireChange} disabled={campfireRequestBusy}
+            style={{ width: "100%", marginTop: 12, minHeight: 44, borderRadius: 13, border: "1px solid rgba(23,78,62,0.2)", background: "linear-gradient(135deg, #e8f5ed, #fffaf0)", color: T.greenDk, fontWeight: 800, fontSize: 12.5, cursor: campfireRequestBusy ? "default" : "pointer", opacity: campfireRequestBusy ? 0.65 : 1 }}>
+            {campfireRequestBusy ? "Sending request…" : "Contact support to request a Campfire selection change"}
+          </button>
+          {campfireRequestStatus && <div role="status" aria-live="polite" style={{ marginTop: 9, color: T.greenDk, fontSize: 12.5, lineHeight: 1.4 }}>{campfireRequestStatus}</div>}
+        </>}
       </div>
 
       <div style={{ background: T.card, borderRadius: 20, padding: 18, boxShadow: T.soft, marginBottom: 14 }}>
@@ -4981,18 +5012,19 @@ function useUnreadCoordinator(session, refreshKey) {
   return count;
 }
 
-function useUnreadAdminMessages(isAdmin, refreshKey) {
+function useUnreadAdminMessages(isAdmin, refreshKey, adminEmail) {
   const [count, setCount] = useState(0);
   useEffect(() => {
     (async () => {
       if (!supabase || !isAdmin) { setCount(0); return; }
       try {
+        const recipient = normEmail(adminEmail) === normEmail("lisamaree1663@gmail.com") ? "lisa" : "juan";
         const { data } = await supabase.from("coordinator_messages")
-          .select("id").eq("sender", "user").eq("read_by_coordinator", false);
+          .select("id").eq("sender", "user").eq("recipient", recipient).eq("read_by_coordinator", false);
         setCount((data || []).length);
       } catch { setCount(0); }
     })();
-  }, [isAdmin, refreshKey]);
+  }, [isAdmin, refreshKey, adminEmail]);
   return count;
 }
 
@@ -5035,7 +5067,7 @@ function CoordinatorChat({ session, userPublicKey, userPrivateKey, onBack }) {
     setMsgs((m) => [...(m || []), { id: "tmp" + Date.now(), sender: "user", body: text, created_at: new Date().toISOString() }]);
     try {
       const { error } = await supabase.from("coordinator_messages")
-        .insert({ user_id: session.user.id, sender: "user", body: text, user_public_key_jwk: null });
+        .insert({ user_id: session.user.id, sender: "user", body: text, recipient: "juan", user_public_key_jwk: null });
       if (error) throw error;
       load();
       fetch("/api/push", {
@@ -5107,7 +5139,7 @@ function CoordinatorChat({ session, userPublicKey, userPrivateKey, onBack }) {
 
 // Coordinator side — lives in the admin panel. Lists every member's thread and
 // lets Juan (whoever mans the admin account) read and reply.
-function AdminInbox({ onBack }) {
+function AdminInbox({ onBack, adminEmail }) {
   const [rows, setRows] = useState(null);
   const [profs, setProfs] = useState({});
   const [open, setOpen] = useState(null);
@@ -5120,7 +5152,8 @@ function AdminInbox({ onBack }) {
     if (!supabase) { setRows([]); return; }
     try {
       const { data: msgs } = await supabase.from("coordinator_messages").select("*").order("created_at", { ascending: true });
-      let decodedMsgs = (msgs || []).map((m) => ({ ...m, body: parseSupportEnvelope(m.body) }));
+      const recipient = normEmail(adminEmail) === normEmail("lisamaree1663@gmail.com") ? "lisa" : "juan";
+      let decodedMsgs = (msgs || []).filter((m) => (m.recipient || "juan") === recipient).map((m) => ({ ...m, body: parseSupportEnvelope(m.body) }));
       const encryptedRows = decodedMsgs.filter((m) => m.body && m.body.__rhTeamEncrypted === true);
       if (encryptedRows.length) {
         try {
@@ -5151,7 +5184,7 @@ function AdminInbox({ onBack }) {
   const openThread = (uid) => {
     setOpen(uid);
     if (supabase) supabase.from("coordinator_messages").update({ read_by_coordinator: true })
-      .eq("user_id", uid).eq("sender", "user").eq("read_by_coordinator", false).then(() => load(), () => {});
+      .eq("user_id", uid).eq("sender", "user").eq("recipient", normEmail(adminEmail) === normEmail("lisamaree1663@gmail.com") ? "lisa" : "juan").eq("read_by_coordinator", false).then(() => load(), () => {});
   };
   const sendReply = async () => {
     const text = reply.trim();
@@ -5163,7 +5196,7 @@ function AdminInbox({ onBack }) {
       const memberPublicKey = await importTeamPublicKey(memberMessage.user_public_key_jwk);
       const teamKey = await getConfiguredTeamPublicKey();
       const encryptedBody = await encryptForTeam(text, memberPublicKey, teamKey, "coordinator_messages.body");
-      await supabase.from("coordinator_messages").insert({ user_id: open, sender: "coordinator", body: JSON.stringify(encryptedBody), user_public_key_jwk: memberMessage.user_public_key_jwk });
+      await supabase.from("coordinator_messages").insert({ user_id: open, sender: "coordinator", body: JSON.stringify(encryptedBody), recipient: memberMessage.recipient || "juan", user_public_key_jwk: memberMessage.user_public_key_jwk });
       load();
       try {
         const r = await fetch("/api/push", {
@@ -8994,7 +9027,7 @@ function ResourcesPage({ voiceOn, speechLang, onOpenSafety, onOpenMensShed, onOp
 }
 
 function CampfirePage({ onBack, campfireAccess = "", voiceOn = false, speechLang = "en-AU" }) {
-  const campfireRexWelcome = spokenIntro("campfire", "Hi, I’m Rex. Before you enter, here are the ways you can use the Campfire: you can simply watch and listen without joining in, join the text chat, or use voice chat when you feel ready. There is also an in-app video chat feature if you’d like to connect face to face — you choose who to talk with, and they need to accept. One gentle reminder: because the Campfire you selected is connected to your access, your Campfire choice is locked in. If you ever need a different space, please speak with Juan or contact the Hub team. Take your time — you’re welcome to come and go as you need.", speechLang);
+  const campfireRexWelcome = spokenIntro("campfire", "Hi, I’m Rex. Before you enter, here are the ways you can use the Campfire: you can simply watch and listen without joining in, join the text chat, or use voice chat when you feel ready. There is also an in-app video chat feature if you’d like to connect face to face — you choose who to talk with, and they need to accept. One gentle reminder: because the Campfire you selected is connected to your access, your Campfire choice is locked in. If you need to change your Campfire selection, contact support from the Campfire selection screen in your profile. Take your time — you’re welcome to come and go as you need.", speechLang);
   const { speak: speakCampfireRex, stop: stopCampfireRex, speaking: campfireRexSpeaking, prefetch: prefetchCampfireRex } = useVoice(voiceOn);
   useEffect(() => {
     if (!voiceOn || !__autoIntroVoiceOn) return undefined;
@@ -9025,7 +9058,7 @@ function CampfirePage({ onBack, campfireAccess = "", voiceOn = false, speechLang
         <div style={{ display: "flex", alignItems: "center", gap: 7 }}><span style={{ fontSize: 10, fontWeight: 900, letterSpacing: 0.9, textTransform: "uppercase", color: "#28736f" }}>Rex · A quick guide</span>{campfireRexSpeaking && <span aria-live="polite" style={{ fontSize: 10.5, color: "#28736f" }}>Speaking…</span>}</div>
         <h2 id="campfire-rex-welcome" style={{ margin: "4px 0 5px", color: T.greenDk, fontSize: 16, lineHeight: 1.2 }}>Hi, I’m Rex — before you enter</h2>
         <p style={{ margin: 0, color: T.ink, fontSize: 13, lineHeight: 1.48 }}>Choose how you want to take part: you can simply watch, join the text chat, use voice chat, or connect through the in-app video chat feature. For video chat, choose someone to talk with and they’ll need to accept.</p>
-        <p style={{ margin: "8px 0 0", color: T.ink, fontSize: 13, lineHeight: 1.48 }}>Just a gentle reminder: your Campfire selection is linked to your access and is locked in. If you need a different space, please speak with Juan or the Hub team.</p>
+        <p style={{ margin: "8px 0 0", color: T.ink, fontSize: 13, lineHeight: 1.48 }}>Just a gentle reminder: your Campfire selection is linked to your access and is locked in. If you need to change your Campfire selection, contact support from the Campfire selection screen in your profile.</p>
         <button type="button" onClick={() => speakCampfireRex(campfireRexWelcome, CHARS.rex)} aria-label="Hear Rex explain the Campfire again" style={{ display: "inline-flex", alignItems: "center", gap: 6, marginTop: 10, border: "1px solid rgba(47,128,124,0.28)", borderRadius: 999, padding: "8px 11px", background: "rgba(255,255,255,0.78)", color: "#28736f", fontSize: 11.5, fontWeight: 800, cursor: "pointer" }}><Volume2 size={14} aria-hidden="true" /> Hear Rex explain the Campfire again</button>
       </div>
     </section>
