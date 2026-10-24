@@ -1782,7 +1782,7 @@ export default function App() {
         ) : screen === "toolkit" ? (
           <Toolkit voiceOn={voiceOn} speechLang={speechLang} initial={toolkitInitial} onUseTool={tickToolTask} onOpenJournal={() => { if (planOriginRef.current) openPlanDestination("journal"); else go("journal"); }} onOpenGames={() => go("games")} onBack={planOriginRef.current ? returnToPlan : back} />
         ) : screen === "resources" ? (
-          <ResourcesPage onOpenSafety={() => openTool("safety")} onOpenMensShed={() => go("mensShed")} onOpenProgramInfo={() => go("programInfo")} onBack={back} />
+          <ResourcesPage voiceOn={voiceOn} speechLang={speechLang} onOpenSafety={() => openTool("safety")} onOpenMensShed={() => go("mensShed")} onOpenProgramInfo={() => go("programInfo")} onBack={back} />
         ) : screen === "intake" ? (
           <ProgramIntake session={session} profile={profile} onBack={back} onReturnToProgram={() => { histRef.current = []; __backDestinationLabel = "Home"; setScreen("programInfo"); setTimeout(() => document.getElementById("program-join-the-program")?.scrollIntoView({ behavior: "smooth", block: "start" }), 80); }} />
         ) : screen === "virtualSupport" ? (
@@ -2114,7 +2114,8 @@ const AUTO_INTRO_SPEECH = {
     plan: "This is your tailor-made 8-week plan, shaped around what you told us about your life, your energy, and what you want to work towards. It grows week by week, starting gently and building practical steps at a pace that fits you. I’m here to help you understand each week, answer your questions, and help you notice your progress without pressure or judgement.",
     program: "Hi, I’m Juan, the founder of The Resilience Hub. This program is free and built around you. We listen to where you’re at, shape practical support at your pace, and connect you with the right people. If you need help, use Message Juan to reach the real me, talk with an AI guide, or use Safety First for urgent human support.",
     planChoice: "Before we go any further, would you like Carlos to put together a personalised 8-week plan for you? I’ll ask a handful of questions so he can shape it around what you’re dealing with. If you’d rather use the guides and Toolkit for now, that’s completely fine.",
-    chat: "Hi, I’m your AI guide. Take your time — we can talk things through at your pace."
+    chat: "Hi, I’m your AI guide. Take your time — we can talk things through at your pace.",
+    resources: "Hi, I'm Rex. The Support Directory brings together crisis help, health services, housing, food, recovery, community groups and other local support. You can browse by need or use the search box — type what you're looking for in your own words, like someone to talk to, housing or food, and I'll show you matching services. Take your time; you don't need to know a service's name first."
   },
   "es-ES": {
     toolkit: "Te damos la bienvenida al Kit de herramientas: una colección de recursos que pueden ayudarte cuando los necesites. Tómate tu tiempo y elige lo que te parezca adecuado hoy.",
@@ -2122,7 +2123,8 @@ const AUTO_INTRO_SPEECH = {
     plan: "Este es tu plan personalizado de ocho semanas, creado a partir de lo que nos contaste sobre tu vida, tu energía y tus objetivos. Avanza semana a semana, empezando con calma y construyendo pasos prácticos a un ritmo que te encaje. Estoy aquí para ayudarte a entender cada semana, responder tus preguntas y reconocer tu progreso sin presión ni juicios.",
     program: "Hola, soy Juan, el fundador de The Resilience Hub. Este programa es gratuito y está pensado para ti. Escuchamos cómo estás, adaptamos el apoyo a tu ritmo y te conectamos con las personas adecuadas. Si necesitas ayuda, usa Mensaje a Juan para contactar conmigo, habla con una guía de inteligencia artificial o usa Ayuda ahora para recibir apoyo humano urgente.",
     planChoice: "Antes de continuar, ¿te gustaría que Carlos preparara para ti un plan personalizado de ocho semanas? Te haré unas preguntas para adaptarlo a lo que estás viviendo. Si prefieres usar primero las guías y el Kit de herramientas, también está bien.",
-    chat: "Hola, soy tu guía de inteligencia artificial. Tómate tu tiempo: podemos hablar de lo que necesites a tu ritmo."
+    chat: "Hola, soy tu guía de inteligencia artificial. Tómate tu tiempo: podemos hablar de lo que necesites a tu ritmo.",
+    resources: "Hola, soy Rex. El Directorio de Apoyo reúne ayuda en crisis, servicios de salud, vivienda, comida, recuperación, grupos comunitarios y otros apoyos locales. Puedes buscar por necesidad o usar el cuadro de búsqueda: escribe lo que buscas con tus propias palabras, como alguien con quien hablar, vivienda o comida, y te mostraré los servicios que coincidan. Tómate tu tiempo; no necesitas conocer el nombre de un servicio primero."
   },
   "es-AR": {
     toolkit: "Bienvenido al Kit de herramientas: un conjunto de recursos que pueden ayudarte cuando los necesites. Tomate tu tiempo y elegí lo que te haga sentido hoy.",
@@ -2130,7 +2132,8 @@ const AUTO_INTRO_SPEECH = {
     plan: "Este es tu plan personalizado de ocho semanas, armado a partir de lo que nos contaste sobre tu vida, tu energía y lo que querés alcanzar. Avanza semana a semana, empezando de forma tranquila y sumando pasos prácticos a un ritmo que te quede bien. Estoy acá para ayudarte a entender cada semana, responder tus preguntas y reconocer tus avances, sin presión ni juicios.",
     program: "Hola, soy Juan, el fundador de The Resilience Hub. Este programa es gratuito y está pensado para vos. Escuchamos en qué estás, adaptamos el apoyo a tu ritmo y te conectamos con las personas indicadas. Si necesitás ayuda, usá Mensaje a Juan para contactarme, hablá con una guía de inteligencia artificial o usá Ayuda ahora para recibir apoyo humano urgente.",
     planChoice: "Antes de seguir, ¿querés que Carlos te prepare un plan personalizado de ocho semanas? Te voy a hacer algunas preguntas para adaptarlo a lo que estás viviendo. Si preferís usar primero las guías y el Kit de herramientas, está perfecto.",
-    chat: "Hola, soy tu guía de inteligencia artificial. Tomate tu tiempo: podemos hablar de lo que necesites, a tu ritmo."
+    chat: "Hola, soy tu guía de inteligencia artificial. Tomate tu tiempo: podemos hablar de lo que necesites, a tu ritmo.",
+    resources: "Hola, soy Rex. El Directorio de Apoyo reúne ayuda en crisis, servicios de salud, vivienda, comida, recuperación, grupos comunitarios y otros apoyos locales. Podés buscar por necesidad o usar el cuadro de búsqueda: escribí lo que necesitás con tus propias palabras, por ejemplo alguien con quien hablar, vivienda o comida, y yo te muestro servicios que coincidan. Tomate tu tiempo; no necesitás conocer el nombre de un servicio antes."
   },
   "es-UY": {
     toolkit: "Bienvenido al Kit de herramientas: un conjunto de recursos que pueden ayudarte cuando los necesites. Tomate tu tiempo y elegí lo que te haga sentido hoy.",
@@ -2138,7 +2141,8 @@ const AUTO_INTRO_SPEECH = {
     plan: "Este es tu plan personalizado de ocho semanas, armado a partir de lo que nos contaste sobre tu vida, tu energía y lo que querés alcanzar. Avanza semana a semana, empezando de forma tranquila y sumando pasos prácticos a un ritmo que te quede bien. Estoy acá para ayudarte a entender cada semana, responder tus preguntas y reconocer tus avances, sin presión ni juicios.",
     program: "Hola, soy Juan, el fundador de The Resilience Hub. Este programa es gratuito y está pensado para vos. Escuchamos en qué estás, adaptamos el apoyo a tu ritmo y te conectamos con las personas indicadas. Si necesitás ayuda, usá Mensaje a Juan para contactarme, hablá con una guía de inteligencia artificial o usá Ayuda ahora para recibir apoyo humano urgente.",
     planChoice: "Antes de seguir, ¿querés que Carlos te prepare un plan personalizado de ocho semanas? Te voy a hacer algunas preguntas para adaptarlo a lo que estás viviendo. Si preferís usar primero las guías y el Kit de herramientas, está perfecto.",
-    chat: "Hola, soy tu guía de inteligencia artificial. Tomate tu tiempo: podemos hablar de lo que necesites, a tu ritmo."
+    chat: "Hola, soy tu guía de inteligencia artificial. Tomate tu tiempo: podemos hablar de lo que necesites, a tu ritmo.",
+    resources: "Hola, soy Rex. El Directorio de Apoyo reúne ayuda en crisis, servicios de salud, vivienda, alimentación, recuperación, grupos comunitarios y otros apoyos locales. Podés buscar por necesidad o usar la caja de búsqueda: escribí lo que estás buscando con tus propias palabras, por ejemplo alguien con quien hablar, vivienda o comida, y te voy a mostrar servicios que coincidan. Tómate tu tiempo; no hace falta que sepas el nombre de un servicio primero."
   },
   "it-IT": {
     toolkit: "Benvenuto nel Kit di strumenti: una raccolta di risorse che possono aiutarti quando ne hai bisogno. Prenditi il tuo tempo e scegli ciò che ti sembra giusto oggi.",
@@ -2146,7 +2150,8 @@ const AUTO_INTRO_SPEECH = {
     plan: "Questo è il tuo piano personalizzato di otto settimane, costruito intorno a ciò che ci hai raccontato della tua vita, della tua energia e dei tuoi obiettivi. Cresce settimana dopo settimana, iniziando con calma e aggiungendo passi pratici al ritmo adatto a te. Sono qui per aiutarti a capire ogni settimana, rispondere alle tue domande e riconoscere i tuoi progressi senza pressione né giudizio.",
     program: "Ciao, sono Juan, il fondatore di The Resilience Hub. Questo programma è gratuito ed è costruito intorno a te. Ascoltiamo dove ti trovi, adattiamo il supporto al tuo ritmo e ti colleghiamo alle persone giuste. Se hai bisogno di aiuto, usa Messaggia Juan per contattare me, parla con una guida di intelligenza artificiale oppure usa Aiuto ora per ricevere supporto umano urgente.",
     planChoice: "Prima di continuare, vuoi che Carlos prepari per te un piano personalizzato di otto settimane? Ti farò alcune domande per adattarlo a ciò che stai vivendo. Se preferisci usare prima le guide e il Kit di strumenti, va benissimo.",
-    chat: "Ciao, sono la tua guida di intelligenza artificiale. Prenditi il tuo tempo: possiamo parlare di ciò che ti serve al tuo ritmo."
+    chat: "Ciao, sono la tua guida di intelligenza artificiale. Prenditi il tuo tempo: possiamo parlare di ciò che ti serve al tuo ritmo.",
+    resources: "Ciao, sono Rex. Il Support Directory raccoglie aiuto in caso di crisi, servizi sanitari, alloggi, cibo, percorsi di recupero, gruppi di comunità e altri sostegni locali. Puoi esplorare per esigenza o usare la casella di ricerca — digita ciò che cerchi con parole tue, per esempio qualcuno con cui parlare, alloggio o cibo, e ti mostrerò i servizi corrispondenti. Prenditi il tempo che ti serve; non serve conoscere prima il nome di un servizio."
   },
   "el-GR": {
     toolkit: "Καλώς ήρθες στην Εργαλειοθήκη — μια συλλογή από πράγματα που μπορούν να σε βοηθήσουν όταν τα χρειάζεσαι. Πάρε τον χρόνο σου και διάλεξε ό,τι σου ταιριάζει σήμερα.",
@@ -2154,7 +2159,8 @@ const AUTO_INTRO_SPEECH = {
     plan: "Αυτό είναι το προσωπικό σου πρόγραμμα οκτώ εβδομάδων, φτιαγμένο γύρω από όσα μας είπες για τη ζωή σου, την ενέργειά σου και τους στόχους σου. Προχωρά εβδομάδα με την εβδομάδα, ξεκινώντας ήπια και προσθέτοντας πρακτικά βήματα στον ρυθμό που σου ταιριάζει. Είμαι εδώ για να σε βοηθήσω να καταλάβεις κάθε εβδομάδα, να απαντήσω στις ερωτήσεις σου και να δεις την πρόοδό σου χωρίς πίεση ή κριτική.",
     program: "Γεια, είμαι ο Juan, ο ιδρυτής του The Resilience Hub. Αυτό το πρόγραμμα είναι δωρεάν και είναι φτιαγμένο για εσένα. Ακούμε πού βρίσκεσαι, προσαρμόζουμε την υποστήριξη στον ρυθμό σου και σε συνδέουμε με τους σωστούς ανθρώπους. Αν χρειάζεσαι βοήθεια, στείλε μήνυμα στον Juan, μίλησε με έναν οδηγό τεχνητής νοημοσύνης ή χρησιμοποίησε την Άμεση βοήθεια για επείγουσα ανθρώπινη υποστήριξη.",
     planChoice: "Πριν προχωρήσουμε, θα ήθελες ο Carlos να ετοιμάσει για εσένα ένα προσωπικό πρόγραμμα οκτώ εβδομάδων; Θα σου κάνω μερικές ερωτήσεις ώστε να το προσαρμόσει σε όσα αντιμετωπίζεις. Αν προτιμάς πρώτα τους οδηγούς και την Εργαλειοθήκη, είναι απολύτως εντάξει.",
-    chat: "Γεια, είμαι ο οδηγός σου με τεχνητή νοημοσύνη. Πάρε τον χρόνο σου — μπορούμε να μιλήσουμε με τον δικό σου ρυθμό."
+    chat: "Γεια, είμαι ο οδηγός σου με τεχνητή νοημοσύνη. Πάρε τον χρόνο σου — μπορούμε να μιλήσουμε με τον δικό σου ρυθμό.",
+    resources: "Γεια, είμαι ο Rex. Ο Κατάλογος Υποστήριξης συγκεντρώνει βοήθεια σε κρίση, υπηρεσίες υγείας, στέγαση, τρόφιμα, αποκατάσταση, κοινοτικές ομάδες και άλλη τοπική υποστήριξη. Μπορείς να ψάξεις ανάλογα με την ανάγκη ή να χρησιμοποιήσεις το πεδίο αναζήτησης — γράψε με δικά σου λόγια αυτό που ψάχνεις, π.χ. κάποιον για να μιλήσεις, στέγαση ή τρόφιμα, και θα σου δείξω αντίστοιχες υπηρεσίες. Πάρε τον χρόνο σου· δεν χρειάζεται να γνωρίζεις πρώτα το όνομα μιας υπηρεσίας."
   },
   "vi-VN": {
     toolkit: "Chào mừng bạn đến với Bộ công cụ — nơi có những điều có thể giúp bạn bất cứ khi nào cần. Hãy thong thả và chọn điều phù hợp với bạn hôm nay.",
@@ -2162,7 +2168,8 @@ const AUTO_INTRO_SPEECH = {
     plan: "Đây là kế hoạch tám tuần được thiết kế riêng cho bạn, dựa trên những gì bạn chia sẻ về cuộc sống, năng lượng và điều bạn muốn hướng tới. Kế hoạch tiến triển từng tuần, bắt đầu nhẹ nhàng và thêm các bước thực tế theo nhịp phù hợp với bạn. Tôi ở đây để giúp bạn hiểu từng tuần, trả lời câu hỏi và nhận ra tiến bộ của mình mà không áp lực hay phán xét.",
     program: "Xin chào, tôi là Juan, người sáng lập The Resilience Hub. Chương trình này miễn phí và được xây dựng quanh bạn. Chúng tôi lắng nghe hoàn cảnh của bạn, điều chỉnh hỗ trợ theo nhịp của bạn và kết nối bạn với đúng người. Nếu cần giúp đỡ, hãy nhắn cho Juan thật, trò chuyện với hướng dẫn viên AI hoặc dùng Help Now để nhận hỗ trợ khẩn cấp từ con người.",
     planChoice: "Trước khi tiếp tục, bạn có muốn Carlos tạo một kế hoạch tám tuần riêng cho mình không? Tôi sẽ hỏi vài câu để điều chỉnh kế hoạch theo những gì bạn đang trải qua. Nếu bạn muốn dùng các hướng dẫn viên và Bộ công cụ trước, điều đó hoàn toàn ổn.",
-    chat: "Xin chào, tôi là hướng dẫn viên AI của bạn. Hãy thong thả — chúng ta có thể trò chuyện theo nhịp của bạn."
+    chat: "Xin chào, tôi là hướng dẫn viên AI của bạn. Hãy thong thả — chúng ta có thể trò chuyện theo nhịp của bạn.",
+    resources: "Chào, tôi là Rex. Support Directory gom lại các hỗ trợ địa phương như trợ giúp khủng hoảng, dịch vụ y tế, chỗ ở, thực phẩm, phục hồi, nhóm cộng đồng và những hỗ trợ khác. Bạn có thể duyệt theo nhu cầu hoặc dùng ô tìm kiếm — gõ những gì bạn cần bằng từ ngữ của mình, ví dụ như người để trò chuyện, chỗ ở hoặc thực phẩm, và tôi sẽ hiển thị những dịch vụ phù hợp. Từ từ thôi; bạn không cần phải biết tên dịch vụ trước."
   },
   "zh-CN": {
     toolkit: "欢迎来到工具箱——这里有一些在你需要时可以帮助你的内容。慢慢来，选择今天对你有用的东西。",
@@ -2170,7 +2177,8 @@ const AUTO_INTRO_SPEECH = {
     plan: "这是为你量身定制的八周计划，根据你分享的生活、精力和目标来安排。计划会一周一周地发展，从轻松的步骤开始，以适合你的节奏增加实际行动。我会帮助你理解每一周、回答问题，并在没有压力或评判的情况下看见自己的进步。",
     program: "你好，我是 Juan，Resilience Hub 的创始人。这个项目完全免费，并且围绕你来安排。我们会了解你的处境，按照你的节奏提供实际支持，并帮助你联系合适的人。如果你需要帮助，可以给真实的 Juan 发消息，和人工智能向导聊天，或使用“现在需要帮助”获得紧急人工支持。",
     planChoice: "在继续之前，你想让 Carlos 为你制定一份个性化的八周计划吗？我会问几个问题，让计划贴合你正在经历的事情。如果你想先使用向导和工具箱，也完全可以。",
-    chat: "你好，我是你的人工智能向导。慢慢来——我们可以按照你的节奏聊聊。"
+    chat: "你好，我是你的人工智能向导。慢慢来——我们可以按照你的节奏聊聊。",
+    resources: "嗨，我是Rex。支持目录汇集了危机援助、医疗服务、住房、食物、康复、社区团体和其他本地支持。你可以按需求浏览或使用搜索框——用你自己的话输入想找的东西，比如“有人可以倾诉”、“住房”或“食物”，我会为你显示匹配的服务。慢慢来；你不需要先知道服务的具体名称。"
   },
   "yue-Hant-HK": {
     toolkit: "歡迎嚟到工具箱——入面有一啲喺你需要時可以幫到你嘅嘢。慢慢嚟，揀一樣今日適合你嘅就得。",
@@ -2178,7 +2186,8 @@ const AUTO_INTRO_SPEECH = {
     plan: "呢個係為你度身訂造嘅八星期計劃，按住你分享嘅生活、精力同目標去安排。計劃會一星期一星期咁發展，由輕鬆嘅步驟開始，按住你嘅節奏加入實際行動。我會幫你了解每一星期、回答問題，亦會陪你睇到自己嘅進步，唔會畀你壓力或者批判你。",
     program: "你好，我係 Juan，Resilience Hub 嘅創辦人。呢個計劃係免費，而且係圍繞你去安排。我哋會聽你而家嘅情況，按你嘅步伐提供實際支援，亦會幫你連繫合適嘅人。如果你需要幫手，可以留言畀真正嘅 Juan、同人工智能向導傾偈，或者用「即時求助」搵緊急真人支援。",
     planChoice: "繼續之前，你想唔想 Carlos 幫你整一份個人化八星期計劃？我會問幾條問題，令計劃貼合你而家面對嘅事。如果你想先用向導同工具箱，完全冇問題。",
-    chat: "你好，我係你嘅人工智能向導。慢慢嚟——我哋可以按你嘅節奏傾下偈。"
+    chat: "你好，我係你嘅人工智能向導。慢慢嚟——我哋可以按你嘅節奏傾下偈。",
+    resources: "嗨，我係Rex。Support Directory集合咗危機支援、醫療服務、住屋、食物、復康、社區組織同其他本地支援。你可以按需要瀏覽，或者用搜尋格 — 用你平時講嘅字輸入你要搵嘅嘢，例如有人傾訴、住屋或食物，我會幫你顯示相符嘅服務。慢慢嚟，唔使先知嗰啲服務嘅名稱。"
   },
   "ar-SA": {
     toolkit: "مرحباً بك في مجموعة الأدوات — مجموعة من الأشياء التي يمكن أن تساعدك عندما تحتاج إليها. خذ وقتك واختر ما يناسبك اليوم.",
@@ -2186,7 +2195,8 @@ const AUTO_INTRO_SPEECH = {
     plan: "هذه خطتك الشخصية لثمانية أسابيع، وقد صُممت حول ما أخبرتنا به عن حياتك وطاقتك وما تريد الوصول إليه. تتقدم أسبوعاً بعد أسبوع، وتبدأ بلطف ثم تضيف خطوات عملية بالسرعة المناسبة لك. أنا هنا لأساعدك على فهم كل أسبوع، والإجابة عن أسئلتك، ورؤية تقدمك من دون ضغط أو أحكام.",
     program: "مرحباً، أنا خوان، مؤسس Resilience Hub. هذا البرنامج مجاني ومصمم حولك. نستمع إلى وضعك، ونقدم دعماً عملياً بإيقاعك، ونساعدك على التواصل مع الأشخاص المناسبين. إذا احتجت إلى مساعدة، راسل خوان الحقيقي، أو تحدث مع أحد المرشدين بالذكاء الاصطناعي، أو استخدم المساعدة الآن للدعم البشري العاجل.",
     planChoice: "قبل أن نتابع، هل تريد من كارلوس أن يضع لك خطة شخصية لثمانية أسابيع؟ سأطرح عليك بعض الأسئلة حتى تناسب ما تمر به. وإذا كنت تفضل استخدام المرشدين ومجموعة الأدوات أولاً، فهذا مقبول تماماً.",
-    chat: "مرحباً، أنا مرشدك بالذكاء الاصطناعي. خذ وقتك — يمكننا التحدث بالإيقاع الذي يناسبك."
+    chat: "مرحباً، أنا مرشدك بالذكاء الاصطناعي. خذ وقتك — يمكننا التحدث بالإيقاع الذي يناسبك.",
+    resources: "مرحباً، أنا ريكس. دليل الدعم يجمع المساعدة في حالات الأزمات، والخدمات الصحية، والسكن، والطعام، والتعافي، ومجموعات المجتمع وغيرها من الدعم المحلي. يمكنك التصفح حسب الحاجة أو استخدام صندوق البحث — اكتب ما تبحث عنه بكلماتك، مثل شخص للتحدث إليه، أو سكن، أو طعام، وسأعرض لك الخدمات المطابقة. خُذ وقتك؛ لا تحتاج لمعرفَة اسم الخدمة أولاً."
   },
   "hi-IN": {
     toolkit: "टूलकिट में आपका स्वागत है — यहाँ ऐसी चीज़ें हैं जो ज़रूरत पड़ने पर आपकी मदद कर सकती हैं। अपना समय लें और आज जो ठीक लगे उसे चुनें।",
@@ -2194,7 +2204,8 @@ const AUTO_INTRO_SPEECH = {
     plan: "यह आपका खास तौर पर बनाया गया आठ हफ्तों का प्लान है, जो आपकी ज़िंदगी, ऊर्जा और लक्ष्यों के बारे में आपकी बातों के आधार पर तैयार किया गया है। यह हर हफ्ते धीरे-धीरे आगे बढ़ता है और आपकी गति के अनुसार व्यावहारिक कदम जोड़ता है। मैं हर हफ्ते को समझने, सवालों के जवाब देने और बिना दबाव या आलोचना के आपकी प्रगति देखने में आपकी मदद करूँगा।",
     program: "नमस्ते, मैं Juan हूँ, The Resilience Hub का संस्थापक। यह कार्यक्रम मुफ़्त है और आपके हिसाब से बनाया गया है। हम आपकी स्थिति सुनते हैं, आपकी गति से व्यावहारिक मदद देते हैं और आपको सही लोगों से जोड़ते हैं। मदद चाहिए तो असली Juan को संदेश भेजें, किसी AI गाइड से बात करें या तुरंत मानवीय सहायता के लिए Help Now इस्तेमाल करें।",
     planChoice: "आगे बढ़ने से पहले, क्या आप चाहेंगे कि Carlos आपके लिए आठ हफ्तों का व्यक्तिगत प्लान बनाए? मैं कुछ सवाल पूछूँगा ताकि यह आपकी स्थिति के अनुसार हो। अगर आप अभी गाइड्स और टूलकिट इस्तेमाल करना चाहते हैं, तो यह भी बिल्कुल ठीक है।",
-    chat: "नमस्ते, मैं आपका AI गाइड हूँ। अपना समय लें — हम आपकी गति से बात कर सकते हैं।"
+    chat: "नमस्ते, मैं आपका AI गाइड हूँ। अपना समय लें — हम आपकी गति से बात कर सकते हैं।",
+    resources: "नमस्ते, मैं Rex हूँ। Support Directory में संकट सहायता (crisis help), स्वास्थ्य सेवाएँ, आवास, भोजन, रिकवरी, समुदाय समूह और अन्य स्थानीय समर्थन एक जगह मिले हैं। आप ज़रूरत के हिसाब से ब्राउज़ कर सकते हैं या सर्च बॉक्स का उपयोग करें — अपनी बातों में लिखें कि आप क्या ढूंढ रहे हैं, जैसे किसी से बात करने वाला, आवास या भोजन, और मैं आपको मिलते-जुलते सर्विस दिखाऊँगा। आराम से लें; आपको पहले से किसी सेवा का नाम जानना ज़रूरी नहीं है।"
   },
   "fil-PH": {
     toolkit: "Maligayang pagdating sa Toolkit — mga bagay na makakatulong sa iyo kapag kailangan mo. Dahan-dahan lang at piliin kung ano ang bagay sa iyo ngayon.",
@@ -2202,7 +2213,8 @@ const AUTO_INTRO_SPEECH = {
     plan: "Ito ang iyong tailor-made na walong linggong plano, batay sa ibinahagi mo tungkol sa buhay, enerhiya, at mga gusto mong maabot. Unti-unti itong umuunlad bawat linggo, nagsisimula nang banayad at nagdadagdag ng praktikal na hakbang sa bilis na bagay sa iyo. Nandito ako para tulungan kang maintindihan ang bawat linggo, sagutin ang iyong mga tanong, at makita ang progreso mo nang walang pressure o panghuhusga.",
     program: "Kumusta, ako si Juan, ang founder ng The Resilience Hub. Libre ang programang ito at ginawa ito para sa iyo. Pakikinggan namin ang pinagdadaanan mo, magbibigay ng praktikal na suporta sa bilis mo, at tutulungan kang makipag-ugnayan sa tamang tao. Kung kailangan mo ng tulong, i-message ang totoong Juan, makipag-usap sa AI guide, o gamitin ang Help Now para sa agarang suporta ng tao.",
     planChoice: "Bago tayo magpatuloy, gusto mo bang gumawa si Carlos ng personal na walong linggong plano para sa iyo? Magtatanong ako nang kaunti para maiangkop ito sa pinagdadaanan mo. Kung gusto mo munang gamitin ang mga guide at Toolkit, ayos lang iyon.",
-    chat: "Kumusta, ako ang iyong AI guide. Dahan-dahan lang — maaari tayong mag-usap sa bilis na komportable sa iyo."
+    chat: "Kumusta, ako ang iyong AI guide. Dahan-dahan lang — maaari tayong mag-usap sa bilis na komportable sa iyo.",
+    resources: "Hi, ako si Rex. Pinagsasama ng Support Directory ang crisis help, health services, housing, food, recovery, community groups at iba pang lokal na suporta. Pwede kang mag-browse ayon sa kailangan o gamitin ang search box — i-type lang kung ano ang hinahanap mo sa sarili mong salita, tulad ng someone to talk to, housing o food, at ipapakita ko ang mga tumutugmang serbisyo. Walang madaliang kailangan; puwede kang mag-ikot at hindi mo kailangang malaman muna ang pangalan ng serbisyo."
   },
   "hr-HR": {
     toolkit: "Dobro došli u Alatke — zbirku stvari koje vam mogu pomoći kada ih trebate. Uzmite vremena i odaberite ono što vam danas odgovara.",
@@ -2210,7 +2222,8 @@ const AUTO_INTRO_SPEECH = {
     plan: "Ovo je vaš prilagođeni plan od osam tjedana, napravljen prema onome što ste nam rekli o svom životu, energiji i ciljevima. Razvija se iz tjedna u tjedan, počinje nježno i dodaje praktične korake tempom koji vam odgovara. Ovdje sam da vam pomognem razumjeti svaki tjedan, odgovorim na pitanja i primijetite svoj napredak bez pritiska i osuđivanja.",
     program: "Pozdrav, ja sam Juan, osnivač The Resilience Hub-a. Ovaj je program besplatan i napravljen za vas. Slušamo gdje se nalazite, pružamo praktičnu podršku vašim tempom i povezujemo vas s pravim ljudima. Ako trebate pomoć, pošaljite poruku pravom Juanu, razgovarajte s AI vodičem ili upotrijebite Pomoć odmah za hitnu ljudsku podršku.",
     planChoice: "Prije nego nastavimo, želite li da Carlos za vas sastavi osobni plan od osam tjedana? Postavit ću vam nekoliko pitanja kako bi odgovarao onome kroz što prolazite. Ako zasad želite koristiti vodiče i Alatke, i to je potpuno u redu.",
-    chat: "Pozdrav, ja sam vaš AI vodič. Uzmite vremena — možemo razgovarati vašim tempom."
+    chat: "Pozdrav, ja sam vaš AI vodič. Uzmite vremena — možemo razgovarati vašim tempom.",
+    resources: "Bok, ja sam Rex. Support Directory okuplja pomoć u krizi, zdravstvene usluge, smještaj, hranu, programe oporavka, zajedničke grupe i drugu lokalnu podršku. Možeš pregledavati prema potrebi ili koristiti polje za pretraživanje — upiši što tražiš svojim riječima, npr. nekoga za razgovor, smještaj ili hranu, i pokazat ću ti odgovarajuće usluge. Uzmi si vremena; ne moraš prvo znati ime neke usluge."
   },
   "ko-KR": {
     toolkit: "도구 상자에 오신 것을 환영합니다. 필요할 때 도움이 될 수 있는 여러 가지가 있어요. 천천히 둘러보고 오늘 마음에 맞는 것을 골라 보세요.",
@@ -2218,7 +2231,8 @@ const AUTO_INTRO_SPEECH = {
     plan: "이것은 여러분의 삶과 에너지, 이루고 싶은 목표에 대해 알려주신 내용을 바탕으로 만든 맞춤형 8주 계획입니다. 매주 조금씩 나아가며, 처음에는 부드럽게 시작하고 여러분에게 맞는 속도로 실천적인 단계를 더해 갑니다. 매주 내용을 이해하고 질문에 답하며, 부담이나 판단 없이 여러분의 발전을 알아차릴 수 있도록 도와드릴게요.",
     program: "안녕하세요. 저는 The Resilience Hub의 설립자 Juan입니다. 이 프로그램은 무료이며 여러분을 중심으로 만들어졌습니다. 지금 어떤 상황인지 듣고, 여러분의 속도에 맞춰 실질적인 지원을 제공하며, 알맞은 사람들과 연결해 드립니다. 도움이 필요하면 실제 Juan에게 메시지를 보내거나 AI 가이드와 이야기하거나 긴급한 사람의 도움을 위해 Help Now를 이용하세요.",
     planChoice: "계속하기 전에 Carlos가 여러분을 위한 맞춤형 8주 계획을 만들어 드릴까요? 지금 겪고 있는 일에 맞도록 몇 가지 질문을 드릴게요. 당장은 가이드와 도구 상자만 사용하고 싶다면 그것도 괜찮습니다.",
-    chat: "안녕하세요. 저는 여러분의 AI 가이드입니다. 천천히 하세요. 여러분의 속도에 맞춰 이야기할 수 있어요."
+    chat: "안녕하세요. 저는 여러분의 AI 가이드입니다. 천천히 하세요. 여러분의 속도에 맞춰 이야기할 수 있어요.",
+    resources: "안녕하세요, 저는 Rex입니다. Support Directory는 위기 지원, 의료 서비스, 주거, 식료품 지원, 회복 프로그램, 지역 커뮤니티 그룹 등 지역의 다양한 도움 자원을 모아놓은 곳입니다. 필요별로 찾아보거나 검색창을 사용하실 수 있어요 — 누군가와 이야기할 사람, 주거 또는 식료품처럼 평소 말하듯 원하는 것을 입력하면 관련 서비스를 보여드릴게요. 천천히 둘러보세요; 먼저 서비스 이름을 알 필요는 없습니다."
   },
   "ja-JP": {
     toolkit: "ツールキットへようこそ。必要なときに役立つものを集めています。急がずに、今日の自分に合うものを選んでください。",
@@ -2226,7 +2240,8 @@ const AUTO_INTRO_SPEECH = {
     plan: "これは、あなたが話してくれた生活、エネルギー、目指したいことをもとに作る、あなた専用の8週間プランです。毎週少しずつ進み、最初は無理なく、あなたに合うペースで実践的な一歩を加えていきます。毎週の内容を理解し、質問に答え、プレッシャーや批判なく進歩に気づけるように、ここで支えます。",
     program: "こんにちは。The Resilience Hubの創設者、Juanです。このプログラムは無料で、あなたを中心に作られています。今の状況を聞き、あなたのペースで実際的なサポートを考え、適切な人につなぎます。助けが必要なときは、本物のJuanにメッセージを送るか、AIガイドに話しかけるか、緊急の人の支援にはHelp Nowを使ってください。",
     planChoice: "先に進む前に、Carlosにあなた専用の8週間プランを作ってもらいませんか。今抱えていることに合わせるため、いくつか質問します。まずはガイドやツールキットだけ使いたい場合も、もちろん大丈夫です。",
-    chat: "こんにちは。あなたのAIガイドです。急がなくて大丈夫。あなたのペースで話しましょう。"
+    chat: "こんにちは。あなたのAIガイドです。急がなくて大丈夫。あなたのペースで話しましょう。",
+    resources: "こんにちは、レックスです。サポートディレクトリは、危機対応、医療サービス、住まい、食料、リカバリー、コミュニティグループなどの地域の支援をまとめています。必要に応じて項目別に探せますし、検索ボックスを使っても構いません — 「話し相手」「住まい」「食べ物」のように自分の言葉で探してみてください。該当するサービスをお見せします。慌てずで大丈夫、最初にサービス名を知らなくてもOKです。"
   },
   "id-ID": {
     toolkit: "Selamat datang di Toolkit — kumpulan hal yang bisa membantu saat kamu membutuhkannya. Luangkan waktu dan pilih yang terasa tepat untukmu hari ini.",
@@ -2234,7 +2249,8 @@ const AUTO_INTRO_SPEECH = {
     plan: "Ini adalah rencana delapan minggu yang dibuat khusus untukmu, berdasarkan cerita tentang hidup, energi, dan tujuanmu. Rencana ini berkembang setiap minggu, dimulai dengan lembut dan menambahkan langkah praktis sesuai ritmemu. Aku di sini untuk membantu memahami setiap minggu, menjawab pertanyaan, dan melihat kemajuanmu tanpa tekanan atau penilaian.",
     program: "Hai, aku Juan, pendiri The Resilience Hub. Program ini gratis dan dibuat untukmu. Kami mendengarkan keadaanmu, memberi dukungan praktis sesuai ritmemu, dan menghubungkanmu dengan orang yang tepat. Jika butuh bantuan, kirim pesan kepada Juan yang asli, bicara dengan panduan AI, atau gunakan Help Now untuk dukungan manusia yang mendesak.",
     planChoice: "Sebelum melanjutkan, apakah kamu ingin Carlos membuat rencana delapan minggu yang khusus untukmu? Aku akan menanyakan beberapa hal agar sesuai dengan yang sedang kamu hadapi. Jika ingin memakai panduan dan Toolkit dulu, itu juga tidak apa-apa.",
-    chat: "Hai, aku panduan AI-mu. Santai saja — kita bisa berbicara dengan ritmemu."
+    chat: "Hai, aku panduan AI-mu. Santai saja — kita bisa berbicara dengan ritmemu.",
+    resources: "Hai, saya Rex. Support Directory mengumpulkan bantuan krisis, layanan kesehatan, perumahan, makanan, pemulihan, kelompok komunitas, dan dukungan lokal lainnya. Anda bisa mencari berdasarkan kebutuhan atau pakai kotak pencarian — ketik apa yang Anda cari dengan kata-kata sendiri, misalnya seseorang untuk diajak bicara, perumahan, atau makanan, dan saya akan menunjukkan layanan yang sesuai. Ambil waktu Anda; Anda tidak perlu tahu nama layanan terlebih dulu."
   },
   "th-TH": {
     toolkit: "ยินดีต้อนรับสู่ชุดเครื่องมือ ที่รวมสิ่งต่าง ๆ ซึ่งช่วยคุณได้เมื่อจำเป็น ค่อย ๆ ดูและเลือกสิ่งที่เหมาะกับคุณในวันนี้ได้เลย",
@@ -2242,7 +2258,8 @@ const AUTO_INTRO_SPEECH = {
     plan: "นี่คือแผนแปดสัปดาห์ที่ออกแบบเฉพาะสำหรับคุณ จากสิ่งที่คุณเล่าเกี่ยวกับชีวิต พลังงาน และเป้าหมายของคุณ แผนจะค่อย ๆ พัฒนาในแต่ละสัปดาห์ เริ่มอย่างอ่อนโยนและเพิ่มขั้นตอนที่ทำได้จริงตามจังหวะของคุณ ฉันอยู่ตรงนี้เพื่อช่วยให้คุณเข้าใจแต่ละสัปดาห์ ตอบคำถาม และมองเห็นความก้าวหน้าโดยไม่กดดันหรือตัดสิน",
     program: "สวัสดี ฉันชื่อ Juan ผู้ก่อตั้ง The Resilience Hub โปรแกรมนี้ฟรีและสร้างขึ้นเพื่อคุณ เรารับฟังสถานการณ์ของคุณ ให้การสนับสนุนที่ทำได้จริงตามจังหวะของคุณ และช่วยเชื่อมต่อคุณกับคนที่เหมาะสม หากต้องการความช่วยเหลือ ให้ส่งข้อความหา Juan ตัวจริง พูดคุยกับผู้แนะนำ AI หรือใช้ Help Now เพื่อรับการช่วยเหลือฉุกเฉินจากคนจริง",
     planChoice: "ก่อนจะไปต่อ คุณอยากให้ Carlos จัดทำแผนแปดสัปดาห์เฉพาะสำหรับคุณไหม ฉันจะถามคำถามเล็กน้อยเพื่อให้แผนเหมาะกับสิ่งที่คุณกำลังเผชิญ หากอยากใช้ผู้แนะนำและชุดเครื่องมือไปก่อน ก็ไม่เป็นไรเลย",
-    chat: "สวัสดี ฉันคือผู้แนะนำ AI ของคุณ ค่อย ๆ ไปได้เลย เราคุยกันตามจังหวะของคุณได้"
+    chat: "สวัสดี ฉันคือผู้แนะนำ AI ของคุณ ค่อย ๆ ไปได้เลย เราคุยกันตามจังหวะของคุณได้",
+    resources: "สวัสดี ฉันชื่อ Rex ไดเรกทอรีช่วยเหลือนำรวมบริการช่วยในภาวะวิกฤต บริการด้านสุขภาพ ที่พัก อาหาร การฟื้นฟู กลุ่มชุมชน และการช่วยเหลือท้องถิ่นอื่นๆ คุณสามารถเรียกดูตามความต้องการหรือใช้ช่องค้นหา — พิมพ์สิ่งที่คุณกำลังมองหาเป็นคำของคุณเอง เช่น คนให้คุยด้วย ที่พัก หรืออาหาร แล้วฉันจะแสดงบริการที่ตรงกันให้ ไม่ต้องรีบ; คุณไม่จำเป็นต้องรู้ชื่อบริการก่อนก็ได้"
   }
 };
 function spokenIntro(key, fallback, lang = __speechLang) {
@@ -8761,9 +8778,12 @@ function ProgramIntake({ session, profile, onBack, onReturnToProgram }) {
   </>;
 }
 
-function ResourcesPage({ onOpenSafety, onOpenMensShed, onOpenProgramInfo, onBack }) {
+function ResourcesPage({ voiceOn, speechLang, onOpenSafety, onOpenMensShed, onOpenProgramInfo, onBack }) {
   const [resourceQuery, setResourceQuery] = useState("");
   const [tocOpen, setTocOpen] = useState(false);
+  const resourcesWelcome = "Hi, I'm Rex. The Support Directory brings together crisis help, health services, housing, food, recovery, community groups and other local support. You can browse by need or use the search box — type what you're looking for in your own words, like someone to talk to, housing or food, and I'll show you matching services. Take your time; you don't need to know a service's name first.";
+  const spokenResourcesWelcome = spokenIntro("resources", resourcesWelcome, speechLang);
+  const { speak: speakResourcesWelcome, stop: stopResourcesWelcome, speaking: resourcesSpeaking, prefetch: prefetchResourcesWelcome } = useVoice(voiceOn);
   const searchAliases = {
     crisis: ["lifeline", "emergency", "suicide", "unsafe", "urgent", "danger", "safety", "safe haven", "safehaven", "peer support"],
     safe: ["safe haven", "safehaven", "crisis", "suicidal", "distress", "peer support", "quiet space"],
@@ -8805,6 +8825,13 @@ function ResourcesPage({ onOpenSafety, onOpenMensShed, onOpenProgramInfo, onBack
     window.scrollTo({ top: 0, behavior: "auto" });
     requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "auto" }));
   }, []);
+  useEffect(() => {
+    if (!voiceOn || !__autoIntroVoiceOn) return undefined;
+    prefetchResourcesWelcome(spokenResourcesWelcome, CHARS.rex);
+    const timer = setTimeout(() => speakResourcesWelcome(spokenResourcesWelcome, CHARS.rex), 70);
+    return () => { clearTimeout(timer); stopResourcesWelcome(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [voiceOn, speechLang, spokenResourcesWelcome]);
   const jump = (id) => document.getElementById(id)?.scrollIntoView({ behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
   // Directory headings are landmarks, not destinations. Keep them visually
   // light and structurally distinct from the full-width interactive service cards.
@@ -8856,6 +8883,16 @@ function ResourcesPage({ onOpenSafety, onOpenMensShed, onOpenProgramInfo, onBack
           {tocOpen && <div id="resources-toc-list" style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 7, padding: "0 10px 11px" }}>{toc.map(([id, label], index) => <button key={id} type="button" onClick={() => jump(id)} style={{ border: `1px solid ${index === 0 ? "#b9ddc3" : T.line}`, background: index === 0 ? "#edf8f0" : "rgba(255,255,255,0.76)", borderRadius: 11, padding: "9px 8px", textAlign: "left", color: T.ink, fontSize: 11.5, fontWeight: 750, cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}><ChevronRight size={14} color={index === 0 ? T.greenDk : T.sub} />{label}</button>)}</div>}
         </div>
       </div>
+
+      <section aria-labelledby="resources-rex-welcome" style={{ display: "flex", alignItems: "flex-start", gap: 12, marginTop: 12, padding: 14, borderRadius: 20, background: "linear-gradient(135deg, #e8f7f3 0%, #ffffff 58%, #fff4e5 100%)", border: "1px solid rgba(47,128,124,0.22)", boxShadow: T.soft }}>
+        <Portrait src={CHARS.rex.img} name="Rex" size={58} speaking={resourcesSpeaking} tint={CHARS.rex.tint} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 7 }}><span style={{ fontSize: 10, fontWeight: 900, letterSpacing: 0.9, textTransform: "uppercase", color: "#28736f" }}>Rex · A quick guide</span>{resourcesSpeaking && <span aria-live="polite" style={{ fontSize: 10.5, color: "#28736f" }}>Speaking…</span>}</div>
+          <h2 id="resources-rex-welcome" style={{ margin: "4px 0 5px", color: T.greenDk, fontSize: 16, lineHeight: 1.2 }}>Not sure where to start?</h2>
+          <p style={{ margin: 0, color: T.ink, fontSize: 13, lineHeight: 1.48 }}>{resourcesWelcome}</p>
+          <button type="button" onClick={() => speakResourcesWelcome(spokenResourcesWelcome, CHARS.rex)} aria-label="Hear Rex explain the Support Directory again" style={{ display: "inline-flex", alignItems: "center", gap: 6, marginTop: 10, border: "1px solid rgba(47,128,124,0.28)", borderRadius: 999, padding: "8px 11px", background: "rgba(255,255,255,0.78)", color: "#28736f", fontSize: 11.5, fontWeight: 800, cursor: "pointer" }}><Volume2 size={14} aria-hidden="true" /> Hear Rex again</button>
+        </div>
+      </section>
 
       <div id="resources-juan" style={{ scrollMarginTop: 18, marginTop: 16 }}>
         {resourceCard({ Icon: Users, tint: "#e2f3e8", color: T.greenDk, eyebrow: "The Resilience Hub · Western Sydney", title: "Juan’s free 8-week in-person support program", onClick: onOpenProgramInfo, actionLabel: "Learn about the program", children: "Practical, person-to-person support for men across Fairfield, Liverpool, Western Sydney and beyond — with lived experience, steady check-ins, and help finding your next step." })}
