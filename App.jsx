@@ -5192,11 +5192,18 @@ function AdminInbox({ onBack, adminEmail }) {
     setBusy(true); setReply(""); setPushNote("");
     try {
       const memberMessage = (rows || []).find((m) => m.user_id === open && m.user_public_key_jwk);
-      if (!memberMessage?.user_public_key_jwk) throw new Error("This member has not completed the private-vault setup yet.");
-      const memberPublicKey = await importTeamPublicKey(memberMessage.user_public_key_jwk);
-      const teamKey = await getConfiguredTeamPublicKey();
-      const encryptedBody = await encryptForTeam(text, memberPublicKey, teamKey, "coordinator_messages.body");
-      await supabase.from("coordinator_messages").insert({ user_id: open, sender: "coordinator", body: JSON.stringify(encryptedBody), recipient: memberMessage.recipient || "juan", user_public_key_jwk: memberMessage.user_public_key_jwk });
+      let replyBody = text;
+      let replyKey = null;
+      if (memberMessage?.user_public_key_jwk) {
+        const memberPublicKey = await importTeamPublicKey(memberMessage.user_public_key_jwk);
+        const teamKey = await getConfiguredTeamPublicKey();
+        const encryptedBody = await encryptForTeam(text, memberPublicKey, teamKey, "coordinator_messages.body");
+        replyBody = JSON.stringify(encryptedBody);
+        replyKey = memberMessage.user_public_key_jwk;
+      }
+      const recipient = (rows || []).find((m) => m.user_id === open)?.recipient || "juan";
+      const { error: replyError } = await supabase.from("coordinator_messages").insert({ user_id: open, sender: "coordinator", body: replyBody, recipient, user_public_key_jwk: replyKey });
+      if (replyError) throw replyError;
       load();
       try {
         const r = await fetch("/api/push", {
