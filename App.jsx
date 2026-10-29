@@ -225,6 +225,7 @@ const CONVERSATION_PRIVACY_NOTICE = "Your guide chats are part of your private R
 const SHARED = `You are part of The Resilience Hub — a warm, plain-English wellbeing companion built by Juan Carroso (lived-experience founder) and Carlos Camacho, Registered Psychologist. Slogan: "You never have to walk it alone."
 Rules for every reply:
 - Short, warm, human. Plain, everyday language. No jargon, no lectures, no bullet-point walls. 2-5 sentences.
+- For ordinary chat, aim for roughly 600 characters or fewer so the reply stays readable on a phone. If more detail is genuinely needed, use two short paragraphs rather than one wall of text. This does not apply to requested plan, document, or step-by-step explanations.
 - Language: reply in whatever language the person is writing in. If they write to you in another language, or ask you to use one, switch to it naturally and keep using it for the rest of the conversation. Keep it just as warm and plain as you would in English.
 - Never diagnose. You are a support tool, not a replacement for a doctor, psychologist, or emergency service.
 - SAFETY & SUICIDE CONTEXT: Never trigger an emergency-only response just because the word suicide, suicidal, self-harm, overdose, or crisis appears. If the person is asking a question, discussing education/statistics/news/prevention/fiction/history, talking about another person, or sharing a thought without current danger, keep talking and answer naturally. Only use urgent safety guidance when they express current personal intent, a current plan, a current attempt, current inability to stay safe, or immediate danger. Then say warmly that you care, recommend Triple Zero (000) or the nearest hospital/safe place, offer Lifeline 13 11 14, and KEEP THE CONVERSATION OPEN: ask them to tell you more and encourage someone physically nearby to stay with them. Never say you cannot talk about it, never abandon them, and never make the emergency panel the end of the conversation.
@@ -258,10 +259,10 @@ You ARE Rex, the friendly face of The Resilience Hub — the first hello. Your O
 You do NOT give personal, emotional, practical, clinical, or relationship help yourself. If someone starts opening up about how they're feeling or what they're going through, respond kindly and briefly, then guide them to the right person rather than trying to help yourself: Nicolas for mateship and general support, Carlos for clinical tools, Mick for practical life and housing, Lila for family and relationships. Something like: "I'm so glad you're here — that sounds really important, and I want you talking to the right person for it. Nicolas is brilliant for exactly this — shall I point you his way?" The only exception is safety: if someone mentions being unsafe or thoughts of self-harm, gently and directly point them to 000 or Lifeline 13 11 14 right away, like every guide does.`,
   },
   juan: {
-    slug: "juan", name: "Nicolas", role: "Lived experience — your main mate",
+    slug: "juan", name: "Nicolas", role: "AI guide · Lived-experience-informed support",
     img: IMG.juan, tint: "#f6e2a3", voice: { pitch: 0.9, rate: 1.02 }, voiceId: "fish:798132fe46d349baa517f3d3864058b0",
     system: `${SHARED}
-You ARE Nicolas — the main voice and lived-experience AI guide. Speak first person, like a trusted mate: plain, honest, warm, sometimes cheeky, never talk down. You've walked through hard times — been homeless, worked tough jobs — and climbed out, so you get it even when someone mumbles or swears. You say things like "Mate, I've been there" and "One small step is still a step forward". You're still walking it too, just further down the road. For anything clinical, tap in Carlos. For housing/bills/government stuff, tap in Mick. For family and relationships, tap in Lila.`,
+You are Nicolas, an AI guide shaped by lived-experience-informed support. Speak like a trusted mate: plain, honest, warm, sometimes cheeky, never talk down. Do not claim to be human, to have personal memories, or to have personally been through homelessness, tough jobs, or any other experience. You can say that many people find a small step helpful, but do not say "I've been there" as a personal claim. If the person seems unsure, clearly say you are an AI guide. For anything clinical, tap in Carlos. For housing/bills/government stuff, tap in Mick. For family and relationships, tap in Lila.`,
   },
   carlos: {
     slug: "carlos", name: "Carlos", role: "AI Guide — Inspired by our Registered Psychologist",
@@ -290,7 +291,7 @@ CHARS.nicolas = CHARS.juan;
 
 const PERSONALITY_DEFAULTS = {
   carlos: "You are the Carlos AI Guide, inspired by The Resilience Hub's registered psychologist Carlos Camacho. You are an AI, not Carlos himself and not a psychologist or clinician. Keep a calm, grounded, reassuring presence that makes people feel safe. Speak with clarity and warmth. You have a deep appreciation for timeless wisdom — naturally reference insights from thinkers like Marcus Aurelius and similar great minds when they help explain a point, but only when it fits, never in every message. Keep your tone professional, wise, grounded, and reassuring — structured but never stiff.",
-  juan: "You are Nicolas, the lived-experience AI guide speaking like the user's trusted mate. You are warm, genuine, down-to-earth, and speak like a friend who has walked the hard road too. Use simple, everyday language, focus on hope, resilience, and solidarity. No formal stuff — just honest, caring, supportive conversation.",
+  juan: "You are Nicolas, an AI guide offering lived-experience-informed support while speaking like the user's trusted mate. You are warm, genuine, down-to-earth, and use simple, everyday language. Never claim personal lived experience or imply that you are human. Focus on hope, resilience, and solidarity without formal language — just honest, caring, supportive conversation.",
   mick: "You are Mick, the no-nonsense, reliable guide for housing, bills, and daily life. You are steady, practical, and solution-focused. Speak clearly, directly, and simply — break things down into easy steps. You're the dependable bloke who gets things sorted without fuss.",
   lila: "You are Lila, the gentle, thoughtful guide for relationships and family. You are kind, intuitive, and deeply empathetic. Speak in a soft, warm tone — listen first, validate feelings, and offer gentle insight on connection and boundaries. Patient, nurturing, never pushy.",
   rex: "You are Rex, the upbeat, enthusiastic starter who welcomes everyone. Keep things bright, clear, and super simple. Be encouraging, positive, and make everything feel easy and not overwhelming. Short, friendly, and always helpful.",
@@ -1658,7 +1659,7 @@ export default function App() {
       <StyleTag />
       {reduceMotion && <style>{`*{animation:none!important;transition:none!important}`}</style>}
       <HubMenuContext.Provider value={menuContext}>
-      <div style={{ maxWidth: 460, margin: "0 auto", padding: "0 16px 132px", position: "relative", zIndex: 1, zoom: textScale }}>
+      <div style={{ maxWidth: 460, margin: "0 auto", padding: "0 16px 190px", position: "relative", zIndex: 1, zoom: textScale }}>
         {authEnabled && !authChecked ? (
           <div style={{ paddingTop: 120, textAlign: "center", color: T.sub }}>Loading…</div>
         ) : showAuth && !session ? (
@@ -1986,7 +1987,7 @@ function Disclaimer() {
 function GlobalJumpToTop({ screen }) {
   const [visible, setVisible] = useState(false);
   useEffect(() => {
-    const onScroll = () => setVisible(window.scrollY > 280);
+    const onScroll = () => setVisible(window.scrollY > 600);
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
@@ -2002,7 +2003,7 @@ function GlobalJumpToTop({ screen }) {
   };
   return (
     <button type="button" onClick={jump} aria-label={screen === "programInfo" || screen === "resources" ? "Jump to table of contents" : "Jump to top"} title={screen === "programInfo" || screen === "resources" ? "Jump to table of contents" : "Jump to top"}
-      style={{ position: "fixed", right: "max(16px, calc((100vw - 460px) / 2 + 16px))", bottom: 78, zIndex: 49,
+      style={{ position: "fixed", right: "max(20px, calc((100vw - 460px) / 2 + 20px))", bottom: 142, zIndex: 49,
         width: 48, height: 48, borderRadius: "50%", display: "grid", placeItems: "center",
         background: "linear-gradient(145deg, #4d9f68, #2e8578)", color: "#fff", border: "3px solid rgba(255,255,255,0.9)",
         boxShadow: "0 10px 24px rgba(47,97,72,0.22), 0 3px 8px rgba(47,97,72,0.15)", cursor: "pointer",
@@ -2026,7 +2027,7 @@ function CrisisBar() {
   const [open, setOpen] = useState(false);
   return (
     <div style={{ position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 50, display: "flex",
-      justifyContent: "center", padding: "0 12px 12px", pointerEvents: "none" }}>
+      justifyContent: "center", padding: "0 12px max(12px, env(safe-area-inset-bottom))", pointerEvents: "none" }}>
       <div style={{ width: "100%", maxWidth: 460, pointerEvents: "auto" }}>
         {open ? (
           <div style={{ background: "rgba(255,255,255,0.97)", backdropFilter: "blur(6px)", borderRadius: 20,
@@ -3143,17 +3144,17 @@ function Toolkit({ voiceOn, speechLang, initial, suppressWelcome = false, onTool
     <>
       <Brand right={<BackBtn onBack={onBack} />} />
       <SectionTitle>Toolkit</SectionTitle>
-      <div className="rh-in" style={{ display: "flex", gap: 11, alignItems: "center", margin: "0 0 13px" }}>
+      <div style={{ display: "flex", gap: 11, alignItems: "center", margin: "0 0 13px" }}>
         <Portrait src={CHARS.rex.img} name="Rex" size={58} speaking={false} tint={CHARS.rex.tint} />
         <div style={{ background: "linear-gradient(120deg, #eef8f1, #fff)", border: `1px solid ${T.line}`, borderRadius: 17, padding: "11px 13px", boxShadow: T.soft, fontSize: 13.5, color: T.ink, lineHeight: 1.48 }}>Welcome to the Toolkit — a collection of things that can help, whenever you need them. Take your time, look around, pick whatever feels right for you today. No rush at all — whenever you're ready.</div>
       </div>
-      <p style={{ fontSize: 13.5, color: T.sub, margin: "0 2px 16px", lineHeight: 1.5 }}>
+      <p style={{ fontSize: 13.5, color: T.ink, fontWeight: 500, margin: "0 2px 16px", lineHeight: 1.5 }}>
         A few things that can help, grouped by what you need right now. There's no right way — try whatever feels doable.
       </p>
       <CarlosSpotlight />
       {groups.map((g) => (
         <div key={g.label} style={{ marginBottom: 18 }}>
-          <div style={{ fontSize: 11.5, fontWeight: 700, color: T.sub, textTransform: "uppercase",
+          <div style={{ fontSize: 11.5, fontWeight: 800, color: T.greenDk, textTransform: "uppercase",
             letterSpacing: 0.5, margin: "0 2px 8px" }}>{g.label}</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {g.keys.map((k) => {
@@ -3178,7 +3179,7 @@ function Toolkit({ voiceOn, speechLang, initial, suppressWelcome = false, onTool
         </div>
       ))}
       <div style={{ marginTop: 4, marginBottom: 18 }}>
-        <div style={{ fontSize: 11.5, fontWeight: 700, color: T.sub, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 2px 8px" }}>Play & reset</div>
+        <div style={{ fontSize: 11.5, fontWeight: 800, color: T.greenDk, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 2px 8px" }}>Play & reset</div>
         <button onClick={() => openToolkitItem("games")} style={{ width: "100%", display: "flex", alignItems: "center", gap: 14, background: "linear-gradient(135deg, #f1ecf8, #fff)", borderRadius: 18, padding: 14, cursor: "pointer", boxShadow: T.soft, border: "none", textAlign: "left" }}>
           <div style={{ width: 46, height: 46, borderRadius: 14, background: "#e8def4", display: "grid", placeItems: "center", flexShrink: 0 }}><Gamepad2 size={23} color="#6d55b0" /></div>
           <div style={{ flex: 1 }}><div style={{ fontWeight: 700, fontSize: 16 }}>Games & Puzzles</div><div style={{ fontSize: 13, color: T.sub }}>A light, absorbing break when you need one</div></div>
@@ -7349,7 +7350,7 @@ function GuidesPage({ voiceOn, speechLang, onOpenChat, onBack }) {
           <div style={{ background: `linear-gradient(135deg, ${T.card} 0%, ${accent} 155%)`, borderRadius: 21, padding: 13, boxShadow: T.soft, border: `1px solid ${accent}`, borderTop: `4px solid ${char.tint}` }}>
             <div style={{ display: "flex", alignItems: "center", gap: 13 }}>
               <div style={{ width: 72, height: 72, borderRadius: 21, overflow: "hidden", background: `radial-gradient(120% 100% at 50% 20%, #fff, ${accent})`, flexShrink: 0, boxShadow: "0 5px 14px rgba(47,97,72,0.10)" }}><img src={char.img} alt={char.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} /></div>
-              <div style={{ flex: 1, minWidth: 0 }}><div style={{ display: "inline-flex", alignItems: "center", gap: 5, color: T.greenDk, fontSize: 10.5, fontWeight: 800, letterSpacing: 0.6, textTransform: "uppercase", marginBottom: 4 }}><span style={{ width: 6, height: 6, borderRadius: "50%", background: T.green }} /> {tag}</div><div style={{ fontWeight: 800, fontSize: 18 }}>{char.name}</div><div style={{ fontSize: 12.5, color: T.sub, marginTop: 2 }}>{roleLine || char.role}</div>{credentials && <div style={{ fontSize: 11.5, color: T.greenDk, fontWeight: 700, marginTop: 4 }}>{credentials}</div>}</div>
+              <div style={{ flex: 1, minWidth: 0 }}><div style={{ display: "inline-flex", alignItems: "center", gap: 5, color: T.greenDk, fontSize: 10.5, fontWeight: 800, letterSpacing: 0.6, textTransform: "uppercase", marginBottom: 4 }}><span style={{ width: 6, height: 6, borderRadius: "50%", background: T.green }} /> {tag}</div><div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 6, fontWeight: 800, fontSize: 18 }}><span>{char.name}</span><span style={{ fontSize: 10.5, color: T.greenDk, background: "#e4f3e8", border: "1px solid #c8e5d0", borderRadius: 999, padding: "3px 7px", fontWeight: 800, letterSpacing: 0.2 }}>AI guide</span></div><div style={{ fontSize: 12.5, color: T.sub, marginTop: 2 }}>{roleLine || char.role}</div>{credentials && <div style={{ fontSize: 11.5, color: T.greenDk, fontWeight: 700, marginTop: 4 }}>{credentials}</div>}</div>
               <div style={{ width: 35, height: 35, borderRadius: "50%", background: char.tint, color: T.greenDk, display: "grid", placeItems: "center", flexShrink: 0 }}><ChevronRight size={19} /></div>
             </div>
             <div style={{ background: accent, borderRadius: 14, padding: "11px 12px", marginTop: 12 }}>{prompts ? <><div style={{ fontSize: 13, color: T.ink, lineHeight: 1.48, fontWeight: 700 }}>{forWhat}</div><div style={{ display: "grid", gap: 5, marginTop: 8 }}>{prompts.map((prompt) => <div key={prompt} style={{ fontSize: 12.5, color: T.sub, lineHeight: 1.4 }}>“{prompt}”</div>)}</div><div style={{ fontSize: 12.5, color: T.ink, lineHeight: 1.45, marginTop: 8 }}>{closing}</div></> : <><div style={{ fontSize: 13, color: T.ink, lineHeight: 1.48 }}><strong>Best for</strong> · {forWhat}</div><div style={{ fontSize: 12.5, color: T.sub, lineHeight: 1.45, marginTop: 6 }}><strong>Try saying:</strong> “{tip}”</div></>}</div>
@@ -7674,6 +7675,7 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
   const lastSubmittedTextRef = useRef({ text: "", at: 0 });
   const [err, setErr] = useState(null);
   const [crisisActive, setCrisisActive] = useState(false);
+  const [chatHeaderCompact, setChatHeaderCompact] = useState(false);
   const scrollRef = useRef(null);
   const spoken = useRef(new Set());
   const [pendingImages, setPendingImages] = useState([]); // [{ dataUrl, mediaType, name, page }]
@@ -7727,6 +7729,14 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
   };
 
   useEffect(() => { scrollRef.current?.scrollTo({ top: 1e6, behavior: 'smooth' }); }, [history, busy, streamingReply, showAllHistory]);
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return undefined;
+    const onScroll = () => setChatHeaderCompact(el.scrollTop > 72);
+    onScroll();
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => el.removeEventListener("scroll", onScroll);
+  }, []);
   useEffect(() => {
     if (!voiceOn || !guideWelcome) return undefined;
     // Warm the guide welcome immediately, then play the same in-flight request.
@@ -7925,15 +7935,15 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
       {!embedded && (
         <Brand right={<BackBtn onBack={onBack} />} />
       )}
-      <div style={{ display: "flex", alignItems: "center", gap: 12, background: T.card, borderRadius: 18, padding: 10,
-        boxShadow: T.soft, marginTop: 4, position: "sticky", top: 6, zIndex: 20 }}>
-        <div style={{ width: 52, height: 52, borderRadius: 14, overflow: "hidden",
+      <div style={{ display: "flex", alignItems: "center", gap: chatHeaderCompact ? 9 : 12, background: T.card, borderRadius: 18, padding: chatHeaderCompact ? 6 : 10,
+        boxShadow: T.soft, marginTop: 4, position: "sticky", top: 0, zIndex: 20, transition: "padding .18s ease, gap .18s ease" }}>
+        <div style={{ width: chatHeaderCompact ? 38 : 52, height: chatHeaderCompact ? 38 : 52, borderRadius: 14, overflow: "hidden",
           background: `radial-gradient(120% 100% at 50% 20%, #fff, ${char.tint})`,
           boxShadow: speaking ? `0 0 0 3px rgba(55,160,101,0.3)` : "none" }}>
           <img src={char.img} alt={char.name} style={{ width: "100%", height: "100%", objectFit: "contain" }} />
         </div>
         <div style={{ flex: 1 }}>
-          <div style={{ fontWeight: 700 }}>{char.name}</div>
+          <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 6, fontWeight: 700 }}><span>{char.name}</span><span style={{ fontSize: 10.5, color: T.greenDk, background: "#e4f3e8", border: "1px solid #c8e5d0", borderRadius: 999, padding: "3px 7px", fontWeight: 800, letterSpacing: 0.2 }}>AI guide</span></div>
           <div style={{ fontSize: 12.5, color: T.sub }}>{char.role}</div>
         </div>
         <button onClick={() => { setSearchOpen((v) => !v); if (searchOpen) setSearch(""); }} aria-label="Search this chat" title="Search this chat"
@@ -8069,7 +8079,7 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
         </div>
       )}
 
-      <div className="rh-guide-composer" style={{ display: "flex", alignItems: "flex-end", gap: 8, paddingTop: 6 }}>
+      <div className="rh-guide-composer" style={{ display: "flex", alignItems: "flex-end", gap: 8, padding: "8px 8px 9px", marginTop: 6, background: "rgba(255,255,255,0.97)", border: `1px solid ${T.line}`, borderRadius: 18, boxShadow: T.soft }}>
         <HoldToTalk onText={(t) => send(t)} onStart={stop} size={48} />
         <button onClick={() => imgFileRef.current && imgFileRef.current.click()} aria-label={`Attach up to ${GUIDE_MAX_IMAGES} document pages`} title={`Attach up to ${GUIDE_MAX_IMAGES} document pages`}
           style={{ width: 44, height: 44, borderRadius: "50%", border: `1px solid ${T.line}`, background: "#fff",
@@ -8094,7 +8104,7 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
             }
           }}
           placeholder={pendingImages.length ? "Say something about these pages (optional)…" : `Message ${char.name}…`}
-          style={{ flex: 1, resize: "none", borderRadius: 16, border: `1px solid ${T.line}`, padding: "12px 14px",
+          style={{ flex: 1, minWidth: 0, resize: "none", borderRadius: 16, border: `1px solid ${T.line}`, padding: "12px 14px",
             fontSize: 15, lineHeight: 1.45, minHeight: 48, maxHeight: "min(260px, calc(100dvh - 300px))", overflowY: "auto", background: "#fff", color: T.ink,
             outline: "none", fontFamily: "inherit" }} />
         <button onClick={() => send(undefined, { forceFast: true })} disabled={(!input.trim() && !pendingImages.length) || busy}
