@@ -6867,7 +6867,7 @@ function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, set
             <div style={{ color: "#345c8d", fontSize: 10, fontWeight: 900, letterSpacing: 0.9, marginBottom: 2 }}>FAIRFIELD MEDICAL CENTRE</div>
             <div style={{ fontWeight: 800, fontSize: 16 }}>Dr Carlos Robalino — Your GP</div>
             <div style={{ fontSize: 13, color: T.sub, lineHeight: 1.42, marginTop: 3 }}>In-person appointments or a direct phone consultation at Fairfield Medical Centre.</div>
-            <div style={{ fontSize: 11.5, color: T.sub, lineHeight: 1.4, marginTop: 6 }}>42 Court Road, Fairfield NSW 2165 · (02) 9724 2662</div>
+            <div style={{ fontSize: 11.5, color: T.sub, lineHeight: 1.4, marginTop: 6 }}>7 Urana St, Villawood NSW 2163 · (02) 9724 2662</div>
           </div>
           <ExternalLink size={19} color="#345c8d" style={{ flexShrink: 0 }} />
         </a>
@@ -7916,7 +7916,7 @@ function ProgramInfo({ voiceOn, speechLang, onBack, onMessageJuan, onBookAppoint
         <ProgramInfoCard title="Carlos Camacho — Registered Psychologist">International Golden Key Award recipient — one of Western Sydney's most respected practitioners. Provides professional assessment, guidance, and progress reports.</ProgramInfoCard>
         <ProgramInfoCard title="Dr. Carlos Robalino — General Practitioner">Fairfield Medical Centre. Holistic health care to support your physical and mental wellbeing.</ProgramInfoCard>
         <ProgramInfoCard title="Wise Employment — Employment & study support">Ready to help you find work, explore new careers, or further your studies — whatever path you choose.</ProgramInfoCard>
-        <ProgramInfoCard title="Juan — Peer support & 24/7 availability">Juan walks this journey beside you. He understands because he's lived it. Available any time.</ProgramInfoCard>
+        <ProgramInfoCard title="Juan — Peer support & 24/7 availability">Juan walks this journey beside you. He understands because he's lived it. Available any time. When you're in the program, you can contact Juan any time, including when things get really hard. He'll respond as soon as he can. If you're in immediate danger, call 000 first. If you can't reach Juan, call Lifeline on 13 11 14 (24/7) or tap Safety First.</ProgramInfoCard>
       </ProgramInfoSection>
 
       <ProgramInfoSection title="For court, bail & second chances">
@@ -7974,7 +7974,7 @@ function ProgramInfo({ voiceOn, speechLang, onBack, onMessageJuan, onBookAppoint
       <ProgramInfoSection title="Get in touch">
         <div style={{ background: "#eaf6ef", borderRadius: 16, padding: 16, marginBottom: 12 }}>
           <div style={{ fontSize: 13.5, lineHeight: 1.8 }}>
-            <div>📍 42 Court Road, Fairfield 2165</div>
+            <div>📍 7 Urana St, Villawood 2163</div>
             <div>📞 0489 059 833 — call or text any time, 24/7</div>
           </div>
         </div>
