@@ -3770,22 +3770,24 @@ function Login({ stayLoggedIn = true, onStayLoggedInChange, uiLanguage = DEFAULT
             {UI_LANGUAGES.map((language) => <option key={language.code} value={language.code}>{language.nativeLabel}</option>)}
           </select>
         </div>
-        <div className="rh-in" style={{ background: T.card, borderRadius: 22, padding: 18, boxShadow: T.soft, margin: "0 0 16px" }}>
-          <p style={{ margin: "0 0 14px", fontSize: 14, lineHeight: 1.55, color: T.ink }}>
-            The Resilience Hub is a free, judgment-free space for everyday mental health and
-            wellbeing support. Chat with AI guides who are here to listen any time, work through
-            an optional 8-week plan at your own pace, journal privately, and reach for calming
-            tools whenever you need them. It's a support tool — not a replacement for a doctor,
-            psychologist, or emergency service.
+        <div className="rh-in" style={{ background: "linear-gradient(135deg, #fffdf7 0%, #eef8ef 100%)", borderRadius: 24, padding: 17, boxShadow: T.soft, margin: "0 0 16px", border: `1px solid ${T.line}` }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+            <Portrait src={IMG.rex} name="Rex" size={76} tint="#dff5e4" />
+            <div>
+              <div style={{ color: T.greenDk, fontSize: 11, fontWeight: 900, letterSpacing: 0.8, textTransform: "uppercase" }}>A calmer place to start</div>
+              <h1 style={{ margin: "3px 0 4px", fontSize: 23, lineHeight: 1.1, color: T.greenDk }}>You don’t have to work it out alone.</h1>
+              <p style={{ margin: 0, fontSize: 12.5, color: T.sub, lineHeight: 1.4 }}>Free, private support for the next small step.</p>
+            </div>
+          </div>
+          <p style={{ margin: "0 0 13px", fontSize: 13.5, lineHeight: 1.5, color: T.ink }}>
+            Chat with AI guides, use practical tools, keep a private journal, or work through the optional 8-week plan at your own pace.
           </p>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
             {[
               { Icon: MessageCircle, label: "AI guides, any time" },
               { Icon: CalendarCheck, label: "An optional 8-week plan" },
               { Icon: BookOpen, label: "A private journal" },
               { Icon: Wrench, label: "A self-help toolkit" },
-              { Icon: Gamepad2, label: "Free games & puzzles" },
-              { Icon: LifeBuoy, label: "Crisis support on-screen" },
             ].map(({ Icon, label }, i) => (
               <div key={i} style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <div style={{ width: 28, height: 28, borderRadius: 9, background: "#eaf5ef",
@@ -3796,22 +3798,24 @@ function Login({ stayLoggedIn = true, onStayLoggedInChange, uiLanguage = DEFAULT
               </div>
             ))}
           </div>
+          <div style={{ marginTop: 12, fontSize: 11.5, color: T.sub, lineHeight: 1.4 }}>Support tool only — not a replacement for a doctor, psychologist, or emergency service.</div>
         </div>
-        <Portrait src={IMG.rex} name="Rex" size={116} tint="#dff5e4" />
-        <div className="rh-in" style={{ background: T.card, borderRadius: 22, padding: 18, boxShadow: T.soft, margin: "18px 0" }}>
-          <h2 style={{ margin: "0 0 4px", fontSize: 18 }}>{mode === "signup" ? "Create your account" : "Welcome back"}</h2>
-          <p style={{ margin: "0 0 14px", fontSize: 13.5, color: T.sub, lineHeight: 1.5 }}>
-            Sign in to continue — your space here is private to you.
+        <div className="rh-in" style={{ background: T.card, borderRadius: 22, padding: 18, boxShadow: T.soft, margin: "0 0 16px" }}>
+          <h2 style={{ margin: "0 0 4px", fontSize: 20, color: T.greenDk }}>{mode === "signup" ? "Create your account" : "Welcome back"}</h2>
+          <p style={{ margin: "0 0 15px", fontSize: 13.5, color: T.sub, lineHeight: 1.5 }}>
+            {mode === "signup" ? "It only takes a minute. Your space here is private to you." : "Sign in to continue to your private space."}
           </p>
           {mode === "signup" && <label style={{ display: "block", marginBottom: 10 }}>
             <span style={{ ...fieldLabel, display: "block", marginBottom: 5 }}>Your name <span style={{ color: "#c0392b" }}>*</span></span>
             <input value={signupName} onChange={(e) => setSignupName(e.target.value)} placeholder="What should we call you?"
               autoComplete="name" required style={inputStyle} />
           </label>}
-          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email"
+          <label htmlFor="auth-email" style={{ ...fieldLabel, display: "block", marginBottom: 5 }}>Email</label>
+          <input id="auth-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com"
             autoComplete="email" style={{ ...inputStyle, marginBottom: 10 }} />
+          <label htmlFor="auth-password" style={{ ...fieldLabel, display: "block", marginBottom: 5 }}>Password</label>
           <div style={{ position: "relative" }}>
-            <input type={showPw ? "text" : "password"} value={pw} onChange={(e) => setPw(e.target.value)} placeholder="Password"
+            <input id="auth-password" type={showPw ? "text" : "password"} value={pw} onChange={(e) => setPw(e.target.value)} placeholder="Enter your password"
               autoComplete={mode === "signup" ? "new-password" : "current-password"}
               onKeyDown={(e) => e.key === "Enter" && withEmail()} style={{ ...inputStyle, paddingRight: 46 }} />
             <button type="button" onClick={() => setShowPw((v) => !v)}
@@ -3830,10 +3834,17 @@ function Login({ stayLoggedIn = true, onStayLoggedInChange, uiLanguage = DEFAULT
           <div style={{ marginTop: 14 }}>
             <Btn onClick={withEmail} disabled={busy}>{busy ? "Please wait…" : mode === "signup" ? "Create account" : "Sign in"}</Btn>
           </div>
-          <button onClick={() => { setMode(mode === "signup" ? "signin" : "signup"); setErr(null); setNotice(null); }}
-            style={{ background: "none", border: "none", color: T.green, cursor: "pointer", fontSize: 13, marginTop: 12, fontWeight: 600 }}>
-            {mode === "signup" ? "Already have an account? Sign in" : "New here? Create an account"}
-          </button>
+          {mode === "signin" ? (
+            <button type="button" onClick={() => { setMode("signup"); setErr(null); setNotice(null); }}
+              style={{ width: "100%", minHeight: 58, display: "flex", alignItems: "center", gap: 11, marginTop: 14, padding: "10px 14px", textAlign: "left", background: "linear-gradient(135deg, #e3f5e8 0%, #c5e7cf 100%)", border: `2px solid ${T.green}`, borderRadius: 16, color: T.greenDk, cursor: "pointer", boxShadow: "0 6px 14px rgba(47,97,72,0.12)" }}>
+              <span style={{ width: 34, height: 34, borderRadius: 11, display: "grid", placeItems: "center", background: T.green, color: "#fff", fontSize: 23, fontWeight: 500, lineHeight: 1 }} aria-hidden="true">+</span>
+              <span style={{ flex: 1 }}><strong style={{ display: "block", fontSize: 15 }}>New here? Create your account</strong><span style={{ display: "block", fontSize: 11.5, marginTop: 2, color: T.sub }}>Start your private Hub space with email and password.</span></span>
+              <ChevronRight size={19} aria-hidden="true" />
+            </button>
+          ) : (
+            <button type="button" onClick={() => { setMode("signin"); setErr(null); setNotice(null); }}
+              style={{ width: "100%", minHeight: 46, marginTop: 12, background: "#fff", border: `1px solid ${T.line}`, borderRadius: 14, color: T.greenDk, cursor: "pointer", fontSize: 13.5, fontWeight: 800 }}>Already have an account? Sign in</button>
+          )}
           {mode === "signin" && (
             <div>
               <button onClick={resetPassword} disabled={busy}
