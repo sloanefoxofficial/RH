@@ -1584,7 +1584,11 @@ export default function App() {
       }
     }
   };
-  const openTool = (k) => { setToolkitInitial(k); go("toolkit"); tickToolTask(k); };
+  const openTool = (k) => {
+    setToolkitInitial(k);
+    go("toolkit");
+    tickToolTask(k);
+  };
 
   const closePersistentMenu = useCallback(() => {
     setMenuOpen(false);
@@ -4062,6 +4066,7 @@ function Admin({ isAdmin, guidePrompts, onSaveGuidePrompt, onBack }) {
   if (view === "activity") return <AdminActivity onBack={() => setView(null)} />;
   if (view === "intakes") return <AdminIntakes onBack={() => setView(null)} />;
   if (view === "bugreports") return <AdminBugReports onBack={() => setView(null)} />;
+  if (view === "campfireReports") return <AdminBugReports campfireOnly onBack={() => setView(null)} />;
   if (view === "appointments") return <AdminAppointments onBack={() => setView(null)} />;
 
   const tools = [
@@ -4072,6 +4077,7 @@ function Admin({ isAdmin, guidePrompts, onSaveGuidePrompt, onBack }) {
     { key: "guides", Icon: Users, tint: "#f4e3d9", ic: "#c9803f", title: "Guide personalities", sub: "Fine-tune how each guide comes across" },
     { key: "notify", Icon: Megaphone, tint: "#eee7f6", ic: "#7c5cc4", title: "Notify members", sub: "Send a broadcast, in-app and push" },
     { key: "bugreports", Icon: Flame, tint: "#fbe4e4", ic: "#c94f4f", title: "Bug reports", sub: "One-way reports from members and testers" },
+    { key: "campfireReports", Icon: Users, tint: "#fff0df", ic: "#a9511f", title: "Campfire reports", sub: "Review reports about conduct in the Campfire" },
     { key: "appointments", Icon: CalendarCheck, tint: "#e9f5ee", ic: "#2c7d50", title: "Appointment requests", sub: "Intake appointment requests to call people back on" },
   ];
   const AdminSubPage = ({ title, Icon, children }) => (
@@ -4188,7 +4194,7 @@ function AdminAppointments({ onBack }) {
   );
 }
 
-function AdminBugReports({ onBack }) {
+function AdminBugReports({ onBack, campfireOnly = false }) {
   const [rows, setRows] = useState(null);
   const [showArchived, setShowArchived] = useState(false);
   const [screenshotUrls, setScreenshotUrls] = useState({});
@@ -4196,7 +4202,11 @@ function AdminBugReports({ onBack }) {
     if (!supabase) { setRows([]); return; }
     try {
       const { data } = await supabase.from("bug_reports").select("*").order("created_at", { ascending: false });
-      let reports = data || [];
+      let reports = (data || []).filter((row) => {
+        const description = typeof row.description === "string" ? row.description : "";
+        const isCampfire = description.startsWith("[Campfire report]");
+        return campfireOnly ? isCampfire : !isCampfire;
+      });
       const { data: auth } = await supabase.auth.getSession();
       const token = auth?.session?.access_token || "";
       const reportEnvelopes = reports.map((r) => { try { return { id: r.id, envelope: typeof r.description === "string" ? JSON.parse(r.description) : r.description }; } catch { return null; } }).filter((x) => x?.envelope?.__rhTeamEncrypted);
@@ -4235,10 +4245,10 @@ function AdminBugReports({ onBack }) {
       <Brand right={<BackBtn onBack={onBack} label="Admin" />} />
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6, marginBottom: 4 }}>
         <Flame size={18} color="#c94f4f" />
-        <h2 style={{ fontSize: 18, margin: 0 }}>Bug reports</h2>
+        <h2 style={{ fontSize: 18, margin: 0 }}>{campfireOnly ? "Campfire reports" : "Bug reports"}</h2>
       </div>
       <p style={{ fontSize: 13, color: T.sub, margin: "0 2px 10px", lineHeight: 1.5 }}>
-        One-way — reports members and testers send in. There's no reply thread here, just the list.
+        {campfireOnly ? "Reports sent by members about conduct in the Campfire. Review these promptly and keep member details private." : "One-way — reports members and testers send in. There's no reply thread here, just the list."}
       </p>
       <button onClick={() => setShowArchived((s) => !s)} style={{ background: "none", border: "none", color: T.greenDk,
         fontSize: 12.5, fontWeight: 700, cursor: "pointer", padding: "0 2px 14px", display: "block" }}>
@@ -4248,7 +4258,7 @@ function AdminBugReports({ onBack }) {
         {rows === null && <div style={{ color: T.sub, fontSize: 14, padding: "6px 2px" }}>Loading…</div>}
         {rows && visible.length === 0 && (
           <div style={{ color: T.sub, fontSize: 14, padding: "6px 2px" }}>
-            {showArchived ? "No archived reports." : "No bug reports yet."}
+            {showArchived ? "No archived reports." : campfireOnly ? "No Campfire reports yet." : "No bug reports yet."}
           </div>
         )}
         {visible.map((r) => (
@@ -4263,8 +4273,9 @@ function AdminBugReports({ onBack }) {
                 User Feedback
               </div>
             )}
+            {campfireOnly && <div style={{ display: "inline-block", fontSize: 11, fontWeight: 800, color: "#8e3131", background: "#fff0ef", borderRadius: 999, padding: "4px 8px", marginBottom: 8 }}>Campfire report</div>}
             <div style={{ fontSize: 14, lineHeight: 1.5, whiteSpace: "pre-wrap", marginBottom: 10 }}>
-              {typeof r.description === "string" && r.description.startsWith("[User Feedback]\n\n") ? r.description.slice("[User Feedback]\n\n".length) : r.description}
+              {typeof r.description === "string" && r.description.startsWith("[User Feedback]\n\n") ? r.description.slice("[User Feedback]\n\n".length) : typeof r.description === "string" && r.description.startsWith("[Campfire report]\n\n") ? r.description.slice("[Campfire report]\n\n".length) : r.description}
             </div>
             {screenshotUrls[r.id] && (
               <a href={screenshotUrls[r.id]} target="_blank" rel="noopener noreferrer" style={{ display: "block", marginBottom: 10 }}>
@@ -7300,11 +7311,11 @@ function GuidesPage({ voiceOn, speechLang, onOpenChat, onBack }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [voiceOn, speechLang]);
   const specialists = [
-    { char: CHARS.rex, tag: "Your welcomer", filter: "support", roleLine: "Here to help you get started", forWhat: "Finding your way around the Hub and choosing the right guide", tip: "What is this place, and where should I start?", accent: "#e5f3eb" },
-    { char: CHARS.juan, tag: "Your main mate", filter: "support", forWhat: "Ask me anything — I'm here for it all:", prompts: ["Nicolas, what should my routine be today?", "Someone spoke to me like this — how should I respond?", "Can we just talk through what happened today?", "I'm stuck — what do I do next?"], closing: "No question is too small. No topic is off-limits. I'm your mate — run it all by me.", accent: "#fff3cf" },
-    { char: CHARS.carlos, tag: "Supportive tools", filter: "clinical", roleLine: "Inspired by our Registered Psychologist, Carlos Camacho", credentials: "Philosopher • Author • Musician • Golden Key Recipient", forWhat: "Clarity, perspective, & professional guidance when things feel heavy", tip: "I'm feeling flat and can't find the energy to do anything — what should I do?", note: "Carlos is an AI guide inspired by our registered psychologist, Carlos Camacho — he offers supportive tools, not therapy or diagnosis.", accent: "#e8f0fb" },
-    { char: CHARS.mick, tag: "Practical life", filter: "practical", forWhat: "Housing, bills, Centrelink, tenancy, and day-to-day logistics.", tip: "I've got a letter or bill I don't understand — can you help me work out the next step?", accent: "#dff3ee" },
-    { char: CHARS.lila, tag: "People & relationships", filter: "relationships", forWhat: "Family, partners, friendships, and healthy boundaries.", tip: "I'm having a difficult conversation with someone — can you help me find the right words?", accent: "#fae9df" },
+    { char: CHARS.rex, tag: "AI guide · your welcomer", filter: "support", roleLine: "Here to help you get started", forWhat: "Finding your way around the Hub and choosing the right guide", tip: "What is this place, and where should I start?", accent: "#e5f3eb" },
+    { char: CHARS.juan, tag: "AI guide · your main mate", filter: "support", forWhat: "Ask me anything — I'm here for it all:", prompts: ["Nicolas, what should my routine be today?", "Someone spoke to me like this — how should I respond?", "Can we just talk through what happened today?", "I'm stuck — what do I do next?"], closing: "No question is too small. No topic is off-limits. I'm your mate — run it all by me.", accent: "#fff3cf" },
+    { char: CHARS.carlos, tag: "AI guide · supportive tools", filter: "clinical", roleLine: "Inspired by our Registered Psychologist, Carlos Camacho", credentials: "Philosopher • Author • Musician • Golden Key Recipient", forWhat: "Clarity, perspective, & professional guidance when things feel heavy", tip: "I'm feeling flat and can't find the energy to do anything — what should I do?", note: "Carlos is an AI guide inspired by our registered psychologist, Carlos Camacho — he offers supportive tools, not therapy or diagnosis.", accent: "#e8f0fb" },
+    { char: CHARS.mick, tag: "AI guide · practical life", filter: "practical", forWhat: "Housing, bills, Centrelink, tenancy, and day-to-day logistics.", tip: "I've got a letter or bill I don't understand — can you help me work out the next step?", accent: "#dff3ee" },
+    { char: CHARS.lila, tag: "AI guide · people & relationships", filter: "relationships", forWhat: "Family, partners, friendships, and healthy boundaries.", tip: "I'm having a difficult conversation with someone — can you help me find the right words?", accent: "#fae9df" },
   ];
   const filters = [
     { key: "all", label: "All guides", Icon: Users },
@@ -7498,7 +7509,7 @@ function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, set
   );
 
   const supportIntroductions = [
-    { name: "Rex", role: "Your welcomer", helps: "A friendly starting point. Rex can show you around the Hub and help you choose the right next step.", tint: "#d9f1f3", color: "#267780" },
+    { name: "Rex", role: "AI guide · your welcomer", helps: "A friendly starting point. Rex can show you around the Hub and help you choose the right next step.", tint: "#d9f1f3", color: "#267780" },
     { name: "Nicolas", role: "Your main mate", helps: "An AI guide for everyday support, a check-in, routines, or simply talking through what is on your mind.", tint: "#fff0c7", color: "#876416" },
     { name: "Carlos", role: "Calm & coping", helps: "An AI guide inspired by our registered psychologist. He offers gentle tools for stress, low mood, perspective and coping.", tint: "#eee1f8", color: "#704b91" },
     { name: "Mick", role: "Practical life", helps: "An AI guide for housing, bills, Centrelink, tenancy and working out the next practical step.", tint: "#e0f1d1", color: "#537a37" },
@@ -7591,9 +7602,9 @@ function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, set
         <div style={{ display: "flex", justifyContent: "center", marginTop: 18, marginBottom: 92 }}>
           <button onClick={onSignOut} aria-label="Log out"
             style={{ display: "inline-flex", alignItems: "center", gap: 9, cursor: "pointer",
-              background: "#dc2626", color: "#fff", border: "none", borderRadius: 999,
+              background: "#fff", color: T.ink, border: `1px solid ${T.line}`, borderRadius: 999,
               padding: "13px 30px", fontSize: 15, fontWeight: 700,
-              boxShadow: "0 6px 16px rgba(220,38,38,0.28)" }}>
+              boxShadow: T.soft }}>
             <LogOut size={18} /> Logout
           </button>
         </div>

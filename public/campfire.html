@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>The Campfire</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -135,6 +135,7 @@
   .chair.taken .seat-icon-wrap, .chair.mine .seat-icon-wrap{
     border:1px solid #000; border-radius:50%; background:#1b120c; overflow:hidden;
   }
+  .chair.blocked{ opacity:0.42; cursor:default; }
   .chair.taken svg{ color:var(--wood-light); }
   .chair.mine svg{ color:var(--ember); }
   .chair.speaking .seat-icon-wrap{ box-shadow:none; }
@@ -187,6 +188,13 @@
   .wait-btn:hover{ background:rgba(232,112,58,0.2); }
   .stand-btn{ margin-top:10px; background:none; border:1px solid rgba(233,217,192,0.25); color:var(--cream-dim); padding:7px 16px; border-radius:999px; font-size:13px; cursor:pointer; }
   .stand-btn:hover{ color:var(--cream); border-color:rgba(233,217,192,0.45); }
+  .moderation-panel{ width:100%; margin:12px 0 0; padding:11px 12px; border:1px solid rgba(233,217,192,0.12); border-radius:14px; background:rgba(255,255,255,0.035); }
+  .moderation-heading{ color:var(--cream-dim); font-size:11.5px; line-height:1.35; margin-bottom:8px; text-align:center; }
+  .moderation-list{ display:flex; flex-wrap:wrap; gap:7px; justify-content:center; }
+  .moderation-person{ display:inline-flex; align-items:center; gap:6px; border:1px solid rgba(233,217,192,0.2); border-radius:999px; padding:7px 9px; background:rgba(255,255,255,0.04); color:var(--cream); font-size:12px; }
+  .moderation-person button{ border:0; border-radius:999px; padding:4px 7px; color:var(--cream); background:rgba(232,112,58,0.18); font-size:11px; cursor:pointer; }
+  .moderation-person button:hover{ background:rgba(232,112,58,0.32); }
+  .moderation-person button.block{ background:rgba(190,60,38,0.18); }
 
   /* ---------- private video call ---------- */
   #callBtn:disabled{ opacity:0.38; cursor:not-allowed; }
@@ -362,6 +370,10 @@
 
     <div class="status-line" id="statusLine">Finding a seat for you…</div>
     <div id="statusActions" style="display:flex; justify-content:center;"></div>
+    <section class="moderation-panel" id="moderationPanel" hidden aria-label="Campfire member safety controls">
+      <div class="moderation-heading">If someone makes you uncomfortable, you can report or block them. Blocking hides their seat and messages on this device.</div>
+      <div class="moderation-list" id="moderationList"></div>
+    </section>
 
     <section class="call-panel" id="callPanel" aria-live="polite" hidden>
       <strong class="call-heading" id="callHeading">Private video call</strong>
@@ -594,6 +606,8 @@
   const ballLayer = document.getElementById('ballLayer');
   const statusLine = document.getElementById('statusLine');
   const statusActions = document.getElementById('statusActions');
+  const moderationPanel = document.getElementById('moderationPanel');
+  const moderationList = document.getElementById('moderationList');
   const chatMessages = document.getElementById('chatMessages');
   const chatEmpty = document.getElementById('chatEmpty');
   const chatForm = document.getElementById('chatForm');
@@ -603,6 +617,13 @@
   const micBtn = document.getElementById('micBtn');
   const recTimer = document.getElementById('recTimer');
   const micNote = document.getElementById('micNote');
+
+  const BLOCKED_USERS_KEY = 'rh_campfire_blocked_users_v1';
+  let blockedUsers = new Set();
+  try{
+    const saved = JSON.parse(safeGet(BLOCKED_USERS_KEY) || '[]');
+    if(Array.isArray(saved)) blockedUsers = new Set(saved.map(String));
+  }catch(e){}
 
   const callBtn = document.getElementById('callBtn');
   const callPanel = document.getElementById('callPanel');
@@ -900,6 +921,54 @@
     }, BUBBLE_MS);
   }
 
+  function persistBlockedUsers(){
+    try{ safeSet(BLOCKED_USERS_KEY, JSON.stringify(Array.from(blockedUsers).slice(-100))); }catch(e){}
+  }
+  function blockCampfireMember(seatIndex){
+    const target = seats[seatIndex];
+    if(!target || !target.occupied || !target.clientId || target.clientId === clientId) return;
+    const name = target.name || defaultCampfireName();
+    if(!window.confirm('Block '+name+' on this device? Their seat and messages will be hidden for you.')) return;
+    blockedUsers.add(String(target.clientId));
+    persistBlockedUsers();
+    renderSeats();
+    renderMessages();
+  }
+  async function reportCampfireMember(seatIndex){
+    const target = seats[seatIndex];
+    if(!target || !target.occupied || !target.clientId || target.clientId === clientId) return;
+    const name = target.name || defaultCampfireName();
+    const reason = window.prompt('What would you like to report about '+name+'? Please do not include private details about yourself.');
+    if(!reason || !reason.trim()) return;
+    try{
+      const session = await ensureCampfireSession();
+      const result = await session.client.from('bug_reports').insert({
+        name: nickname || null,
+        email: null,
+        user_id: session.userId,
+        description: '[Campfire report]\n\nReported member: '+name+'\nFire: '+(currentFireId || 'unknown')+'\nReason: '+reason.trim(),
+        screenshot_path: null,
+      });
+      if(result.error) throw result.error;
+      window.alert('Thanks — your report has been sent to the Hub team.');
+    }catch(e){
+      window.alert('The report could not be sent right now. Please try again in a moment.');
+    }
+  }
+  function renderModerationControls(){
+    if(!moderationPanel || !moderationList) return;
+    moderationList.innerHTML = '';
+    const others = seats.map((seat,index)=>({seat,index})).filter(({seat}) => seat && seat.occupied && seat.clientId !== clientId && !blockedUsers.has(String(seat.clientId)));
+    moderationPanel.hidden = others.length === 0;
+    others.forEach(({seat,index})=>{
+      const person = document.createElement('div'); person.className = 'moderation-person';
+      const label = document.createElement('span'); label.textContent = seat.name || defaultCampfireName(); person.appendChild(label);
+      const report = document.createElement('button'); report.type = 'button'; report.textContent = 'Report'; report.setAttribute('aria-label','Report '+(seat.name || 'this member')); report.addEventListener('click', ()=>{ void reportCampfireMember(index); });
+      const block = document.createElement('button'); block.type = 'button'; block.className = 'block'; block.textContent = 'Block'; block.setAttribute('aria-label','Block '+(seat.name || 'this member')); block.addEventListener('click', ()=>blockCampfireMember(index));
+      person.appendChild(report); person.appendChild(block); moderationList.appendChild(person);
+    });
+  }
+
   function renderSeats(){
     computeMySeat();
     let occupiedCount = 0;
@@ -908,16 +977,18 @@
       const wrap = el.querySelector('.seat-icon-wrap');
       const label = el.querySelector('.chair-label');
       const isMine = s.occupied && s.clientId === clientId;
+      const isBlocked = s.occupied && !isMine && blockedUsers.has(String(s.clientId));
       el.classList.toggle('free', !s.occupied);
       el.classList.toggle('taken', s.occupied && !isMine);
       el.classList.toggle('mine', isMine);
+      el.classList.toggle('blocked', isBlocked);
       wrap.innerHTML = avatarMarkup(s.occupied ? s.avatarType : null, s.avatarData, !s.occupied);
       if(s.occupied){
         occupiedCount++;
-        label.textContent = isMine ? 'You' : (s.name || defaultCampfireName());
-        el.disabled = false;
+        label.textContent = isMine ? 'You' : (isBlocked ? 'Blocked' : (s.name || defaultCampfireName()));
+        el.disabled = isBlocked;
         el.title = mySeat !== null && !isMine ? 'Throw the green ball' : '';
-        el.setAttribute('aria-label', isMine ? 'Your seat, tap to stand up' : ((s.name||defaultCampfireName()) + '’s seat, taken'));
+        el.setAttribute('aria-label', isMine ? 'Your seat, tap to stand up' : (isBlocked ? 'Blocked member seat' : ((s.name||defaultCampfireName()) + '’s seat, taken')));
       } else {
         label.textContent = 'Free';
         el.title = '';
@@ -929,6 +1000,7 @@
     renderStatus(occupiedCount);
     renderChatGate();
     renderCallGate();
+    renderModerationControls();
     syncCallIdentityToSeat();
   }
 
@@ -988,7 +1060,7 @@
   }
 
   function renderMessages(){
-    const visibleMessages = messages;
+    const visibleMessages = messages.filter(m => !m.clientId || !blockedUsers.has(String(m.clientId)));
     chatEmpty.style.display = visibleMessages.length ? 'none' : 'block';
     chatMessages.querySelectorAll('.msg').forEach(n=>n.remove());
     visibleMessages.slice(-60).forEach(m=>{
@@ -1054,6 +1126,7 @@
   }
 
   function handleIncomingMessage(m){
+    if(m && m.clientId && blockedUsers.has(String(m.clientId))) return;
     if(m.type === 'throw'){
       animateThrow(Number(m.fromSeat), Number(m.toSeat));
       return;
