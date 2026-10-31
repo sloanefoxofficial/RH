@@ -6867,7 +6867,6 @@ function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, set
             <div style={{ color: "#345c8d", fontSize: 10, fontWeight: 900, letterSpacing: 0.9, marginBottom: 2 }}>FAIRFIELD MEDICAL CENTRE</div>
             <div style={{ fontWeight: 800, fontSize: 16 }}>Dr Carlos Robalino — Your GP</div>
             <div style={{ fontSize: 13, color: T.sub, lineHeight: 1.42, marginTop: 3 }}>In-person appointments or a direct phone consultation at Fairfield Medical Centre.</div>
-            <div style={{ fontSize: 11.5, color: T.sub, lineHeight: 1.4, marginTop: 6 }}>7 Urana St, Villawood NSW 2163 · (02) 9724 2662</div>
           </div>
           <ExternalLink size={19} color="#345c8d" style={{ flexShrink: 0 }} />
         </a>
@@ -7974,7 +7973,6 @@ function ProgramInfo({ voiceOn, speechLang, onBack, onMessageJuan, onBookAppoint
       <ProgramInfoSection title="Get in touch">
         <div style={{ background: "#eaf6ef", borderRadius: 16, padding: 16, marginBottom: 12 }}>
           <div style={{ fontSize: 13.5, lineHeight: 1.8 }}>
-            <div>📍 7 Urana St, Villawood 2163</div>
             <div>📞 0489 059 833 — call or text any time, 24/7</div>
           </div>
         </div>

@@ -8638,7 +8638,6 @@ function ProgramInfo({ voiceOn, speechLang, onBack, onMessageJuan, onOpenIntake,
       <ProgramInfoSection title="Get in touch">
         <div style={{ background: "#eaf6ef", borderRadius: 16, padding: 16, marginBottom: 12 }}>
           <div style={{ fontSize: 13.5, lineHeight: 1.8 }}>
-            <div>📍 7 Urana St, Villawood 2163</div>
             <div>📞 0489 059 833</div>
             <div>✉️ resiliencehubnsw@gmail.com</div>
           </div>
