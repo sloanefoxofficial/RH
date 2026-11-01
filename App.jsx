@@ -8917,7 +8917,13 @@ function ResourcesPage({ voiceOn, speechLang, onOpenSafety, onOpenMensShed, onOp
   const jump = (id) => document.getElementById(id)?.scrollIntoView({ behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
   // Directory headings are landmarks, not destinations. Keep them visually
   // light and structurally distinct from the full-width interactive service cards.
-  const sectionLabel = (id, Icon, title, sub, color) => hasSearch ? null : <section id={id} aria-labelledby={`${id}-title`} style={{ scrollMarginTop: 18, margin: "31px 0 12px", padding: "13px 14px 14px", border: `1px solid ${color}45`, borderRadius: 18, background: "rgba(255,253,247,0.82)", boxShadow: T.soft }}><div style={{ display: "flex", alignItems: "center", gap: 8 }}><span aria-hidden="true" style={{ width: 9, height: 9, borderRadius: "50%", background: color, boxShadow: `0 0 0 4px ${color}18`, flexShrink: 0 }} /><Icon size={16} color={color} aria-hidden="true" /><span style={{ color, fontSize: 10.5, fontWeight: 900, letterSpacing: 1.05, textTransform: "uppercase" }}>Support category</span></div><h2 id={`${id}-title`} style={{ margin: "7px 0 4px", color: "#123f32", fontSize: 20, lineHeight: 1.14, letterSpacing: -0.2 }}>{title}</h2><p style={{ fontSize: 12.5, color: "#38584b", margin: 0, lineHeight: 1.46, maxWidth: 520 }}>{sub}</p></section>;
+  const sectionLabel = (id, Icon, title, sub, color) => hasSearch ? null : (
+    <section id={id} aria-labelledby={`${id}-title`} style={{ scrollMarginTop: 18, margin: "31px 0 12px", padding: "0 0 12px 13px", borderLeft: `4px solid ${color}`, borderBottom: `1px solid ${color}55`, borderRadius: 0, background: "transparent", boxShadow: "none" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 7, color, fontSize: 10.5, fontWeight: 900, letterSpacing: 1.05, textTransform: "uppercase" }}><Icon size={15} color={color} aria-hidden="true" /><span>Support directory section</span></div>
+      <h2 id={`${id}-title`} style={{ margin: "6px 0 3px", color: "#123f32", fontSize: 20, lineHeight: 1.14, letterSpacing: -0.2 }}>{title}</h2>
+      <p style={{ fontSize: 12.5, color: "#38584b", margin: 0, lineHeight: 1.46, maxWidth: 520 }}>{sub}</p>
+    </section>
+  );
   const resourceCard = ({ Icon, image, imageAlt, tint, color, eyebrow, title, children, href, phone, email, onClick, actionLabel }) => {
     const searchableText = `${eyebrow} ${title} ${children} ${phone || ""} ${email || ""}`.toLowerCase();
     const searchWords = resourceQuery.toLowerCase().split(/[^a-z0-9]+/).filter((word) => word && !ignoredSearchWords.has(word));
