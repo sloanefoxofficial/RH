@@ -7510,9 +7510,10 @@ function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, set
 
   useEffect(() => () => stop(), [stop]);
 
-  const card = (onClick, tint, ic, Icon, title, sub, badge, options = {}) => (
-    <button className="rh-hub-card" onClick={onClick} aria-label={`${title}: ${sub}`} style={{ width: "100%", background: options.background || "linear-gradient(110deg, #ffffff 0%, #fbfefc 100%)", borderRadius: 21, padding: 15,
-      boxShadow: options.shadow || T.soft, border: options.border || `1px solid ${T.line}`, cursor: "pointer", display: "flex", alignItems: "center", gap: 13, textAlign: "left", transition: "transform .15s ease, box-shadow .15s ease", ...options.button }}>
+  const card = (onClick, tint, ic, Icon, title, sub, badge, options = {}) => {
+    const style = { width: "100%", boxSizing: "border-box", background: options.background || "linear-gradient(110deg, #ffffff 0%, #fbfefc 100%)", borderRadius: 21, padding: 15,
+      boxShadow: options.shadow || T.soft, border: options.border || `1px solid ${T.line}`, cursor: "pointer", display: "flex", alignItems: "center", gap: 13, textAlign: "left", transition: "transform .15s ease, box-shadow .15s ease", textDecoration: "none", color: "inherit", ...options.button };
+    const content = <>
       <div style={{ width: 50, height: 50, borderRadius: 17, background: options.iconBackground || `linear-gradient(145deg, ${tint}, #ffffff)`, display: "grid", placeItems: "center", position: "relative", flexShrink: 0, boxShadow: options.iconShadow || `inset 0 0 0 1px ${ic}18`, ...options.icon }}>
         <Icon size={23} color={options.iconColor || ic} strokeWidth={2.2} />
         {badge > 0 && (
@@ -7525,8 +7526,10 @@ function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, set
         <div style={{ fontSize: 13, color: options.subColor || T.sub, lineHeight: 1.4 }}>{sub}</div>
       </div>
       <ChevronRight size={21} color={options.arrowColor || T.sub} />
-    </button>
-  );
+    </>;
+    if (options.href) return <a className="rh-hub-card" href={options.href} target="_blank" rel="noopener noreferrer" aria-label={`${title}: ${sub}`} style={style}>{content}</a>;
+    return <button className="rh-hub-card" onClick={onClick} aria-label={`${title}: ${sub}`} style={style}>{content}</button>;
+  };
 
   const supportIntroductions = [
     { name: "Rex", role: "AI guide · your welcomer", helps: "A friendly starting point. Rex can show you around the Hub and help you choose the right next step.", tint: "#d9f1f3", color: "#267780" },
@@ -7597,7 +7600,7 @@ function Hub({ profile, plan, progress, saveProgress, journalCount, voiceOn, set
         <summary style={{ cursor: "pointer", padding: "15px 16px", fontWeight: 800, color: T.ink, minHeight: 24 }}>More support and services</summary>
         <div style={{ display: "flex", flexDirection: "column", gap: 9, padding: "0 12px 13px" }}>
           {card(onOpenProgramInfo, "#e8f6ec", T.greenDk, Users, "Juan’s 8-week support program", "Free, in-person support across Western Sydney", undefined, { background: "#f7fcf8", border: "1px solid #d6eadb", iconBackground: "linear-gradient(145deg, #75b98a, #e3f5e8)", iconColor: T.greenDk, arrowColor: T.greenDk })}
-          {card(onOpenChaptly, "#f0e5fb", "#7550a5", Heart, "Chaptly", "Trauma-informed recovery support in gentle daily quests", undefined, { background: "linear-gradient(135deg, #f1e8fb 0%, #fbf8ff 100%)", border: "1px solid rgba(117,80,165,0.26)", iconBackground: "linear-gradient(145deg, #7652a6, #b698d5)", iconColor: "#fff", arrowColor: "#7550a5" })}
+          {card(null, "#e9f5ee", T.greenDk, BookOpen, "The Resilience Hub website", "Meet the team, learn more about the Hub, and stay connected", undefined, { href: "https://resiliencehub.s.gy/website", background: "linear-gradient(135deg, #e9f5ee 0%, #f8fcf9 100%)", border: "1px solid rgba(47,128,124,0.24)", iconBackground: "linear-gradient(145deg, #2f807c, #8ac9b1)", iconColor: "#fff", arrowColor: "#28736f" })}
           {card(onOpenSupportUs, "#fff0f2", "#c94f69", Heart, "Support Us", "Help keep The Resilience Hub free", undefined, { background: "linear-gradient(135deg, #ffedf1 0%, #fff9fa 100%)", border: "1px solid rgba(201,79,105,0.28)", iconBackground: "linear-gradient(145deg, #d95772, #f29aaa)", iconColor: "#fff", arrowColor: "#c94f69" })}
           <div style={{ display: "grid", gap: 8 }}>
             <a href="https://healthengine.com.au/v2/appointment/book/41615#specialty-selection" target="_blank" rel="noopener noreferrer" style={{ color: "#345c8d", fontSize: 13, fontWeight: 750, padding: "6px 4px" }}>Book with Dr Carlos Robalino <ExternalLink size={14} style={{ verticalAlign: "-2px" }} /></a>
