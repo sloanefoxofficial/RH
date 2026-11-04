@@ -3053,11 +3053,11 @@ function NevernSpotlight({ onOpen }) {
 function CarlosSpotlight() {
   const CARLOS_TIKTOK_URL = "https://www.tiktok.com/@carlosalive";
   const videos = [
-    { title: "You Can’t Control the Weather — Only Your Response", url: "https://vt.tiktok.com/ZSVW3U5dF/" },
-    { title: "When You’re Having a Low Day", url: "https://vt.tiktok.com/ZSVW3byM1/" },
-    { title: "Saying Goodbye to a Low Day", url: "https://vt.tiktok.com/ZSVWTYxoU/" },
-    { title: "Choosing Positive Perspectives", url: "https://vt.tiktok.com/ZSVW3sDPP/" },
-    { title: "A Different Way to Face Problems", url: "https://vt.tiktok.com/ZSVW3Gue6/" },
+    { title: "You Can’t Control the Weather — Only Your Response", id: "7678160505906793736", url: "https://vt.tiktok.com/ZSVW3U5dF/" },
+    { title: "When You’re Having a Low Day", id: "7672593375069031688", url: "https://vt.tiktok.com/ZSVW3byM1/" },
+    { title: "Saying Goodbye to a Low Day", id: "7672944321896779015", url: "https://vt.tiktok.com/ZSVWTYxoU/" },
+    { title: "Choosing Positive Perspectives", id: "7654521371254394119", url: "https://vt.tiktok.com/ZSVW3sDPP/" },
+    { title: "A Different Way to Face Problems", id: "7662225827634990344", url: "https://vt.tiktok.com/ZSVW3Gue6/" },
   ];
   return (
     <div style={{ background: T.card, borderRadius: 20, padding: 16, boxShadow: T.soft, marginBottom: 18 }}>
@@ -3084,21 +3084,26 @@ function CarlosSpotlight() {
       </p>
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {videos.map((video, index) => (
-          <a key={video.url} href={video.url} target="_blank" rel="noopener noreferrer" aria-label={`Watch ${video.title} on TikTok`}
-            style={{ display: "flex", alignItems: "center", gap: 12, background: index % 2 === 0 ? "linear-gradient(110deg, #f4f8fd 0%, #eef6ff 100%)" : "linear-gradient(110deg, #faf5ff 0%, #f4f0fb 100%)", borderRadius: 16, padding: 12,
-              textDecoration: "none", color: T.ink, border: "1px solid rgba(63,111,175,0.10)", boxShadow: "0 4px 12px rgba(63,111,175,0.06)" }}>
-            <div style={{ width: 38, height: 38, borderRadius: 12, background: index % 2 === 0 ? `linear-gradient(145deg, ${T.blueDk}, #6f9bd4)` : "linear-gradient(145deg, #7055a8, #aa8bd2)", display: "grid", placeItems: "center", flexShrink: 0, position: "relative" }}>
-              <Play size={16} color="#ffffff" fill="#ffffff" />
-              <span style={{ position: "absolute", right: -5, top: -6, minWidth: 17, height: 17, borderRadius: 9, background: T.card, color: index % 2 === 0 ? T.blueDk : "#7055a8", fontSize: 10, fontWeight: 800, display: "grid", placeItems: "center", boxShadow: "0 2px 5px rgba(40,38,47,0.14)" }}>{index + 1}</span>
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 13.5, fontWeight: 700, lineHeight: 1.3 }}>{video.title}</div>
-              <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 4, fontSize: 10.5, color: T.sub, fontWeight: 700, letterSpacing: 0.35, textTransform: "uppercase" }}>
-                <span>Short video</span><span style={{ color: index % 2 === 0 ? T.blueDk : "#7055a8" }}>•</span><span>Watch on TikTok</span>
+          <article key={video.id} aria-labelledby={`carlos-video-${video.id}`} style={{ background: index % 2 === 0 ? "linear-gradient(110deg, #f4f8fd 0%, #eef6ff 100%)" : "linear-gradient(110deg, #faf5ff 0%, #f4f0fb 100%)", borderRadius: 16, padding: 12, color: T.ink, border: "1px solid rgba(63,111,175,0.10)", boxShadow: "0 4px 12px rgba(63,111,175,0.06)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+              <div style={{ width: 30, height: 30, borderRadius: 10, background: index % 2 === 0 ? `linear-gradient(145deg, ${T.blueDk}, #6f9bd4)` : "linear-gradient(145deg, #7055a8, #aa8bd2)", display: "grid", placeItems: "center", flexShrink: 0 }}>
+                <Play size={14} color="#ffffff" fill="#ffffff" />
               </div>
+              <h3 id={`carlos-video-${video.id}`} style={{ flex: 1, margin: 0, fontSize: 13.5, fontWeight: 700, lineHeight: 1.3 }}>{video.title}</h3>
+              <span style={{ fontSize: 10.5, color: T.sub, fontWeight: 800, letterSpacing: 0.35, textTransform: "uppercase" }}>{index + 1} of {videos.length}</span>
             </div>
-            <ExternalLink size={16} color={index % 2 === 0 ? T.blueDk : "#7055a8"} />
-          </a>
+            <div style={{ width: "100%", maxWidth: 390, margin: "0 auto", aspectRatio: "9 / 16", background: "#101820", borderRadius: 12, overflow: "hidden" }}>
+              <iframe
+                src={`https://www.tiktok.com/player/v1/${video.id}?controls=1&description=1&music_info=1&rel=0&closed_caption=1`}
+                title={`Carlos Camacho video: ${video.title}`}
+                allow="fullscreen"
+                style={{ display: "block", width: "100%", height: "100%", border: 0 }}
+              />
+            </div>
+            <a href={video.url} target="_blank" rel="noopener noreferrer" aria-label={`Open ${video.title} on TikTok`} style={{ display: "inline-flex", alignItems: "center", gap: 5, marginTop: 9, color: index % 2 === 0 ? T.blueDk : "#7055a8", fontSize: 11.5, fontWeight: 800, textDecoration: "none" }}>
+              Open on TikTok <ExternalLink size={13} />
+            </a>
+          </article>
         ))}
       </div>
     </div>
