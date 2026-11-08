@@ -1893,6 +1893,22 @@ function StyleTag() {
       @media (prefers-reduced-motion: reduce){ .rh-float,.rh-in,.rh-frosted-menu,button:hover,a:hover{animation:none!important;transform:none!important} }
       /* Keep the Hub’s navigation cards generous and visually consistent. */
       .rh-hub-card-stack > button,.rh-hub-card-stack > a{height:108px;min-height:108px;overflow:hidden}
+      .rh-guide-chat{width:100%;max-width:760px;margin:0 auto;padding-bottom:calc(128px + env(safe-area-inset-bottom))}
+      .rh-guide-chat-header{display:flex;align-items:center;gap:12px;position:sticky;top:6px;z-index:20;padding:10px 12px;border:1px solid rgba(220,236,226,.95);border-radius:22px;background:rgba(255,255,255,.88);backdrop-filter:blur(18px);box-shadow:0 10px 26px rgba(47,97,72,.08)}
+      .rh-guide-chat-avatar{width:48px;height:48px;border-radius:16px;overflow:hidden;flex:0 0 auto;background:#fff;box-shadow:0 4px 12px rgba(47,97,72,.12)}
+      .rh-guide-chat-messages{background:rgba(255,255,255,.42);border:1px solid rgba(220,236,226,.82);border-radius:26px;padding:18px 14px;scroll-padding-bottom:150px}
+      .rh-guide-chat-disclosure{display:flex;align-items:flex-start;gap:9px;margin:12px 2px 4px;padding:9px 11px;border:1px solid rgba(220,236,226,.8);border-radius:14px;background:rgba(238,246,241,.72);color:${T.sub};font-size:11.5px;line-height:1.45}
+      .rh-guide-chat-bubble{max-width:min(82%,620px);padding:12px 15px;border-radius:20px;font-size:15px;line-height:1.52;white-space:pre-wrap;box-shadow:0 5px 16px rgba(47,97,72,.07)}
+      .rh-guide-chat-bubble[data-role="assistant"]{border:1px solid rgba(220,236,226,.9);border-bottom-left-radius:7px;background:rgba(255,255,255,.96)}
+      .rh-guide-chat-bubble[data-role="user"]{border-bottom-right-radius:7px;background:linear-gradient(135deg,#2e8578,#4d9f68);color:#fff}
+      .rh-guide-chat-composer{position:sticky;bottom:calc(10px + env(safe-area-inset-bottom));z-index:25;margin-top:12px;padding:8px;border:1px solid rgba(220,236,226,.98);border-radius:25px;background:rgba(255,255,255,.94);backdrop-filter:blur(18px);box-shadow:0 14px 32px rgba(47,97,72,.16)}
+      .rh-guide-chat-composer-row{display:flex;align-items:flex-end;gap:7px}
+      .rh-guide-chat-input{min-width:0;flex:1;border:0!important;background:transparent!important;box-shadow:none!important;padding:11px 6px!important}
+      .rh-guide-chat-input:focus{outline:none}
+      .rh-guide-chat-tool{width:42px;height:42px;border-radius:50%;border:1px solid ${T.line};background:#f7fbf8;color:${T.ink};display:grid;place-items:center;cursor:pointer;flex:0 0 auto}
+      .rh-guide-chat-send{width:44px;height:44px;border-radius:50%;border:0;background:linear-gradient(145deg,#2e8578,#4d9f68);color:#fff;display:grid;place-items:center;cursor:pointer;flex:0 0 auto;box-shadow:0 6px 14px rgba(46,133,120,.24)}
+      .rh-guide-chat-send:disabled{opacity:.42;cursor:default;box-shadow:none}
+      @media (max-width:560px){.rh-guide-chat{padding-left:0;padding-right:0}.rh-guide-chat-header{top:2px;border-radius:18px}.rh-guide-chat-messages{border-radius:22px;padding:14px 8px}.rh-guide-chat-bubble{max-width:88%;font-size:15px}.rh-guide-chat-composer{bottom:calc(8px + env(safe-area-inset-bottom));border-radius:22px}.rh-guide-chat-tool{width:40px;height:40px}.rh-guide-chat-send{width:42px;height:42px}}
     `}</style>
   );
 }
@@ -7949,21 +7965,21 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
       {!embedded && (
         <Brand right={<BackBtn onBack={onBack} />} />
       )}
-      <div style={{ display: "flex", alignItems: "center", gap: 12, background: T.card, borderRadius: 18, padding: 10,
-        boxShadow: T.soft, marginTop: 4, position: "sticky", top: 6, zIndex: 20 }}>
-        <div style={{ width: 52, height: 52, borderRadius: 14, overflow: "hidden",
-          background: `radial-gradient(120% 100% at 50% 20%, #fff, ${char.tint})`,
-          boxShadow: speaking ? `0 0 0 3px rgba(55,160,101,0.3)` : "none" }}>
+      <div className="rh-guide-chat-header">
+        <div className="rh-guide-chat-avatar" style={{ background: `radial-gradient(120% 100% at 50% 20%, #fff, ${char.tint})`, boxShadow: speaking ? `0 0 0 3px rgba(55,160,101,0.3)` : undefined }}>
           <img src={char.img} alt={char.name} style={{ width: "100%", height: "100%", objectFit: "contain" }} />
         </div>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontWeight: 700 }}>{char.name}</div>
-          <div style={{ fontSize: 12.5, color: T.sub }}>{char.role}</div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 7, minWidth: 0 }}>
+            <div style={{ fontWeight: 800, fontSize: 16, color: T.ink, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{char.name}</div>
+            <span style={{ flexShrink: 0, borderRadius: 999, padding: "3px 7px", background: char.tint, color: T.greenDk, fontSize: 10, fontWeight: 800 }}>AI GUIDE</span>
+          </div>
+          <div style={{ fontSize: 12, color: T.sub, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginTop: 2 }}>{char.role}</div>
         </div>
         <button onClick={() => { setSearchOpen((v) => !v); if (searchOpen) setSearch(""); }} aria-label="Search this chat" title="Search this chat"
-          style={{ background: searchOpen ? T.green : "#fff", border: `1px solid ${searchOpen ? T.green : T.line}`,
-            borderRadius: 999, width: 38, height: 38, display: "grid", placeItems: "center", cursor: "pointer",
-            color: searchOpen ? "#fff" : T.ink, boxShadow: T.soft }}>
+          style={{ background: searchOpen ? T.green : "#f7fbf8", border: `1px solid ${searchOpen ? T.green : T.line}`,
+            borderRadius: 999, width: 40, height: 40, display: "grid", placeItems: "center", cursor: "pointer",
+            color: searchOpen ? "#fff" : T.ink, flexShrink: 0 }}>
           <Search size={17} />
         </button>
         <ChatHelp />
@@ -7981,11 +7997,11 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
             {searchMatches.length} found</span>}
         </div>
       )}
-      <div style={{ background: "#eef6f1", border: `1px solid ${T.line}`, borderRadius: 14, padding: "11px 13px", margin: "10px 2px 2px", color: T.ink }}>
-        <div style={{ fontWeight: 700, fontSize: 13.5, marginBottom: 4 }}>How your conversations work</div>
-        <p style={{ fontSize: 12.5, lineHeight: 1.5, color: T.sub, margin: 0 }}>{CONVERSATION_PRIVACY_NOTICE}</p>
+      <div className="rh-guide-chat-disclosure">
+        <Shield size={15} color={T.tealDk} style={{ flexShrink: 0, marginTop: 2 }} />
+        <div><strong style={{ color: T.ink }}>Private AI guide chat.</strong> {CONVERSATION_PRIVACY_NOTICE}</div>
       </div>
-      <div ref={scrollRef} style={{ flex: 1, overflowY: "auto", padding: "14px 2px", display: "flex",
+      <div ref={scrollRef} className="rh-guide-chat-messages" style={{ flex: 1, overflowY: "auto", display: "flex",
         flexDirection: "column", gap: 10, minHeight: 260 }}>
         {history.length === 0 && (
           <div style={{ textAlign: "center", padding: "16px 8px" }}>
@@ -8037,10 +8053,9 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
                   if (moved < 10 && Date.now() - s.t < 500) { if (!pauseResume()) speak(m.content, char, undefined, true); }
                 } : undefined}
                 title={m.role === "assistant" ? "Tap to pause / resume" : undefined}
-                style={{ maxWidth: "82%", padding: "11px 14px", borderRadius: 18, fontSize: 15, lineHeight: 1.45,
-                whiteSpace: "pre-wrap", background: m.role === "user" ? T.green : "#fff",
-                color: m.role === "user" ? "#fff" : T.ink, boxShadow: T.soft,
-                cursor: m.role === "assistant" ? "pointer" : "default" }}>{m.content}</div>
+                className="rh-guide-chat-bubble"
+                data-role={m.role}
+                style={{ cursor: m.role === "assistant" ? "pointer" : "default" }}>{m.content}</div>
               {m.role === "assistant" && (
                 <button
                   onPointerDown={(e) => { e.stopPropagation(); primeAudio(); }}
@@ -8063,9 +8078,8 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
           );
         })}
         {streamingReply && (
-          <div style={{ alignSelf: "flex-start", maxWidth: "82%" }}>
-            <div style={{ padding: "11px 14px", borderRadius: 18, fontSize: 15, lineHeight: 1.45,
-              whiteSpace: "pre-wrap", background: "#fff", color: T.ink, boxShadow: T.soft }}>{streamingReply}</div>
+          <div style={{ alignSelf: "flex-start", maxWidth: "min(82%, 620px)" }}>
+            <div className="rh-guide-chat-bubble" data-role="assistant">{streamingReply}</div>
           </div>
         )}
         {busy && <div style={{ fontSize: 13, color: T.sub, paddingLeft: 4 }}>{streamingReply ? `${char.name} is replying…` : `${char.name} is thinking…`}</div>}
@@ -8093,47 +8107,41 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
         </div>
       )}
 
-      <div className="rh-guide-composer" style={{ display: "flex", alignItems: "flex-end", gap: 8, paddingTop: 6 }}>
-        <HoldToTalk onText={(t) => send(t)} onStart={stop} size={48} />
-        <button onClick={() => imgFileRef.current && imgFileRef.current.click()} aria-label={`Attach up to ${GUIDE_MAX_IMAGES} document pages`} title={`Attach up to ${GUIDE_MAX_IMAGES} document pages`}
-          style={{ width: 44, height: 44, borderRadius: "50%", border: `1px solid ${T.line}`, background: "#fff",
-            display: "grid", placeItems: "center", cursor: "pointer", color: T.ink, flexShrink: 0 }}>
-          <Paperclip size={18} />
-        </button>
-        <input ref={imgFileRef} type="file" accept="image/*" multiple onChange={pickPhoto} style={{ display: "none" }} />
-        <textarea ref={composerRef} value={input} onChange={(e) => setInput(e.target.value)} rows={1}
-          aria-label={`Message ${char.name}. Press Enter for a new line; press Enter twice to send.`}
-          onKeyDown={(e) => {
-            if (e.key !== "Enter") { lastEnterAtRef.current = 0; return; }
-            if (e.shiftKey || e.isComposing) { lastEnterAtRef.current = 0; return; }
-            const now = Date.now();
-            if (now - lastEnterAtRef.current < 500) {
-              e.preventDefault();
-              lastEnterAtRef.current = 0;
-              send();
-            } else {
-              // The first Enter inserts a normal newline. A second Enter
-              // within the short window is the deliberate send gesture.
-              lastEnterAtRef.current = now;
-            }
-          }}
-          placeholder={pendingImages.length ? "Say something about these pages (optional)…" : `Message ${char.name}…`}
-          style={{ flex: 1, resize: "none", borderRadius: 16, border: `1px solid ${T.line}`, padding: "12px 14px",
-            fontSize: 15, lineHeight: 1.45, minHeight: 48, maxHeight: "min(260px, calc(100dvh - 300px))", overflowY: "auto", background: "#fff", color: T.ink,
-            outline: "none", fontFamily: "inherit" }} />
-        <button onClick={() => send(undefined, { forceFast: true })} disabled={(!input.trim() && !pendingImages.length) || busy}
-          aria-label="Fast Reply — send this message and get a quick, direct answer" title="Fast Reply — quick, direct answer just for this message"
-          style={{ height: 48, borderRadius: "50%", width: 48, border: `1px solid ${T.line}`, background: "#fff", color: T.blueDk,
-            display: "grid", placeItems: "center", cursor: (input.trim() || pendingImages.length) ? "pointer" : "default",
-            opacity: (input.trim() || pendingImages.length) ? 1 : 0.5, boxShadow: T.soft, flexShrink: 0 }}>
-          <Zap size={18} />
-        </button>
-        <button onClick={() => send()} disabled={(!input.trim() && !pendingImages.length) || busy} aria-label="Send"
-          style={{ width: 48, height: 48, borderRadius: "50%", border: "none", background: T.green, color: "#fff",
-            display: "grid", placeItems: "center", cursor: (input.trim() || pendingImages.length) ? "pointer" : "default",
-            opacity: (input.trim() || pendingImages.length) ? 1 : 0.5, boxShadow: T.soft, flexShrink: 0 }}>
-          <Send size={18} />
-        </button>
+      <div className="rh-guide-chat-composer">
+        <div className="rh-guide-chat-composer-row">
+          <HoldToTalk onText={(t) => send(t)} onStart={stop} size={42} />
+          <button className="rh-guide-chat-tool" onClick={() => imgFileRef.current && imgFileRef.current.click()} aria-label={`Attach up to ${GUIDE_MAX_IMAGES} document pages`} title={`Attach up to ${GUIDE_MAX_IMAGES} document pages`}>
+            <Plus size={20} />
+          </button>
+          <input ref={imgFileRef} type="file" accept="image/*" multiple onChange={pickPhoto} style={{ display: "none" }} />
+          <textarea className="rh-guide-chat-input" ref={composerRef} value={input} onChange={(e) => setInput(e.target.value)} rows={1}
+            aria-label={`Message ${char.name}. Press Enter for a new line; press Enter twice to send.`}
+            onKeyDown={(e) => {
+              if (e.key !== "Enter") { lastEnterAtRef.current = 0; return; }
+              if (e.shiftKey || e.isComposing) { lastEnterAtRef.current = 0; return; }
+              const now = Date.now();
+              if (now - lastEnterAtRef.current < 500) {
+                e.preventDefault();
+                lastEnterAtRef.current = 0;
+                send();
+              } else {
+                lastEnterAtRef.current = now;
+              }
+            }}
+            placeholder={pendingImages.length ? "Say something about these pages (optional)…" : `Message ${char.name}…`}
+            style={{ resize: "none", fontSize: 15, lineHeight: 1.45, minHeight: 42, maxHeight: "min(260px, calc(100dvh - 300px))", overflowY: "auto", color: T.ink, fontFamily: "inherit" }} />
+          <button className="rh-guide-chat-tool" onClick={() => send(undefined, { forceFast: true })} disabled={(!input.trim() && !pendingImages.length) || busy}
+            aria-label="Fast Reply — send this message and get a quick, direct answer" title="Fast Reply — quick, direct answer just for this message" style={{ color: T.blueDk }}>
+            <Zap size={17} />
+          </button>
+          <button className="rh-guide-chat-send" onClick={() => send()} disabled={(!input.trim() && !pendingImages.length) || busy} aria-label="Send">
+            <Send size={18} />
+          </button>
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 8, padding: "4px 5px 0", color: T.sub, fontSize: 10.5 }}>
+          <span>Tap the mic to talk</span>
+          <span>Enter twice to send</span>
+        </div>
       </div>
       {speaking && (
         <button onClick={() => { voiceDebug("Interrupt pressed"); stop(); }} aria-label="Interrupt"
