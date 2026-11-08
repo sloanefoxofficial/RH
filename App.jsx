@@ -7732,6 +7732,7 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
   const [searchOpen, setSearchOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [confirmClear, setConfirmClear] = useState(false);
+  const initialChatScrollRef = useRef(true);
   const VISIBLE_TAIL = 8; // keep the on-screen chat short; full history still saves + still informs the guide
   const searchQ = search.trim().toLowerCase();
   const searchMatches = searchQ ? history.filter((m) => typeof m.content === "string" && m.content.toLowerCase().includes(searchQ)) : null;
@@ -7766,7 +7767,17 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
     if (added.length) setPendingImages((prev) => [...prev, ...added]);
   };
 
-  useEffect(() => { scrollRef.current?.scrollTo({ top: 1e6, behavior: 'smooth' }); }, [history, busy, streamingReply, showAllHistory]);
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    requestAnimationFrame(() => {
+      el.scrollTo({
+        top: el.scrollHeight,
+        behavior: initialChatScrollRef.current ? "auto" : "smooth",
+      });
+      initialChatScrollRef.current = false;
+    });
+  }, [history, busy, streamingReply, showAllHistory]);
   useEffect(() => {
     if (!voiceOn || !guideWelcome) return undefined;
     // Warm the guide welcome immediately, then play the same in-flight request.
