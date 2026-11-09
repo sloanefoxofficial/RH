@@ -8133,6 +8133,40 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
         </div>
       )}
 
+      {speaking && (
+        <button onClick={() => { voiceDebug("Interrupt pressed"); stop(); }} aria-label="Interrupt"
+          style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, margin: "10px auto 0",
+            background: "#e5484d", color: "#fff", border: "none", borderRadius: 999, padding: "11px 22px",
+            fontSize: 15, fontWeight: 700, cursor: "pointer", boxShadow: "0 6px 16px rgba(229,72,77,0.32)",
+            animation: "rh-glow 1.4s ease-in-out infinite" }}>
+          <X size={18} /> Interrupt {char.name}
+        </button>
+      )}
+      <div className="rh-guide-chat-support" style={{ background: T.card, borderRadius: 16, marginTop: 12, padding: "12px 16px",
+        boxShadow: T.soft, display: "flex", flexDirection: "column", alignItems: "center", gap: 5 }}>
+        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "center", gap: "4px 10px" }}>
+          <span style={{ fontSize: 11, color: T.sub }}>Tap the mic to talk</span>
+          {history.length > 0 && (
+            <>
+              <span style={{ fontSize: 11, color: T.line }}>•</span>
+              <button onClick={() => setConfirmClear(true)} style={{ background: "none", border: "none",
+                color: T.sub, fontSize: 11, cursor: "pointer", padding: 0 }}>
+                Clear this chat
+              </button>
+            </>
+          )}
+          {char.slug === "rex" && onReplayIntro && (
+            <>
+              <span style={{ fontSize: 11, color: T.line }}>•</span>
+              <button onClick={onReplayIntro} style={{ background: "none", border: "none",
+                color: T.sub, fontSize: 11, cursor: "pointer", padding: 0 }}>
+                Watch my intro again
+              </button>
+            </>
+          )}
+        </div>
+        <div style={{ fontSize: 11, color: T.sub, fontStyle: "italic" }}>You never have to walk it alone.</div>
+      </div>
       <div className="rh-guide-chat-composer">
         <div className="rh-guide-chat-composer-row">
           <HoldToTalk onText={(t) => send(t)} onStart={stop} size={42} />
@@ -8168,40 +8202,6 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
           <span>Tap the mic to talk</span>
           <span>Enter twice to send</span>
         </div>
-      </div>
-      {speaking && (
-        <button onClick={() => { voiceDebug("Interrupt pressed"); stop(); }} aria-label="Interrupt"
-          style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, margin: "10px auto 0",
-            background: "#e5484d", color: "#fff", border: "none", borderRadius: 999, padding: "11px 22px",
-            fontSize: 15, fontWeight: 700, cursor: "pointer", boxShadow: "0 6px 16px rgba(229,72,77,0.32)",
-            animation: "rh-glow 1.4s ease-in-out infinite" }}>
-          <X size={18} /> Interrupt {char.name}
-        </button>
-      )}
-      <div className="rh-guide-chat-support" style={{ background: T.card, borderRadius: 16, marginTop: 12, padding: "12px 16px",
-        boxShadow: T.soft, display: "flex", flexDirection: "column", alignItems: "center", gap: 5 }}>
-        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "center", gap: "4px 10px" }}>
-          <span style={{ fontSize: 11, color: T.sub }}>Tap the mic to talk</span>
-          {history.length > 0 && (
-            <>
-              <span style={{ fontSize: 11, color: T.line }}>•</span>
-              <button onClick={() => setConfirmClear(true)} style={{ background: "none", border: "none",
-                color: T.sub, fontSize: 11, cursor: "pointer", padding: 0 }}>
-                Clear this chat
-              </button>
-            </>
-          )}
-          {char.slug === "rex" && onReplayIntro && (
-            <>
-              <span style={{ fontSize: 11, color: T.line }}>•</span>
-              <button onClick={onReplayIntro} style={{ background: "none", border: "none",
-                color: T.sub, fontSize: 11, cursor: "pointer", padding: 0 }}>
-                Watch my intro again
-              </button>
-            </>
-          )}
-        </div>
-        <div style={{ fontSize: 11, color: T.sub, fontStyle: "italic" }}>You never have to walk it alone.</div>
       </div>
       {confirmClear && (
         <div style={{ position: "fixed", inset: 0, zIndex: 120, background: "rgba(44,42,51,0.45)",
