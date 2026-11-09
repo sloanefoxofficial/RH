@@ -7774,7 +7774,12 @@ function Chat({ char, profile, answers, history, setHistory, plan, progress, sav
     let firstFrame;
     let secondFrame;
     const alignToLatest = () => {
-      el.scrollTop = el.scrollHeight;
+      const latest = el.lastElementChild;
+      if (latest) {
+        latest.scrollIntoView({ block: "end", inline: "nearest", behavior: "auto" });
+      } else {
+        window.scrollTo({ top: 0, behavior: "auto" });
+      }
       initialChatScrollRef.current = false;
     };
     firstFrame = requestAnimationFrame(() => {
