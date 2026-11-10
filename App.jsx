@@ -45,7 +45,7 @@ const SCREEN_BACK_LABELS = {
   carlosLibrary: "Carlos Library", programInfo: "Program", bookAppointment: "Program",
   mensShed: "Men’s Shed", mensGroup: "Men’s Group", settings: "Settings", profile: "Profile",
   memory: "Profile", notifications: "Home", coordinator: "Message Juan", admin: "Admin",
-  adminMessages: "Messages", adminBugReports: "Bug Reports", adminAppointments: "Appointments",
+  adminMessages: "Messages", adminBugReports: "Bug Reports", adminAppointments: "Appointments", teamProfile: "Team Profile",
   bugReport: "Report a Bug", userFeedback: "Share Feedback",
 };
 const screenBackLabel = (screen) => SCREEN_BACK_LABELS[screen] || "Home";
@@ -561,6 +561,7 @@ export default function App() {
   const [journal, setJournal] = useState([]);
   const [chats, setChats] = useState({});
   const [activeChar, setActiveChar] = useState("juan");
+  const [activeTeamProfile, setActiveTeamProfile] = useState("lisa-boyd");
   const [onbMode, setOnbMode] = useState("full");     // "full" = with plan, "short" = guides only
   const [onbReturn, setOnbReturn] = useState("hub");  // where to land after the questions
   const [onbFromSignup, setOnbFromSignup] = useState(false);
@@ -1484,11 +1485,12 @@ export default function App() {
   const planOriginRef = useRef(false);
   const go = (s, ch) => {
     if (screen !== s) {
-      histRef.current.push({ screen, char: activeChar });
+      histRef.current.push({ screen, char: activeChar, teamProfile: activeTeamProfile });
       if (histRef.current.length > 30) histRef.current.shift();
     }
     __backDestinationLabel = screenBackLabel(screen);
     if (ch) setActiveChar(ch);
+    if (s === "teamProfile" && ch) setActiveTeamProfile(ch);
     setScreen(s);
   };
   const openProgram = () => {
@@ -1508,9 +1510,10 @@ export default function App() {
   };
   const back = () => {
     const prev = histRef.current.pop();
-    if (prev) {
+      if (prev) {
       __backDestinationLabel = screenBackLabel(histRef.current[histRef.current.length - 1]?.screen || "hub");
       if (prev.char) setActiveChar(prev.char);
+      if (prev.teamProfile) setActiveTeamProfile(prev.teamProfile);
       setScreen(prev.screen);
     } else {
       __backDestinationLabel = "Home";
@@ -1851,8 +1854,10 @@ export default function App() {
           <BugReport session={session} userPublicKey={userPublicKey} onBack={back} />
         ) : screen === "userFeedback" ? (
           <UserFeedback session={session} userPublicKey={userPublicKey} onBack={back} />
+        ) : screen === "teamProfile" ? (
+          <PublicTeamProfile slug={activeTeamProfile} isAdmin={isAdmin} onBack={back} />
         ) : null}
-        <AppAttributionCard />
+        <AppAttributionCard onOpenProfile={(slug) => go("teamProfile", slug)} />
         <GlobalJumpToTop screen={screen} />
         <CrisisBar />
       </div>
@@ -1867,11 +1872,103 @@ export default function App() {
 }
 
 /* ---------- shared bits ---------- */
-function AppAttributionCard() {
+function AppAttributionCard({ onOpenProfile }) {
   return (
     <div role="contentinfo" style={{ margin: "24px 0 8px", padding: "13px 14px", borderRadius: 16, border: "1px solid rgba(220,236,226,0.92)", background: "rgba(255,255,255,0.78)", boxShadow: "0 6px 16px rgba(47,97,72,0.08)", textAlign: "center", color: T.sub, fontSize: 11.5, lineHeight: 1.45 }}>
-      The Resilience Hub App - Designed and Developed by Lisa Boyd &amp; Juan Carroso
+      The Resilience Hub App - Designed and Developed by{" "}
+      <button type="button" onClick={() => onOpenProfile?.("lisa-boyd")} style={{ border: 0, padding: 0, background: "none", color: T.greenDk, textDecoration: "underline", font: "inherit", fontWeight: 800, cursor: "pointer" }}>Lisa Boyd</button>{" "}&amp;{" "}
+      <button type="button" onClick={() => onOpenProfile?.("juan-carroso")} style={{ border: 0, padding: 0, background: "none", color: T.greenDk, textDecoration: "underline", font: "inherit", fontWeight: 800, cursor: "pointer" }}>Juan Carroso</button>
     </div>
+  );
+}
+function PublicTeamProfile({ slug, isAdmin, onBack }) {
+  const fallback = slug === "juan-carroso"
+    ? { name: "Juan Carroso", pronouns: "He/Him", bio: "", avatar: "" }
+    : { name: "Lisa Boyd", pronouns: "She/Her", bio: "", avatar: "" };
+  const [person, setPerson] = useState(fallback);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data } = await supabase.from("team_profiles").select("name,pronouns,bio,avatar").eq("slug", slug).single();
+        if (!cancelled && data) setPerson({ ...fallback, ...data });
+      } catch {}
+      if (!cancelled) setLoading(false);
+    })();
+    return () => { cancelled = true; };
+  }, [slug]);
+  return (
+    <>
+      <Brand right={<BackBtn onBack={onBack} />} />
+      <div style={{ background: "linear-gradient(135deg, #e8f7f3 0%, #fff 60%, #fff4e5 100%)", borderRadius: 24, padding: 20, marginTop: 10, boxShadow: T.soft, border: `1px solid ${T.line}`, textAlign: "center" }}>
+        <div style={{ width: 112, height: 112, margin: "0 auto 14px", borderRadius: "50%", overflow: "hidden", background: "#e9f5ee", display: "grid", placeItems: "center", color: T.greenDk, fontWeight: 850, fontSize: 42, border: "4px solid rgba(255,255,255,0.9)", boxShadow: "0 8px 20px rgba(47,97,72,0.14)" }}>
+          {person.avatar ? <img src={person.avatar} alt={`${person.name} profile`} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : person.name.charAt(0)}
+        </div>
+        <div style={{ color: T.greenDk, fontSize: 10.5, fontWeight: 900, letterSpacing: 1, textTransform: "uppercase" }}>The Resilience Hub team</div>
+        <h1 style={{ margin: "6px 0 2px", color: T.ink, fontSize: 25 }}>{person.name}</h1>
+        <div style={{ color: T.sub, fontSize: 13 }}>{person.pronouns || ""}</div>
+        <div style={{ marginTop: 18, textAlign: "left", background: "rgba(255,255,255,0.78)", borderRadius: 16, padding: 15, color: T.ink, fontSize: 14, lineHeight: 1.55 }}>
+          {person.bio || <span style={{ color: T.sub, fontStyle: "italic" }}>This profile is being updated.</span>}
+        </div>
+        {loading && <div style={{ marginTop: 10, color: T.sub, fontSize: 11.5 }}>Loading latest profile details…</div>}
+        {isAdmin && <div style={{ marginTop: 14, color: T.sub, fontSize: 11.5 }}>You can edit this public profile from Admin → Public team profiles.</div>}
+      </div>
+    </>
+  );
+}
+function AdminTeamProfiles({ onBack }) {
+  const defaults = {
+    "lisa-boyd": { slug: "lisa-boyd", name: "Lisa Boyd", pronouns: "She/Her", bio: "", avatar: "" },
+    "juan-carroso": { slug: "juan-carroso", name: "Juan Carroso", pronouns: "He/Him", bio: "", avatar: "" },
+  };
+  const [rows, setRows] = useState(defaults);
+  const [status, setStatus] = useState("");
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data } = await supabase.from("team_profiles").select("slug,name,pronouns,bio,avatar").order("slug", { ascending: true });
+        (data || []).forEach((row) => { if (defaults[row.slug]) setRows((prev) => ({ ...prev, [row.slug]: { ...prev[row.slug], ...row } })); });
+      } catch { setStatus("Couldn’t load the public profiles. Check the Supabase setup."); }
+      setLoading(false);
+    })();
+  }, []);
+  const update = (slug, patch) => setRows((prev) => ({ ...prev, [slug]: { ...prev[slug], ...patch } }));
+  const pickPhoto = (slug, event) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    resizeImage(file, 512, (dataUrl) => update(slug, { avatar: dataUrl }));
+  };
+  const save = async () => {
+    setStatus("Saving…");
+    try {
+      const payload = Object.values(rows).map(({ slug, name, pronouns, bio, avatar }) => ({ slug, name: name.trim(), pronouns: pronouns.trim(), bio: bio.trim(), avatar: avatar || "", updated_at: new Date().toISOString() }));
+      const { error } = await supabase.from("team_profiles").upsert(payload, { onConflict: "slug" });
+      if (error) throw error;
+      setStatus("Public profiles saved.");
+    } catch (error) { setStatus(error?.message || "Couldn’t save the public profiles."); }
+  };
+  return (
+    <>
+      <Brand right={<BackBtn onBack={onBack} label="Admin" />} />
+      <SectionTitle>Public team profiles</SectionTitle>
+      <p style={{ color: T.sub, fontSize: 13, lineHeight: 1.5, margin: "0 2px 12px" }}>Only these approved fields are visible to other members: name, pronouns, bio, and profile picture. Private member details are not used here.</p>
+      {Object.values(rows).map((row) => (
+        <div key={row.slug} style={{ background: T.card, borderRadius: 20, padding: 16, boxShadow: T.soft, marginBottom: 12 }}>
+          <div style={{ display: "flex", gap: 13, alignItems: "center", marginBottom: 13 }}>
+            <div style={{ width: 70, height: 70, borderRadius: "50%", overflow: "hidden", background: "#e9f5ee", display: "grid", placeItems: "center", color: T.greenDk, fontWeight: 850, fontSize: 26, flexShrink: 0 }}>{row.avatar ? <img src={row.avatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : row.name.charAt(0)}</div>
+            <div><div style={{ fontWeight: 850, fontSize: 17 }}>{row.name}</div><div style={{ color: T.sub, fontSize: 12.5 }}>Public profile</div><label style={{ display: "inline-flex", marginTop: 7, border: `1px solid ${T.line}`, borderRadius: 999, padding: "7px 10px", color: T.greenDk, fontSize: 11.5, fontWeight: 750, cursor: "pointer" }}><input type="file" accept="image/*" onChange={(event) => pickPhoto(row.slug, event)} style={{ display: "none" }} />{row.avatar ? "Change profile picture" : "Upload profile picture"}</label>{row.avatar && <button type="button" onClick={() => update(row.slug, { avatar: "" })} style={{ marginLeft: 8, border: 0, background: "none", color: T.sub, fontSize: 11.5, cursor: "pointer" }}>Remove</button>}</div>
+          </div>
+          <ProfileField label="Name" value={row.name} onChange={(value) => update(row.slug, { name: value })} />
+          <ProfileField label="Pronouns" value={row.pronouns} onChange={(value) => update(row.slug, { pronouns: value })} placeholder="e.g. she/her" />
+          <div style={{ marginBottom: 12 }}><div style={fieldLabel}>Bio</div><textarea value={row.bio} onChange={(event) => update(row.slug, { bio: event.target.value })} rows={4} placeholder="Write the short bio members should see…" style={{ ...inputStyle, resize: "vertical", minHeight: 90 }} /></div>
+        </div>
+      ))}
+      <Btn onClick={save} disabled={loading}>{loading ? "Loading…" : "Save public profiles"}</Btn>
+      {status && <div role="status" aria-live="polite" style={{ color: T.sub, fontSize: 12.5, textAlign: "center", marginTop: 10 }}>{status}</div>}
+    </>
   );
 }
 function StyleTag() {
@@ -4109,6 +4206,7 @@ function Admin({ isAdmin, guidePrompts, onSaveGuidePrompt, onBack }) {
   if (view === "bugreports") return <AdminBugReports onBack={() => setView(null)} />;
   if (view === "campfireReports") return <AdminBugReports campfireOnly onBack={() => setView(null)} />;
   if (view === "appointments") return <AdminAppointments onBack={() => setView(null)} />;
+  if (view === "teamProfiles") return <AdminTeamProfiles onBack={() => setView(null)} />;
 
   const tools = [
     { key: "intakes", Icon: FileText, tint: "#e9f5ee", ic: "#2c7d50", title: "Intake submissions", sub: "Review client registration forms and update their status" },
@@ -4120,6 +4218,7 @@ function Admin({ isAdmin, guidePrompts, onSaveGuidePrompt, onBack }) {
     { key: "bugreports", Icon: Flame, tint: "#fbe4e4", ic: "#c94f4f", title: "Bug reports", sub: "One-way reports from members and testers" },
     { key: "campfireReports", Icon: Users, tint: "#fff0df", ic: "#a9511f", title: "Campfire reports", sub: "Review reports about conduct in the Campfire" },
     { key: "appointments", Icon: CalendarCheck, tint: "#e9f5ee", ic: "#2c7d50", title: "Appointment requests", sub: "Intake appointment requests to call people back on" },
+    { key: "teamProfiles", Icon: User, tint: "#e8f0fb", ic: "#397f9d", title: "Public team profiles", sub: "Edit the names, pronouns, bios and photos members can see" },
   ];
   const AdminSubPage = ({ title, Icon, children }) => (
     <>
