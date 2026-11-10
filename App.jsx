@@ -1852,6 +1852,7 @@ export default function App() {
         ) : screen === "userFeedback" ? (
           <UserFeedback session={session} userPublicKey={userPublicKey} onBack={back} />
         ) : null}
+        <AppAttributionCard />
         <GlobalJumpToTop screen={screen} />
         <CrisisBar />
       </div>
@@ -1866,6 +1867,13 @@ export default function App() {
 }
 
 /* ---------- shared bits ---------- */
+function AppAttributionCard() {
+  return (
+    <div role="contentinfo" style={{ margin: "24px 0 8px", padding: "13px 14px", borderRadius: 16, border: "1px solid rgba(220,236,226,0.92)", background: "rgba(255,255,255,0.78)", boxShadow: "0 6px 16px rgba(47,97,72,0.08)", textAlign: "center", color: T.sub, fontSize: 11.5, lineHeight: 1.45 }}>
+      The Resilience Hub App - Designed and Developed by Lisa Boyd &amp; Juan Carroso
+    </div>
+  );
+}
 function StyleTag() {
   return (
     <style>{`
@@ -9025,6 +9033,10 @@ function ResourcesPage({ voiceOn, speechLang, onOpenSafety, onOpenMensShed, onOp
           <button type="button" onClick={() => speakResourcesWelcome(spokenResourcesWelcome, CHARS.rex)} aria-label="Hear Rex explain the Support Directory again" style={{ display: "inline-flex", alignItems: "center", gap: 6, marginTop: 10, border: "1px solid rgba(47,128,124,0.28)", borderRadius: 999, padding: "8px 11px", background: "rgba(255,255,255,0.78)", color: "#28736f", fontSize: 11.5, fontWeight: 800, cursor: "pointer" }}><Volume2 size={14} aria-hidden="true" /> Hear Rex again</button>
         </div>
       </section>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 10 }}>
+        {resourceCard({ Icon: ExternalLink, image: "/community/find-a-helpline.png", imageAlt: "Find A Helpline logo", tint: "#e8f3f8", color: "#397f9d", eyebrow: "Worldwide helpline directory", title: "Find A Helpline", href: "https://findahelpline.com/", children: "Find free, confidential helplines and crisis support services by country, topic, or language.", actionLabel: "Find support near you" })}
+      </div>
 
     <div id="resources-juan" style={{ scrollMarginTop: 18, marginTop: 16 }}>
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
