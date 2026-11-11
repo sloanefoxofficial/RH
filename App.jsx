@@ -1883,15 +1883,15 @@ function AppAttributionCard({ onOpenProfile }) {
 }
 function PublicTeamProfile({ slug, isAdmin, onBack }) {
   const fallback = slug === "juan-carroso"
-    ? { name: "Juan Carroso", pronouns: "He/Him", bio: "", avatar: "" }
-    : { name: "Lisa Boyd", pronouns: "She/Her", bio: "", avatar: "" };
+    ? { name: "Juan Carroso", role: "Founder & Program Coordinator", bio: "", avatar: "" }
+    : { name: "Lisa Boyd", role: "Co-founder & lead developer", bio: "", avatar: "" };
   const [person, setPerson] = useState(fallback);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const { data } = await supabase.from("team_profiles").select("name,pronouns,bio,avatar").eq("slug", slug).single();
+        const { data } = await supabase.from("team_profiles").select("name,role,bio,avatar").eq("slug", slug).single();
         if (!cancelled && data) setPerson({ ...fallback, ...data });
       } catch {}
       if (!cancelled) setLoading(false);
@@ -1907,7 +1907,7 @@ function PublicTeamProfile({ slug, isAdmin, onBack }) {
         </div>
         <div style={{ color: T.greenDk, fontSize: 10.5, fontWeight: 900, letterSpacing: 1, textTransform: "uppercase" }}>The Resilience Hub team</div>
         <h1 style={{ margin: "6px 0 2px", color: T.ink, fontSize: 25 }}>{person.name}</h1>
-        <div style={{ color: T.sub, fontSize: 13 }}>{person.pronouns || ""}</div>
+        <div style={{ color: T.sub, fontSize: 13 }}>{person.role || ""}</div>
         <div style={{ marginTop: 18, textAlign: "left", background: "rgba(255,255,255,0.78)", borderRadius: 16, padding: 15, color: T.ink, fontSize: 14, lineHeight: 1.55 }}>
           {person.bio || <span style={{ color: T.sub, fontStyle: "italic" }}>This profile is being updated.</span>}
         </div>
@@ -1919,8 +1919,8 @@ function PublicTeamProfile({ slug, isAdmin, onBack }) {
 }
 function AdminTeamProfiles({ onBack }) {
   const defaults = {
-    "lisa-boyd": { slug: "lisa-boyd", name: "Lisa Boyd", pronouns: "She/Her", bio: "", avatar: "" },
-    "juan-carroso": { slug: "juan-carroso", name: "Juan Carroso", pronouns: "He/Him", bio: "", avatar: "" },
+    "lisa-boyd": { slug: "lisa-boyd", name: "Lisa Boyd", role: "Co-founder & lead developer", bio: "", avatar: "" },
+    "juan-carroso": { slug: "juan-carroso", name: "Juan Carroso", role: "Founder & Program Coordinator", bio: "", avatar: "" },
   };
   const [rows, setRows] = useState(defaults);
   const [status, setStatus] = useState("");
@@ -1928,7 +1928,7 @@ function AdminTeamProfiles({ onBack }) {
   useEffect(() => {
     (async () => {
       try {
-        const { data } = await supabase.from("team_profiles").select("slug,name,pronouns,bio,avatar").order("slug", { ascending: true });
+        const { data } = await supabase.from("team_profiles").select("slug,name,role,bio,avatar").order("slug", { ascending: true });
         (data || []).forEach((row) => { if (defaults[row.slug]) setRows((prev) => ({ ...prev, [row.slug]: { ...prev[row.slug], ...row } })); });
       } catch { setStatus("Couldn’t load the public profiles. Check the Supabase setup."); }
       setLoading(false);
@@ -1944,7 +1944,7 @@ function AdminTeamProfiles({ onBack }) {
   const save = async () => {
     setStatus("Saving…");
     try {
-      const payload = Object.values(rows).map(({ slug, name, pronouns, bio, avatar }) => ({ slug, name: name.trim(), pronouns: pronouns.trim(), bio: bio.trim(), avatar: avatar || "", updated_at: new Date().toISOString() }));
+      const payload = Object.values(rows).map(({ slug, name, role, bio, avatar }) => ({ slug, name: name.trim(), role: role.trim(), bio: bio.trim(), avatar: avatar || "", updated_at: new Date().toISOString() }));
       const { error } = await supabase.from("team_profiles").upsert(payload, { onConflict: "slug" });
       if (error) throw error;
       setStatus("Public profiles saved.");
@@ -1954,7 +1954,7 @@ function AdminTeamProfiles({ onBack }) {
     <>
       <Brand right={<BackBtn onBack={onBack} label="Admin" />} />
       <SectionTitle>Public team profiles</SectionTitle>
-      <p style={{ color: T.sub, fontSize: 13, lineHeight: 1.5, margin: "0 2px 12px" }}>Only these approved fields are visible to other members: name, pronouns, bio, and profile picture. Private member details are not used here.</p>
+      <p style={{ color: T.sub, fontSize: 13, lineHeight: 1.5, margin: "0 2px 12px" }}>Only these approved fields are visible to other members: name, role, bio, and profile picture. You can include pronouns in the bio if you wish. Private member details are not used here.</p>
       {Object.values(rows).map((row) => (
         <div key={row.slug} style={{ background: T.card, borderRadius: 20, padding: 16, boxShadow: T.soft, marginBottom: 12 }}>
           <div style={{ display: "flex", gap: 13, alignItems: "center", marginBottom: 13 }}>
@@ -1962,7 +1962,7 @@ function AdminTeamProfiles({ onBack }) {
             <div><div style={{ fontWeight: 850, fontSize: 17 }}>{row.name}</div><div style={{ color: T.sub, fontSize: 12.5 }}>Public profile</div><label style={{ display: "inline-flex", marginTop: 7, border: `1px solid ${T.line}`, borderRadius: 999, padding: "7px 10px", color: T.greenDk, fontSize: 11.5, fontWeight: 750, cursor: "pointer" }}><input type="file" accept="image/*" onChange={(event) => pickPhoto(row.slug, event)} style={{ display: "none" }} />{row.avatar ? "Change profile picture" : "Upload profile picture"}</label>{row.avatar && <button type="button" onClick={() => update(row.slug, { avatar: "" })} style={{ marginLeft: 8, border: 0, background: "none", color: T.sub, fontSize: 11.5, cursor: "pointer" }}>Remove</button>}</div>
           </div>
           <ProfileField label="Name" value={row.name} onChange={(value) => update(row.slug, { name: value })} />
-          <ProfileField label="Pronouns" value={row.pronouns} onChange={(value) => update(row.slug, { pronouns: value })} placeholder="e.g. she/her" />
+          <ProfileField label="Role" value={row.role} onChange={(value) => update(row.slug, { role: value })} placeholder="e.g. Founder & Program Coordinator" />
           <div style={{ marginBottom: 12 }}><div style={fieldLabel}>Bio</div><textarea value={row.bio} onChange={(event) => update(row.slug, { bio: event.target.value })} rows={4} placeholder="Write the short bio members should see…" style={{ ...inputStyle, resize: "vertical", minHeight: 90 }} /></div>
         </div>
       ))}
@@ -4218,7 +4218,7 @@ function Admin({ isAdmin, guidePrompts, onSaveGuidePrompt, onBack }) {
     { key: "bugreports", Icon: Flame, tint: "#fbe4e4", ic: "#c94f4f", title: "Bug reports", sub: "One-way reports from members and testers" },
     { key: "campfireReports", Icon: Users, tint: "#fff0df", ic: "#a9511f", title: "Campfire reports", sub: "Review reports about conduct in the Campfire" },
     { key: "appointments", Icon: CalendarCheck, tint: "#e9f5ee", ic: "#2c7d50", title: "Appointment requests", sub: "Intake appointment requests to call people back on" },
-    { key: "teamProfiles", Icon: User, tint: "#e8f0fb", ic: "#397f9d", title: "Public team profiles", sub: "Edit the names, pronouns, bios and photos members can see" },
+    { key: "teamProfiles", Icon: User, tint: "#e8f0fb", ic: "#397f9d", title: "Public team profiles", sub: "Edit the names, roles, bios and photos members can see" },
   ];
   const AdminSubPage = ({ title, Icon, children }) => (
     <>
