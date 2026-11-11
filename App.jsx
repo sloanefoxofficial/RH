@@ -1875,7 +1875,7 @@ export default function App() {
 function AppAttributionCard({ onOpenProfile }) {
   return (
     <div role="contentinfo" style={{ margin: "24px 0 8px", padding: "13px 14px", borderRadius: 16, border: "1px solid rgba(220,236,226,0.92)", background: "rgba(255,255,255,0.78)", boxShadow: "0 6px 16px rgba(47,97,72,0.08)", textAlign: "center", color: T.sub, fontSize: 11.5, lineHeight: 1.45 }}>
-      The Resilience Hub App - Designed and Developed by{" "}<br></br>
+      The Resilience Hub App <br></br>Designed and Developed by{" "}
       <button type="button" onClick={() => onOpenProfile?.("lisa-boyd")} style={{ border: 0, padding: 0, background: "none", color: T.greenDk, textDecoration: "underline", font: "inherit", fontWeight: 800, cursor: "pointer" }}>Lisa Boyd</button>{" "}&amp;{" "}
       <button type="button" onClick={() => onOpenProfile?.("juan-carroso")} style={{ border: 0, padding: 0, background: "none", color: T.greenDk, textDecoration: "underline", font: "inherit", fontWeight: 800, cursor: "pointer" }}>Juan Carroso</button>
     </div>
