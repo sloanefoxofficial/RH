@@ -1872,6 +1872,73 @@ export default function App() {
 }
 
 /* ---------- shared bits ---------- */
+const RICH_TEXT_TAGS = new Set(["B", "STRONG", "I", "EM", "U", "S", "STRIKE", "P", "BR", "DIV", "SPAN", "FONT", "UL", "OL", "LI", "BLOCKQUOTE"]);
+const RICH_TEXT_COLORS = ["#173f36", "#28736f", "#b33a3a", "#8a5a16", "#397f9d", "#7a4b91"];
+const RICH_TEXT_FONTS = ["Georgia", "Verdana", "Trebuchet MS", "Courier New"];
+const RICH_TEXT_SIZES = [{ label: "Small", value: "2" }, { label: "Normal", value: "3" }, { label: "Large", value: "5" }, { label: "Huge", value: "7" }];
+const RICH_TEXT_EMOJIS = ["🙂", "💚", "🌿", "⭐", "🔥", "🙌", "❤️"];
+function sanitizeRichText(value) {
+  if (!value) return "";
+  if (typeof window === "undefined" || !window.DOMParser) return String(value);
+  const doc = new DOMParser().parseFromString(String(value), "text/html");
+  const clean = (node) => {
+    [...node.children].forEach((child) => {
+      if (!RICH_TEXT_TAGS.has(child.tagName)) { child.replaceWith(...child.childNodes); return; }
+      [...child.attributes].forEach((attribute) => {
+        const allowed = attribute.name === "style" || (child.tagName === "FONT" && ["face", "size", "color"].includes(attribute.name));
+        if (!allowed) child.removeAttribute(attribute.name);
+      });
+      if (child.hasAttribute("style")) {
+        const safeStyle = child.getAttribute("style").split(";").map((part) => part.trim()).filter((part) => /^(color|font-family|font-size)\s*:\s*(#[0-9a-f]{3,8}|[a-z\s-]+|\d+(?:\.\d+)?(?:px|rem|em|pt|%))$/i.test(part)).join("; ");
+        safeStyle ? child.setAttribute("style", safeStyle) : child.removeAttribute("style");
+      }
+      clean(child);
+    });
+  };
+  clean(doc.body);
+  return doc.body.innerHTML;
+}
+function RichTextView({ value, className = "" }) {
+  const html = sanitizeRichText(value);
+  return <div className={className} style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }} dangerouslySetInnerHTML={{ __html: html }} />;
+}
+function RichTextEditor({ value, onChange, label, placeholder }) {
+  const editorRef = useRef(null);
+  const [focused, setFocused] = useState(false);
+  useEffect(() => {
+    if (!editorRef.current || focused) return;
+    const next = sanitizeRichText(value || "");
+    if (editorRef.current.innerHTML !== next) editorRef.current.innerHTML = next;
+  }, [value, focused]);
+  const run = (command, commandValue = null) => {
+    editorRef.current?.focus();
+    try { document.execCommand(command, false, commandValue); } catch {}
+    onChange(sanitizeRichText(editorRef.current?.innerHTML || ""));
+  };
+  const insertEmoji = (emoji) => {
+    editorRef.current?.focus();
+    try { document.execCommand("insertText", false, emoji); } catch {}
+    onChange(sanitizeRichText(editorRef.current?.innerHTML || ""));
+  };
+  const buttonStyle = { minWidth: 34, minHeight: 34, border: `1px solid ${T.line}`, borderRadius: 9, background: T.card, color: T.greenDk, fontWeight: 800, cursor: "pointer", padding: "5px 7px" };
+  return (
+    <div style={{ marginBottom: 12 }}>
+      <div style={fieldLabel}>{label}</div>
+      <div role="toolbar" aria-label={`${label} formatting`} onMouseDown={(event) => { if (event.target.closest("button")) event.preventDefault(); }} style={{ display: "flex", flexWrap: "wrap", gap: 5, alignItems: "center", padding: 7, border: `1px solid ${T.line}`, borderBottom: 0, borderRadius: "12px 12px 0 0", background: "#f6faf7" }}>
+        <button type="button" aria-label="Bold" title="Bold" onClick={() => run("bold")} style={{ ...buttonStyle, fontWeight: 900 }}>B</button>
+        <button type="button" aria-label="Italic" title="Italic" onClick={() => run("italic")} style={{ ...buttonStyle, fontStyle: "italic" }}>I</button>
+        <button type="button" aria-label="Underline" title="Underline" onClick={() => run("underline")} style={{ ...buttonStyle, textDecoration: "underline" }}>U</button>
+        <button type="button" aria-label="Strikethrough" title="Strikethrough" onClick={() => run("strikeThrough")} style={{ ...buttonStyle, textDecoration: "line-through" }}>S</button>
+        <select aria-label="Font" defaultValue="" onChange={(event) => { if (event.target.value) run("fontName", event.target.value); event.target.value = ""; }} style={{ ...inputStyle, width: 118, minHeight: 34, padding: "5px 7px" }}><option value="">Font</option>{RICH_TEXT_FONTS.map((font) => <option key={font} value={font}>{font}</option>)}</select>
+        <select aria-label="Text size" defaultValue="" onChange={(event) => { if (event.target.value) run("fontSize", event.target.value); event.target.value = ""; }} style={{ ...inputStyle, width: 86, minHeight: 34, padding: "5px 7px" }}><option value="">Size</option>{RICH_TEXT_SIZES.map((size) => <option key={size.value} value={size.value}>{size.label}</option>)}</select>
+        <label title="Text colour" aria-label="Text colour" style={{ ...buttonStyle, display: "inline-flex", alignItems: "center", gap: 4, padding: "5px 8px" }}>A <input type="color" defaultValue="#173f36" onChange={(event) => run("foreColor", event.target.value)} style={{ width: 20, height: 20, padding: 0, border: 0, cursor: "pointer" }} /></label>
+        <select aria-label="Insert emoji" defaultValue="" onChange={(event) => { if (event.target.value) insertEmoji(event.target.value); event.target.value = ""; }} style={{ ...inputStyle, width: 92, minHeight: 34, padding: "5px 7px" }}><option value="">Emoji</option>{RICH_TEXT_EMOJIS.map((emoji) => <option key={emoji} value={emoji}>{emoji}</option>)}</select>
+      </div>
+      <div ref={editorRef} contentEditable suppressContentEditableWarning role="textbox" aria-multiline="true" aria-label={label} data-placeholder={placeholder} onFocus={() => setFocused(true)} onBlur={() => { setFocused(false); onChange(sanitizeRichText(editorRef.current?.innerHTML || "")); }} onInput={() => onChange(sanitizeRichText(editorRef.current?.innerHTML || ""))} style={{ ...inputStyle, borderRadius: "0 0 12px 12px", minHeight: 105, whiteSpace: "pre-wrap", lineHeight: 1.55, outline: "none" }} />
+      <div style={{ color: T.sub, fontSize: 11, marginTop: 5 }}>Enter creates a new paragraph. Select text, then choose a format.</div>
+    </div>
+  );
+}
 function AppAttributionCard({ onOpenProfile }) {
   return (
     <div role="contentinfo" style={{ margin: "24px 0 8px", padding: "13px 14px", borderRadius: 16, border: "1px solid rgba(220,236,226,0.92)", background: "rgba(255,255,255,0.78)", boxShadow: "0 6px 16px rgba(47,97,72,0.08)", textAlign: "center", color: T.sub, fontSize: 11.5, lineHeight: 1.45 }}>
@@ -1909,7 +1976,7 @@ function PublicTeamProfile({ slug, isAdmin, onBack }) {
         <h1 style={{ margin: "6px 0 2px", color: T.ink, fontSize: 25 }}>{person.name}</h1>
         <div style={{ color: T.sub, fontSize: 13 }}>{person.role || ""}</div>
         <div style={{ marginTop: 18, textAlign: "left", background: "rgba(255,255,255,0.78)", borderRadius: 16, padding: 15, color: T.ink, fontSize: 14, lineHeight: 1.55 }}>
-          {person.bio || <span style={{ color: T.sub, fontStyle: "italic" }}>This profile is being updated.</span>}
+          {person.bio ? <RichTextView value={person.bio} /> : <span style={{ color: T.sub, fontStyle: "italic" }}>This profile is being updated.</span>}
         </div>
         {loading && <div style={{ marginTop: 10, color: T.sub, fontSize: 11.5 }}>Loading latest profile details…</div>}
         {isAdmin && <div style={{ marginTop: 14, color: T.sub, fontSize: 11.5 }}>You can edit this public profile from Admin → Public team profiles.</div>}
@@ -1963,7 +2030,7 @@ function AdminTeamProfiles({ onBack }) {
           </div>
           <ProfileField label="Name" value={row.name} onChange={(value) => update(row.slug, { name: value })} />
           <ProfileField label="Role" value={row.role} onChange={(value) => update(row.slug, { role: value })} placeholder="e.g. Founder & Program Coordinator" />
-          <div style={{ marginBottom: 12 }}><div style={fieldLabel}>Bio</div><textarea value={row.bio} onChange={(event) => update(row.slug, { bio: event.target.value })} rows={4} placeholder="Write the short bio members should see…" style={{ ...inputStyle, resize: "vertical", minHeight: 90 }} /></div>
+          <RichTextEditor label="Bio" value={row.bio} onChange={(value) => update(row.slug, { bio: value })} placeholder="Write the short bio members should see…" />
         </div>
       ))}
       <Btn onClick={save} disabled={loading}>{loading ? "Loading…" : "Save public profiles"}</Btn>
@@ -4535,7 +4602,7 @@ function MemberDetail({ member, onBack }) {
         {member.bio ? (
           <div>
             <div style={{ ...fieldLabel }}>About</div>
-            <p style={{ fontSize: 14, lineHeight: 1.5, margin: "0 0 4px", whiteSpace: "pre-wrap" }}>{member.bio}</p>
+            <RichTextView value={member.bio} className="rh-member-bio" />
           </div>
         ) : <p style={{ fontSize: 13, color: T.sub, margin: 0 }}>This member hasn't added a bio yet.</p>}
         <p style={{ fontSize: 11.5, color: T.sub, marginTop: 10, lineHeight: 1.5 }}>
@@ -4821,11 +4888,7 @@ function Profile({ session, profile, answers, saveProfile, saveAnswers, persistC
           onChange={(v) => setP({ ...p, preferred_name: v })} placeholder="What should we call you?" />
         <ProfileField label="Pronouns" value={p.pronouns}
           onChange={(v) => setP({ ...p, pronouns: v })} placeholder="e.g. she/her, he/him, they/them" />
-        <div style={{ marginBottom: 12 }}>
-          <div style={fieldLabel}>About you (optional)</div>
-          <textarea value={p.bio} onChange={(e) => setP({ ...p, bio: e.target.value })} rows={3}
-            placeholder="A few words about you, if you'd like…" style={{ ...inputStyle, resize: "none", minHeight: 78 }} />
-        </div>
+        <RichTextEditor label="About you (optional)" value={p.bio} onChange={(value) => setP({ ...p, bio: value })} placeholder="A few words about you, if you'd like…" />
 
         <div style={{ background: "#f6f2fa", borderRadius: 14, padding: 12, marginBottom: 14 }}>
           <div style={{ ...fieldLabel, display: "flex", alignItems: "center", gap: 6 }}>
