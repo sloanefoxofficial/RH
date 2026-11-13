@@ -4043,7 +4043,7 @@ function Login({ stayLoggedIn = true, onStayLoggedInChange, uiLanguage = DEFAULT
             <div style={{ fontSize: 12.5, color: T.sub, lineHeight: 1.45, margin: "5px 0 9px" }}>Please contact us straight away. Never send your password, Journal PIN, or recovery answer.</div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
               <a href="mailto:resiliencehubnsw@gmail.com?subject=Help%20signing%20in%20to%20The%20Resilience%20Hub" style={{ flex: "1 1 150px", textAlign: "center", textDecoration: "none", borderRadius: 999, padding: "9px 11px", background: "#eaf5ef", color: T.greenDk, fontWeight: 800, fontSize: 12.5 }}>Email us</a>
-              <a href="sms:0416862289?body=Hi%20Resilience%20Hub%20team%2C%20I%27m%20having%20trouble%20signing%20in." style={{ flex: "1 1 150px", textAlign: "center", textDecoration: "none", borderRadius: 999, padding: "9px 11px", background: "#fff5d9", color: "#765b1c", fontWeight: 800, fontSize: 12.5 }}>Text 0416 862 289</a>
+              <a href="sms:0412529089?body=Hi%20Resilience%20Hub%20team%2C%20I%27m%20having%20trouble%20signing%20in." style={{ flex: "1 1 150px", textAlign: "center", textDecoration: "none", borderRadius: 999, padding: "9px 11px", background: "#fff5d9", color: "#765b1c", fontWeight: 800, fontSize: 12.5 }}>Text 0412 529 089</a>
             </div>
             <div style={{ textAlign: "center", color: T.sub, fontSize: 11, marginTop: 7 }}>Text only — no calls</div>
           </div>
