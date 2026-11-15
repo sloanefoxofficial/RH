@@ -1667,6 +1667,8 @@ export default function App() {
       <div style={{ maxWidth: 460, margin: "0 auto", padding: "0 16px 132px", position: "relative", zIndex: 1, zoom: textScale }}>
         {authEnabled && !authChecked ? (
           <div style={{ paddingTop: 120, textAlign: "center", color: T.sub }}>Loading…</div>
+        ) : screen === "teamProfile" ? (
+          <PublicTeamProfile slug={activeTeamProfile} isAdmin={isAdmin} onBack={back} />
         ) : showAuth && !session ? (
           <Login stayLoggedIn={stayLoggedIn} onStayLoggedInChange={changeStayLoggedIn} uiLanguage={uiLanguage} onChangeUiLanguage={selectAuthLanguage} />
         ) : !ready ? (
@@ -1854,8 +1856,6 @@ export default function App() {
           <BugReport session={session} userPublicKey={userPublicKey} onBack={back} />
         ) : screen === "userFeedback" ? (
           <UserFeedback session={session} userPublicKey={userPublicKey} onBack={back} />
-        ) : screen === "teamProfile" ? (
-          <PublicTeamProfile slug={activeTeamProfile} isAdmin={isAdmin} onBack={back} />
         ) : null}
         <AppAttributionCard onOpenProfile={(slug) => go("teamProfile", slug)} />
         <GlobalJumpToTop screen={screen} />
