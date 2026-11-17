@@ -602,6 +602,13 @@ export default function App() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [activityTrackingOn, setActivityTrackingOn] = useState(true);
   const [authChecked, setAuthChecked] = useState(!authEnabled);
+  const [passwordRecovery, setPasswordRecovery] = useState(() => {
+    try {
+      const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+      const query = new URLSearchParams(window.location.search);
+      return hash.get("type") === "recovery" || query.get("type") === "recovery";
+    } catch { return false; }
+  });
   const [memories, setMemories] = useState([]);          // durable "about me" notes
   const [memoryOn, setMemoryOn] = useState(true);        // person can switch memory off entirely
   const [textScale, setTextScale] = useState(1);         // per-device text size (0.85–1.3)
@@ -1645,6 +1652,7 @@ export default function App() {
       try {
         const r = supabase.auth.onAuthStateChange((_e, s) => {
           if (_e === "SIGNED_OUT") clearLocalDeviceCache();
+          if (_e === "PASSWORD_RECOVERY") setPasswordRecovery(true);
           setSession(s || null);
           applyAdmin(s);
         });
@@ -1655,6 +1663,11 @@ export default function App() {
   }, []);
 
   const signOut = async () => { const accountId = sessionRef.current?.user?.id; try { await supabase.auth.signOut(); } catch {} clearLocalDeviceCache(accountId); setIsAdmin(false); setScreen("hub"); };
+  const finishPasswordRecovery = async () => {
+    try { await supabase.auth.signOut(); } catch {}
+    setPasswordRecovery(false);
+    try { window.history.replaceState({}, "", window.location.pathname); } catch {}
+  };
 
   return (
     <div ref={appRootRef} className={getUiLanguage(uiLanguage).rtl ? "rh-app-shell rh-app-rtl" : "rh-app-shell"} style={{ minHeight: "100vh", color: T.ink,
@@ -1669,6 +1682,8 @@ export default function App() {
           <div style={{ paddingTop: 120, textAlign: "center", color: T.sub }}>Loading…</div>
         ) : screen === "teamProfile" ? (
           <PublicTeamProfile slug={activeTeamProfile} isAdmin={isAdmin} onBack={back} />
+        ) : showAuth && passwordRecovery ? (
+          <PasswordReset onComplete={finishPasswordRecovery} />
         ) : showAuth && !session ? (
           <Login stayLoggedIn={stayLoggedIn} onStayLoggedInChange={changeStayLoggedIn} uiLanguage={uiLanguage} onChangeUiLanguage={selectAuthLanguage} />
         ) : !ready ? (
@@ -3863,6 +3878,66 @@ function QuickCalm({ onBack }) {
             <div style={{ fontSize: 14.5, lineHeight: 1.5 }}>{tip}</div>
           </div>
         ))}
+      </div>
+      <Disclaimer />
+    </>
+  );
+}
+
+/* ---------- auth: password recovery ---------- */
+function PasswordReset({ onComplete }) {
+  const [password, setPassword] = useState("");
+  const [confirmation, setConfirmation] = useState("");
+  const [error, setError] = useState(null);
+  const [notice, setNotice] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+
+  const updatePassword = async () => {
+    setError(null); setNotice(null);
+    if (password.length < 6) { setError("Use at least 6 characters."); return; }
+    if (password !== confirmation) { setError("The two passwords don't match."); return; }
+    setBusy(true);
+    try {
+      const { error: updateError } = await supabase.auth.updateUser({ password });
+      if (updateError) throw updateError;
+      setPassword(""); setConfirmation("");
+      setNotice("Your password has been updated. You can now sign in with the new password.");
+    } catch (e) {
+      setError(e?.message || "We couldn't update your password. Please request a new reset link and try again.");
+    } finally { setBusy(false); }
+  };
+
+  return (
+    <>
+      <Brand />
+      <div className="rh-in" style={{ background: T.card, borderRadius: 22, padding: 18, boxShadow: T.soft, margin: "28px 0 16px" }}>
+        <h1 style={{ margin: "0 0 7px", fontSize: 23, color: T.greenDk }}>Set a new password</h1>
+        <p style={{ margin: "0 0 18px", fontSize: 13.5, color: T.sub, lineHeight: 1.5 }}>
+          Choose a new password for your Resilience Hub account.
+        </p>
+        <label htmlFor="recovery-password" style={{ ...fieldLabel, display: "block", marginBottom: 5 }}>New password</label>
+        <div style={{ position: "relative", marginBottom: 12 }}>
+          <input id="recovery-password" type={showPassword ? "text" : "password"} value={password}
+            onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" placeholder="At least 6 characters"
+            style={{ ...inputStyle, paddingRight: 46 }} />
+          <button type="button" onClick={() => setShowPassword((v) => !v)} aria-label={showPassword ? "Hide password" : "Show password"}
+            style={{ position: "absolute", right: 6, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: T.sub, padding: 8, display: "grid", placeItems: "center" }}>
+            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+          </button>
+        </div>
+        <label htmlFor="recovery-password-confirm" style={{ ...fieldLabel, display: "block", marginBottom: 5 }}>Confirm new password</label>
+        <input id="recovery-password-confirm" type={showPassword ? "text" : "password"} value={confirmation}
+          onChange={(e) => setConfirmation(e.target.value)} autoComplete="new-password" placeholder="Enter it again"
+          onKeyDown={(e) => e.key === "Enter" && updatePassword()} style={{ ...inputStyle, marginBottom: 12 }} />
+        {error && <div role="alert" style={{ color: "#c0392b", fontSize: 13, marginTop: 4, lineHeight: 1.4 }}>{error}</div>}
+        {notice && <div role="status" style={{ color: T.greenDk, fontSize: 13, marginTop: 4, lineHeight: 1.4 }}>{notice}</div>}
+        <div style={{ marginTop: 14 }}>
+          {notice ? <Btn onClick={onComplete}>Continue to sign in</Btn> : <Btn onClick={updatePassword} disabled={busy}>{busy ? "Updating…" : "Update password"}</Btn>}
+        </div>
+        <p style={{ margin: "16px 0 0", fontSize: 11.5, color: T.sub, lineHeight: 1.45 }}>
+          If this link has expired, request another reset link from the sign-in screen.
+        </p>
       </div>
       <Disclaimer />
     </>
