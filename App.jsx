@@ -4085,6 +4085,12 @@ function Login({ stayLoggedIn = true, onStayLoggedInChange, uiLanguage = DEFAULT
               {showPw ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
           </div>
+          {mode === "signin" && (
+            <button type="button" onClick={resetPassword} disabled={busy}
+              style={{ display: "block", width: "100%", margin: "8px 0 2px", padding: "9px 10px", textAlign: "left", background: "#eef8f1", border: `1px solid ${T.green}`, borderRadius: 11, color: T.greenDk, cursor: busy ? "default" : "pointer", fontSize: 13, fontWeight: 800, textDecoration: "underline", textUnderlineOffset: 2, opacity: busy ? 0.65 : 1 }}>
+              Forgot or need to set a password?
+            </button>
+          )}
           <label style={{ display: "flex", alignItems: "flex-start", gap: 9, marginTop: 12, color: T.ink, fontSize: 13, lineHeight: 1.4, cursor: "pointer" }}>
             <input type="checkbox" checked={stayLoggedIn} onChange={(e) => onStayLoggedInChange?.(e.target.checked)} style={{ width: 18, height: 18, marginTop: 1, accentColor: T.green, flexShrink: 0 }} />
             <span><strong>Stay logged in</strong><br /><span style={{ color: T.sub, fontSize: 12 }}>Leave this on for your own device. Turn it off on a shared device.</span></span>
@@ -4104,14 +4110,6 @@ function Login({ stayLoggedIn = true, onStayLoggedInChange, uiLanguage = DEFAULT
           ) : (
             <button type="button" onClick={() => { setMode("signin"); setErr(null); setNotice(null); }}
               style={{ width: "100%", minHeight: 46, marginTop: 12, background: "#fff", border: `1px solid ${T.line}`, borderRadius: 14, color: T.greenDk, cursor: "pointer", fontSize: 13.5, fontWeight: 800 }}>Already have an account? Sign in</button>
-          )}
-          {mode === "signin" && (
-            <div>
-              <button onClick={resetPassword} disabled={busy}
-                style={{ background: "none", border: "none", color: T.sub, cursor: "pointer", fontSize: 12.5, marginTop: 10, textDecoration: "underline" }}>
-                Forgot or need to set a password?
-              </button>
-            </div>
           )}
           <div style={{ marginTop: 16, padding: "13px 14px", borderRadius: 16, background: "#fff", border: `1px solid ${T.line}` }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 800, fontSize: 13.5, color: T.ink }}><LifeBuoy size={17} color={T.greenDk} /> Having trouble signing in?</div>
