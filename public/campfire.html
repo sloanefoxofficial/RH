@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <title>The Campfire</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -83,6 +83,8 @@
   .back-btn:hover{ color:var(--cream); }
   #fireScreen h1{ font-family:var(--serif); font-weight:500; font-size:clamp(24px,6vw,32px); margin:0 0 3px; }
   #fireScreen p.tagline{ margin:0 0 14px; color:var(--cream-dim); font-size:13.5px; }
+  .privacy-explainer{ margin:14px 0 0; padding:12px 14px; border:1px solid rgba(240,161,107,0.28); border-radius:14px; background:rgba(232,112,58,0.10); color:var(--cream-dim); font-size:12.5px; line-height:1.5; }
+  .privacy-explainer strong{ color:var(--cream); }
   .header-controls{ display:flex; align-items:center; justify-content:center; gap:10px; }
   .icon-btn{
     background:rgba(255,255,255,0.04); border:1px solid rgba(233,217,192,0.14);
@@ -135,7 +137,6 @@
   .chair.taken .seat-icon-wrap, .chair.mine .seat-icon-wrap{
     border:1px solid #000; border-radius:50%; background:#1b120c; overflow:hidden;
   }
-  .chair.blocked{ opacity:0.42; cursor:default; }
   .chair.taken svg{ color:var(--wood-light); }
   .chair.mine svg{ color:var(--ember); }
   .chair.speaking .seat-icon-wrap{ box-shadow:none; }
@@ -188,13 +189,6 @@
   .wait-btn:hover{ background:rgba(232,112,58,0.2); }
   .stand-btn{ margin-top:10px; background:none; border:1px solid rgba(233,217,192,0.25); color:var(--cream-dim); padding:7px 16px; border-radius:999px; font-size:13px; cursor:pointer; }
   .stand-btn:hover{ color:var(--cream); border-color:rgba(233,217,192,0.45); }
-  .moderation-panel{ width:100%; margin:12px 0 0; padding:11px 12px; border:1px solid rgba(233,217,192,0.12); border-radius:14px; background:rgba(255,255,255,0.035); }
-  .moderation-heading{ color:var(--cream-dim); font-size:11.5px; line-height:1.35; margin-bottom:8px; text-align:center; }
-  .moderation-list{ display:flex; flex-wrap:wrap; gap:7px; justify-content:center; }
-  .moderation-person{ display:inline-flex; align-items:center; gap:6px; border:1px solid rgba(233,217,192,0.2); border-radius:999px; padding:7px 9px; background:rgba(255,255,255,0.04); color:var(--cream); font-size:12px; }
-  .moderation-person button{ border:0; border-radius:999px; padding:4px 7px; color:var(--cream); background:rgba(232,112,58,0.18); font-size:11px; cursor:pointer; }
-  .moderation-person button:hover{ background:rgba(232,112,58,0.32); }
-  .moderation-person button.block{ background:rgba(190,60,38,0.18); }
 
   /* ---------- private video call ---------- */
   #callBtn:disabled{ opacity:0.38; cursor:not-allowed; }
@@ -344,6 +338,7 @@
       <button class="back-btn" id="backBtn">← All fires</button>
       <h1 id="fireTitle">Fire</h1>
       <p class="tagline" id="fireTagline"></p>
+      <div class="privacy-explainer" id="privacyExplainer" role="note"></div>
       <div class="header-controls">
         <button class="icon-btn" id="soundBtn" type="button" aria-pressed="false" title="Toggle fire sound">🔇</button>
         <button class="icon-btn" id="callBtn" type="button" title="Start a private video call" aria-label="Start a private video call" disabled>📹</button>
@@ -370,10 +365,6 @@
 
     <div class="status-line" id="statusLine">Finding a seat for you…</div>
     <div id="statusActions" style="display:flex; justify-content:center;"></div>
-    <section class="moderation-panel" id="moderationPanel" hidden aria-label="Campfire member safety controls">
-      <div class="moderation-heading">If someone makes you uncomfortable, you can report or block them. Blocking hides their seat and messages on this device.</div>
-      <div class="moderation-list" id="moderationList"></div>
-    </section>
 
     <section class="call-panel" id="callPanel" aria-live="polite" hidden>
       <strong class="call-heading" id="callHeading">Private video call</strong>
@@ -530,11 +521,11 @@
     { id:'ladies', name:"Ladies' Fire", icon:'🔥', tagline:"A calm circle for women to gather." },
     { id:'common', name:"Common Fire",  icon:'🔥', tagline:"Open to everyone, side by side." }
   ];
-  let selectedAccess = null;
+  let selectedAccess = 'common';
   try{
-    const requestedSpace = new URLSearchParams(window.location.search).get('space');
-    selectedAccess = requestedSpace || sessionStorage.getItem('rh_campfire_access') || null;
-  }catch(e){ selectedAccess = null; }
+    const storedSpace = sessionStorage.getItem('rh_campfire_access');
+    if(storedSpace === 'common') selectedAccess = 'common';
+  }catch(e){ selectedAccess = 'common'; }
   let VISIBLE_FIRES = FIRES.filter(f=>f.id === selectedAccess || (selectedAccess && f.id === 'common'));
 
   // ---------- identity ----------
@@ -544,8 +535,7 @@
 
   let clientId = safeGet(CLIENT_KEY);
   if(!clientId){ clientId = uid(); safeSet(CLIENT_KEY, clientId); }
-  const savedNickname = safeGet(NAME_KEY) || "";
-  let nickname = savedNickname === 'Bloke' ? "" : savedNickname;
+  let nickname = safeGet(NAME_KEY) || "";
   let avatarPref = null;
   try{ avatarPref = JSON.parse(safeGet(AVATAR_KEY) || 'null'); }catch(e){ avatarPref = null; }
 
@@ -606,8 +596,6 @@
   const ballLayer = document.getElementById('ballLayer');
   const statusLine = document.getElementById('statusLine');
   const statusActions = document.getElementById('statusActions');
-  const moderationPanel = document.getElementById('moderationPanel');
-  const moderationList = document.getElementById('moderationList');
   const chatMessages = document.getElementById('chatMessages');
   const chatEmpty = document.getElementById('chatEmpty');
   const chatForm = document.getElementById('chatForm');
@@ -618,14 +606,8 @@
   const recTimer = document.getElementById('recTimer');
   const micNote = document.getElementById('micNote');
 
-  const BLOCKED_USERS_KEY = 'rh_campfire_blocked_users_v1';
-  let blockedUsers = new Set();
-  try{
-    const saved = JSON.parse(safeGet(BLOCKED_USERS_KEY) || '[]');
-    if(Array.isArray(saved)) blockedUsers = new Set(saved.map(String));
-  }catch(e){}
-
   const callBtn = document.getElementById('callBtn');
+  const privacyExplainer = document.getElementById('privacyExplainer');
   const callPanel = document.getElementById('callPanel');
   const callHeading = document.getElementById('callHeading');
   const callStatus = document.getElementById('callStatus');
@@ -755,11 +737,9 @@
   const SEAT_STALE_MS = 30 * 1000;
   let backend = null;
   let currentFireId = null;
-  const defaultCampfireName = (fireId = currentFireId) => fireId === 'ladies' ? 'Jane' : 'Sam';
   let campfireInitPromise = null;
   let campfireOpenedAt = 0;
   let presenceSweepTimer = null;
-  let seatExitSignaled = false;
   let seats = Array.from({length:SEAT_COUNT}, ()=>({occupied:false, name:null, clientId:null, avatarType:null, avatarData:null}));
   let messages = [];
   let waiting = [];
@@ -805,8 +785,6 @@
     if(presenceSweepTimer){ clearInterval(presenceSweepTimer); presenceSweepTimer = null; }
   }
   function removeMySeatOnExit(){
-    if(seatExitSignaled) return;
-    seatExitSignaled = true;
     clearSeatHeartbeat();
     stopPresenceSweep();
     if(mySeat !== null && backend){
@@ -836,19 +814,8 @@
 
   function stopVoicePlayback(){
     voicePlaybackQueue.length = 0;
-    // A room change drops this Audio object. Its user-gesture permission belongs
-    // to that object too, so never leave the next room marked as unlocked with
-    // no player available — that made both automatic playback and Repeat silent.
-    voiceAudioUnlocked = false;
-    voiceUnlockPending = false;
-    if(voicePlayer){
-      try{ voicePlayer.pause(); voicePlayer.removeAttribute('src'); voicePlayer.load(); }catch(e){}
-      voicePlayer = null;
-    }
+    if(voicePlayer){ try{ voicePlayer.pause(); voicePlayer.src = ''; }catch(e){} voicePlayer = null; }
   }
-  const campfireVoiceUnlockEvents = ['pointerdown', 'touchend', 'click', 'keydown'];
-  const armCampfireVoiceUnlock = () => campfireVoiceUnlockEvents.forEach(event=>document.addEventListener(event, unlockCampfireVoice, { passive:true }));
-  const disarmCampfireVoiceUnlock = () => campfireVoiceUnlockEvents.forEach(event=>document.removeEventListener(event, unlockCampfireVoice));
   function unlockCampfireVoice(){
     if(voiceAudioUnlocked || voiceUnlockPending) return;
     voiceUnlockPending = true;
@@ -861,23 +828,15 @@
       try{ player.pause(); player.currentTime = 0; player.muted = false; }catch(e){}
       voiceAudioUnlocked = true;
       voiceUnlockPending = false;
-      disarmCampfireVoiceUnlock();
       if(voicePlaybackQueue.length) playCampfireVoice();
     };
-    if(ready && typeof ready.then === 'function') ready.then(finish).catch(()=>{ voiceUnlockPending = false; armCampfireVoiceUnlock(); });
+    if(ready && typeof ready.then === 'function') ready.then(finish).catch(()=>{ voiceUnlockPending = false; });
     else finish();
   }
   function playCampfireVoice(dataUrl, automatic = false){
     if((automatic && !voiceAutoPlay) || (!dataUrl && !voicePlaybackQueue.length)) return;
     if(dataUrl) voicePlaybackQueue.push(dataUrl);
-    // A repeat tap must be able to recover from a blocked autoplay, a decode
-    // hiccup, or a prior room exit. Successful unlocking resumes this queue.
-    if(!voiceAudioUnlocked || !voicePlayer){
-      unlockCampfireVoice();
-      armCampfireVoiceUnlock();
-      return;
-    }
-    if(!voicePlayer.paused) return;
+    if(!voiceAudioUnlocked || !voicePlayer || !voicePlayer.paused) return;
     const src = voicePlaybackQueue.shift();
     if(!src) return;
     const player = voicePlayer;
@@ -886,18 +845,14 @@
     player.onerror = () => {
       try{ voicePlayer.pause(); }catch(e){}
       voiceAudioUnlocked = false;
-      voiceUnlockPending = false;
       voicePlaybackQueue.unshift(src);
-      armCampfireVoiceUnlock();
     };
     player.src = src;
     const attempt = player.play();
     if(attempt && typeof attempt.catch === 'function') attempt.catch(()=>{
       voicePlaybackQueue.unshift(src);
       voiceAudioUnlocked = false;
-      voiceUnlockPending = false;
       try{ player.pause(); }catch(e){}
-      armCampfireVoiceUnlock();
     });
   }
 
@@ -921,54 +876,6 @@
     }, BUBBLE_MS);
   }
 
-  function persistBlockedUsers(){
-    try{ safeSet(BLOCKED_USERS_KEY, JSON.stringify(Array.from(blockedUsers).slice(-100))); }catch(e){}
-  }
-  function blockCampfireMember(seatIndex){
-    const target = seats[seatIndex];
-    if(!target || !target.occupied || !target.clientId || target.clientId === clientId) return;
-    const name = target.name || defaultCampfireName();
-    if(!window.confirm('Block '+name+' on this device? Their seat and messages will be hidden for you.')) return;
-    blockedUsers.add(String(target.clientId));
-    persistBlockedUsers();
-    renderSeats();
-    renderMessages();
-  }
-  async function reportCampfireMember(seatIndex){
-    const target = seats[seatIndex];
-    if(!target || !target.occupied || !target.clientId || target.clientId === clientId) return;
-    const name = target.name || defaultCampfireName();
-    const reason = window.prompt('What would you like to report about '+name+'? Please do not include private details about yourself.');
-    if(!reason || !reason.trim()) return;
-    try{
-      const session = await ensureCampfireSession();
-      const result = await session.client.from('bug_reports').insert({
-        name: nickname || null,
-        email: null,
-        user_id: session.userId,
-        description: '[Campfire report]\n\nReported member: '+name+'\nFire: '+(currentFireId || 'unknown')+'\nReason: '+reason.trim(),
-        screenshot_path: null,
-      });
-      if(result.error) throw result.error;
-      window.alert('Thanks — your report has been sent to the Hub team.');
-    }catch(e){
-      window.alert('The report could not be sent right now. Please try again in a moment.');
-    }
-  }
-  function renderModerationControls(){
-    if(!moderationPanel || !moderationList) return;
-    moderationList.innerHTML = '';
-    const others = seats.map((seat,index)=>({seat,index})).filter(({seat}) => seat && seat.occupied && seat.clientId !== clientId && !blockedUsers.has(String(seat.clientId)));
-    moderationPanel.hidden = others.length === 0;
-    others.forEach(({seat,index})=>{
-      const person = document.createElement('div'); person.className = 'moderation-person';
-      const label = document.createElement('span'); label.textContent = seat.name || defaultCampfireName(); person.appendChild(label);
-      const report = document.createElement('button'); report.type = 'button'; report.textContent = 'Report'; report.setAttribute('aria-label','Report '+(seat.name || 'this member')); report.addEventListener('click', ()=>{ void reportCampfireMember(index); });
-      const block = document.createElement('button'); block.type = 'button'; block.className = 'block'; block.textContent = 'Block'; block.setAttribute('aria-label','Block '+(seat.name || 'this member')); block.addEventListener('click', ()=>blockCampfireMember(index));
-      person.appendChild(report); person.appendChild(block); moderationList.appendChild(person);
-    });
-  }
-
   function renderSeats(){
     computeMySeat();
     let occupiedCount = 0;
@@ -977,18 +884,16 @@
       const wrap = el.querySelector('.seat-icon-wrap');
       const label = el.querySelector('.chair-label');
       const isMine = s.occupied && s.clientId === clientId;
-      const isBlocked = s.occupied && !isMine && blockedUsers.has(String(s.clientId));
       el.classList.toggle('free', !s.occupied);
       el.classList.toggle('taken', s.occupied && !isMine);
       el.classList.toggle('mine', isMine);
-      el.classList.toggle('blocked', isBlocked);
       wrap.innerHTML = avatarMarkup(s.occupied ? s.avatarType : null, s.avatarData, !s.occupied);
       if(s.occupied){
         occupiedCount++;
-        label.textContent = isMine ? 'You' : (isBlocked ? 'Blocked' : (s.name || defaultCampfireName()));
-        el.disabled = isBlocked;
+        label.textContent = isMine ? 'You' : (s.name || 'Bloke');
+        el.disabled = false;
         el.title = mySeat !== null && !isMine ? 'Throw the green ball' : '';
-        el.setAttribute('aria-label', isMine ? 'Your seat, tap to stand up' : (isBlocked ? 'Blocked member seat' : ((s.name||defaultCampfireName()) + '’s seat, taken')));
+        el.setAttribute('aria-label', isMine ? 'Your seat, tap to stand up' : ((s.name||'Bloke') + '’s seat, taken'));
       } else {
         label.textContent = 'Free';
         el.title = '';
@@ -1000,7 +905,6 @@
     renderStatus(occupiedCount);
     renderChatGate();
     renderCallGate();
-    renderModerationControls();
     syncCallIdentityToSeat();
   }
 
@@ -1060,14 +964,14 @@
   }
 
   function renderMessages(){
-    const visibleMessages = messages.filter(m => !m.clientId || !blockedUsers.has(String(m.clientId)));
+    const visibleMessages = messages;
     chatEmpty.style.display = visibleMessages.length ? 'none' : 'block';
     chatMessages.querySelectorAll('.msg').forEach(n=>n.remove());
     visibleMessages.slice(-60).forEach(m=>{
       const div = document.createElement('div');
       if(m.type === 'throw'){
         div.className = 'msg system throw-notice';
-        div.textContent = (m.fromName || defaultCampfireName()) + ' threw the ball to ' + (m.toName || defaultCampfireName());
+        div.textContent = (m.fromName || 'Bloke') + ' threw the ball to ' + (m.toName || 'Bloke');
       } else if(m.system){
         div.className = 'msg system';
         div.textContent = m.text;
@@ -1077,12 +981,12 @@
         const timeStr = isNaN(t) ? '' : t.toLocaleTimeString([], {hour:'numeric', minute:'2-digit'});
         if(m.type === 'voice' && m.audio){
           div.innerHTML = '<span class="who"></span><span class="voice-chip">🔊 Voice message</span><span class="when"></span>';
-          div.querySelector('.who').textContent = (m.name || defaultCampfireName()) + ':';
+          div.querySelector('.who').textContent = (m.name || 'Bloke') + ':';
           div.querySelector('.when').textContent = timeStr;
           div.querySelector('.voice-chip').addEventListener('click', ()=>playCampfireVoice(m.audio));
         } else {
           div.innerHTML = '<span class="who"></span><span class="body"></span><span class="when"></span>';
-          div.querySelector('.who').textContent = (m.name || defaultCampfireName()) + ':';
+          div.querySelector('.who').textContent = (m.name || 'Bloke') + ':';
           div.querySelector('.body').textContent = m.text || '';
           div.querySelector('.when').textContent = timeStr;
         }
@@ -1126,7 +1030,6 @@
   }
 
   function handleIncomingMessage(m){
-    if(m && m.clientId && blockedUsers.has(String(m.clientId))) return;
     if(m.type === 'throw'){
       animateThrow(Number(m.fromSeat), Number(m.toSeat));
       return;
@@ -1134,7 +1037,7 @@
     let seatIndex = seats.findIndex(s => s.occupied && s.clientId === m.clientId);
     if(seatIndex === -1 && typeof m.seat === 'number') seatIndex = m.seat;
     if(seatIndex === -1 || seatIndex == null) return;
-    const name = m.name || defaultCampfireName();
+    const name = m.name || 'Bloke';
     const seatData = seats[seatIndex] || {};
     const avatarHtml = '<span class="sb-avatar">'+avatarMarkup(seatData.avatarType, seatData.avatarData, false)+'</span>';
     if(m.type === 'voice' && m.audio){
@@ -1343,6 +1246,9 @@
     const meta = FIRES.find(f=>f.id===fireId);
     fireTitle.textContent = meta.name;
     fireTagline.textContent = meta.tagline;
+    privacyExplainer.innerHTML = fireId === 'common'
+      ? '<strong>Why this access is fixed:</strong> The Common Fire is open to everyone. The Men’s Fire and Ladies’ Fire are separate spaces designed to stay as safe and private as possible, so people cannot switch between private Fires or look into a space that is not intended for them.'
+      : '<strong>Why you can’t change this here:</strong> This private Fire is linked to your permanent Campfire selection. Keeping access fixed helps protect privacy and gives people confidence that others cannot switch between private Fires or look into a space that is not intended for them. If your selection needs reviewing, contact support through your profile.';
     homeScreen.style.display = 'none';
     fireScreen.style.display = 'block';
     window.scrollTo(0,0);
@@ -1376,7 +1282,6 @@
 
   function leaveFire(){
     endActiveCall(true, true);
-    stopVoicePlayback();
     stopCallPresence();
     stopPresenceSweep();
     removeFromWaiting();
@@ -1405,8 +1310,8 @@
     lastThrowAt = now;
     backend.sendMessage({
       type:'throw', fromSeat:mySeat, toSeat:targetSeat,
-      fromName: seats[mySeat].name || nickname || defaultCampfireName(),
-      toName: seats[targetSeat].name || defaultCampfireName(), clientId, ts:now
+      fromName: seats[mySeat].name || nickname || 'Bloke',
+      toName: seats[targetSeat].name || 'Bloke', clientId, ts:now
     });
   }
   function onChairTap(i){
@@ -1435,7 +1340,6 @@
   function sitDown(i, name, avatarType, avatarData){
     if(!backend) return;
     const now = Date.now();
-    seatExitSignaled = false;
     seats[i] = { occupied:true, name, clientId, avatarType, avatarData, sat_at: now, last_seen_at: now };
     mySeat = i;
     renderSeats();
@@ -1449,8 +1353,7 @@
     pendingSeatIndex = seatIndex;
     isEditingSeat = !!editMode;
     const current = (editMode && seats[seatIndex] && seats[seatIndex].occupied) ? seats[seatIndex] : null;
-    modalNameInput.placeholder = defaultCampfireName();
-    modalNameInput.value = current ? (current.name || '') : (nickname || defaultCampfireName());
+    modalNameInput.value = current ? (current.name || '') : nickname;
     modalAvatarType = current ? (current.avatarType || 'none') : ((avatarPref && avatarPref.type) || 'none');
     modalCartoonOpts = (modalAvatarType === 'cartoon' && current && current.avatarData) ? current.avatarData
       : (modalAvatarType === 'cartoon' && avatarPref && avatarPref.data) ? avatarPref.data : randomCartoon();
@@ -1542,14 +1445,14 @@
     if(pendingSeatIndex === null) return;
     if(isEditingSeat){ closeModal(); return; } // Cancel: leave seat untouched
     const idx = pendingSeatIndex;
-    nickname = defaultCampfireName(); safeSet(NAME_KEY, '');
+    nickname = 'Bloke'; safeSet(NAME_KEY, '');
     closeModal();
-    sitDown(idx, defaultCampfireName(), 'none', null);
+    sitDown(idx, 'Bloke', 'none', null);
   });
   modalSit.addEventListener('click', ()=>{
     if(pendingSeatIndex === null) return;
     const idx = pendingSeatIndex;
-    const name = (modalNameInput.value || '').trim().slice(0,18) || defaultCampfireName();
+    const name = (modalNameInput.value || '').trim().slice(0,18) || 'Bloke';
     nickname = name; safeSet(NAME_KEY, name);
     let avatarData = null;
     if(modalAvatarType === 'cartoon') avatarData = modalCartoonOpts;
@@ -1573,7 +1476,7 @@
     if(mySeat === null || !backend) return;
     const text = chatInput.value.trim();
     if(!text) return;
-    backend.sendMessage({ seat:mySeat, clientId, name: seats[mySeat] ? (seats[mySeat].name || nickname || defaultCampfireName()) : (nickname||defaultCampfireName()), type:'text', text, ts: Date.now() });
+    backend.sendMessage({ seat:mySeat, clientId, name: seats[mySeat] ? (seats[mySeat].name || nickname || 'Bloke') : (nickname||'Bloke'), type:'text', text, ts: Date.now() });
     chatInput.value = '';
   });
 
@@ -1648,7 +1551,7 @@
       try{
         const dataUrl = await blobToDataURL(blob);
         if(mySeat === null || !backend) return;
-        backend.sendMessage({ seat:mySeat, clientId, name: seats[mySeat] ? (seats[mySeat].name || nickname || defaultCampfireName()) : (nickname||defaultCampfireName()), type:'voice', audio:dataUrl, ts: Date.now() });
+        backend.sendMessage({ seat:mySeat, clientId, name: seats[mySeat] ? (seats[mySeat].name || nickname || 'Bloke') : (nickname||'Bloke'), type:'voice', audio:dataUrl, ts: Date.now() });
       }catch(e){}
     };
     mediaRecorder.start();
@@ -1679,9 +1582,7 @@
     if(mediaRecorder && mediaRecorder.state === 'recording') stopRecording();
     else if(!recordingStarting) beginRecording();
   });
-  // Keep trying early real gestures until the browser confirms audio is unlocked.
-  // A one-shot listener is unreliable on Android/iOS if the initial media play is blocked.
-  armCampfireVoiceUnlock();
+  document.addEventListener('pointerdown', unlockCampfireVoice, { once: true, passive: true });
 
   // ---------- private one-to-one video calls (Supabase signalling only) ----------
   const CALL_EVENT_TTL_MS = 2 * 60 * 1000;
@@ -1875,7 +1776,7 @@
     }
     const seat = seats[mySeat];
     if(!seat || !seat.occupied || seat.clientId !== clientId) return;
-    const name = seat.name || nickname || defaultCampfireName();
+    const name = seat.name || nickname || 'Bloke';
     const presenceKey = currentFireId+':'+mySeat+':'+name;
     if(lastPresenceKey === presenceKey) return;
     lastPresenceKey = presenceKey;
@@ -1923,7 +1824,7 @@
         button.className = 'call-person';
         button.type = 'button';
         button.disabled = !presence;
-        const name = seat.name || defaultCampfireName();
+        const name = seat.name || 'Bloke';
         button.innerHTML = '<span></span><small></small>';
         button.querySelector('span').textContent = name;
         button.querySelector('small').textContent = presence ? 'Seat '+(index+1) : 'Calls unavailable';
@@ -1939,7 +1840,7 @@
       call_id: activeCallId,
       sender_client_id: clientId,
       to_client_id: callPeerClientId || null,
-      from_name: mySeat !== null && seats[mySeat] ? (seats[mySeat].name || nickname || defaultCampfireName()) : (nickname || defaultCampfireName())
+      from_name: mySeat !== null && seats[mySeat] ? (seats[mySeat].name || nickname || 'Bloke') : (nickname || 'Bloke')
     }, extra || {});
   }
 
@@ -1969,7 +1870,7 @@
     activeCallId = callUuid();
     callPeerUserId = seat.callUserId;
     callPeerClientId = seat.clientId || null;
-    callPeerName = seat.name || defaultCampfireName();
+    callPeerName = seat.name || 'Bloke';
     callState = 'ringing';
     setCallPanel('Calling '+callPeerName, 'Waiting for them to accept…', false, false);
     callControls.hidden = false;
@@ -2375,7 +2276,6 @@
     callChannel = null;
   }
   window.addEventListener('pagehide', cleanupCallsForPageHide);
-  document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState === 'hidden') removeMySeatOnExit(); });
   window.addEventListener('pagehide', removeMySeatOnExit);
   window.addEventListener('beforeunload', removeMySeatOnExit);
   campfireInitPromise = initialiseVideoCalls();
