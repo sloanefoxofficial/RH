@@ -83,6 +83,8 @@
   .back-btn:hover{ color:var(--cream); }
   #fireScreen h1{ font-family:var(--serif); font-weight:500; font-size:clamp(24px,6vw,32px); margin:0 0 3px; }
   #fireScreen p.tagline{ margin:0 0 14px; color:var(--cream-dim); font-size:13.5px; }
+  .privacy-explainer{ margin:14px 0 0; padding:12px 14px; border:1px solid rgba(240,161,107,0.28); border-radius:14px; background:rgba(232,112,58,0.10); color:var(--cream-dim); font-size:12.5px; line-height:1.5; }
+  .privacy-explainer strong{ color:var(--cream); }
   .header-controls{ display:flex; align-items:center; justify-content:center; gap:10px; }
   .icon-btn{
     background:rgba(255,255,255,0.04); border:1px solid rgba(233,217,192,0.14);
@@ -336,6 +338,7 @@
       <button class="back-btn" id="backBtn">← All fires</button>
       <h1 id="fireTitle">Fire</h1>
       <p class="tagline" id="fireTagline"></p>
+      <div class="privacy-explainer" id="privacyExplainer" role="note"></div>
       <div class="header-controls">
         <button class="icon-btn" id="soundBtn" type="button" aria-pressed="false" title="Toggle fire sound">🔇</button>
         <button class="icon-btn" id="callBtn" type="button" title="Start a private video call" aria-label="Start a private video call" disabled>📹</button>
@@ -518,11 +521,11 @@
     { id:'ladies', name:"Ladies' Fire", icon:'🔥', tagline:"A calm circle for women to gather." },
     { id:'common', name:"Common Fire",  icon:'🔥', tagline:"Open to everyone, side by side." }
   ];
-  let selectedAccess = null;
+  let selectedAccess = 'common';
   try{
-    const requestedSpace = new URLSearchParams(window.location.search).get('space');
-    selectedAccess = requestedSpace || sessionStorage.getItem('rh_campfire_access') || null;
-  }catch(e){ selectedAccess = null; }
+    const storedSpace = sessionStorage.getItem('rh_campfire_access');
+    if(storedSpace === 'common') selectedAccess = 'common';
+  }catch(e){ selectedAccess = 'common'; }
   let VISIBLE_FIRES = FIRES.filter(f=>f.id === selectedAccess || (selectedAccess && f.id === 'common'));
 
   // ---------- identity ----------
@@ -604,6 +607,7 @@
   const micNote = document.getElementById('micNote');
 
   const callBtn = document.getElementById('callBtn');
+  const privacyExplainer = document.getElementById('privacyExplainer');
   const callPanel = document.getElementById('callPanel');
   const callHeading = document.getElementById('callHeading');
   const callStatus = document.getElementById('callStatus');
@@ -1242,6 +1246,9 @@
     const meta = FIRES.find(f=>f.id===fireId);
     fireTitle.textContent = meta.name;
     fireTagline.textContent = meta.tagline;
+    privacyExplainer.innerHTML = fireId === 'common'
+      ? '<strong>Why this access is fixed:</strong> The Common Fire is open to everyone. The Men’s Fire and Ladies’ Fire are separate spaces designed to stay as safe and private as possible, so people cannot switch between private Fires or look into a space that is not intended for them.'
+      : '<strong>Why you can’t change this here:</strong> This private Fire is linked to your permanent Campfire selection. Keeping access fixed helps protect privacy and gives people confidence that others cannot switch between private Fires or look into a space that is not intended for them. If your selection needs reviewing, contact support through your profile.';
     homeScreen.style.display = 'none';
     fireScreen.style.display = 'block';
     window.scrollTo(0,0);

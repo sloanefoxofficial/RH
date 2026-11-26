@@ -4826,9 +4826,11 @@ function Profile({ session, profile, answers, saveProfile, saveAnswers, persistC
   const rawCampfireAccess = answers?.campfire_access ?? profile?.campfireAccess ?? "";
   const campfireAccess = String(rawCampfireAccess);
   const campfireChoice = campfireAccess === "0" || campfireAccess.startsWith("Men’s") || campfireAccess.startsWith("Men's") ? "Men’s Fire"
-    : campfireAccess === "1" || campfireAccess.startsWith("Ladies’") || campfireAccess.startsWith("Ladies'") ? "Ladies’ Fire" : "";
+    : campfireAccess === "1" || campfireAccess.startsWith("Ladies’") || campfireAccess.startsWith("Ladies'") ? "Ladies’ Fire"
+      : campfireAccess === "2" || campfireAccess.startsWith("Not sure") ? "Not sure yet" : "";
+  const permanentCampfireChoice = campfireChoice === "Men’s Fire" || campfireChoice === "Ladies’ Fire";
   const chooseCampfire = (index) => {
-    if (campfireChoice) return;
+    if (permanentCampfireChoice) return;
     saveAnswers({ ...(answers || {}), campfire_access: index });
     saveProfile({ campfireAccess: index });
     void persistCampfireAccess(index);
@@ -4922,13 +4924,14 @@ function Profile({ session, profile, answers, saveProfile, saveAnswers, persistC
       <SectionTitle tone="light">Campfire access</SectionTitle>
       <div style={{ background: "linear-gradient(135deg, #fff8ee 0%, #fff 78%)", border: "1px solid #ead8c7", borderRadius: 20, padding: 16, boxShadow: T.soft, marginBottom: 14 }}>
         <div style={{ fontWeight: 800, color: T.ink, marginBottom: 5 }}>Which Campfire space is right for you?</div>
-        <p style={{ margin: "0 0 12px", color: T.sub, fontSize: 13, lineHeight: 1.48 }}>Choose one space to access. You’ll also be able to use the Common Fire. To protect everyone’s privacy, this choice cannot be changed later.</p>
-        {campfireChoice ? <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "12px 13px", borderRadius: 14, background: "#eef7ef", color: T.greenDk, fontWeight: 800 }}><Shield size={18} /> {campfireChoice} selected and locked</div> : <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+        <p style={{ margin: "0 0 12px", color: T.sub, fontSize: 13, lineHeight: 1.48 }}>The Men’s Fire and Ladies’ Fire are separate spaces designed to feel as safe and private as possible. Keeping access linked to one permanent selection helps prevent people from switching between spaces or looking into a space that is not intended for them.</p>
+        {campfireChoice && !permanentCampfireChoice && <div style={{ marginBottom: 12, padding: "11px 12px", borderRadius: 14, background: "#fff8ee", border: "1px solid #ead8c7", color: T.ink, fontSize: 12.5, lineHeight: 1.48 }}><strong>Not sure yet?</strong> You currently have access to the Common Fire only. Choose your permanent Campfire space below whenever you’re ready; it will unlock that space alongside the Common Fire.</div>}
+        {permanentCampfireChoice ? <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "12px 13px", borderRadius: 14, background: "#eef7ef", color: T.greenDk, fontWeight: 800 }}><Shield size={18} /> {campfireChoice} selected and locked</div> : <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
           <ChoiceRow label="Men’s Fire — the men’s support space" onClick={() => chooseCampfire(0)} />
           <ChoiceRow label="Ladies’ Fire — the women’s support space" onClick={() => chooseCampfire(1)} />
         </div>}
         {campfireStatus && <div style={{ marginTop: 10, color: T.greenDk, fontSize: 12.5, lineHeight: 1.4 }}>{campfireStatus}</div>}
-        {campfireChoice && <>
+        {permanentCampfireChoice && <>
           <button type="button" onClick={requestCampfireChange} disabled={campfireRequestBusy}
             style={{ width: "100%", marginTop: 12, minHeight: 44, borderRadius: 13, border: "1px solid rgba(23,78,62,0.2)", background: "linear-gradient(135deg, #e8f5ed, #fffaf0)", color: T.greenDk, fontWeight: 800, fontSize: 12.5, cursor: campfireRequestBusy ? "default" : "pointer", opacity: campfireRequestBusy ? 0.65 : 1 }}>
             {campfireRequestBusy ? "Sending request…" : "Contact support to request a Campfire selection change"}
@@ -6518,7 +6521,7 @@ const PROGRAM_WELCOME_TEXT = "This is your tailor-made 8-week plan, shaped aroun
 const QUESTIONS = [
   { key: "name", type: "name", q: "First up — what should we call you?" },
   { key: "campfire_access", type: "single", q: "If you might use the Campfire feature, which support space would feel right for you? This is only to help us show you the right spaces — there’s no need to explain anything personal.",
-    opts: ["Men’s Fire — the men’s support space", "Ladies’ Fire — the women’s support space"] },
+    opts: ["Men’s Fire — the men’s support space", "Ladies’ Fire — the women’s support space", "Not sure yet — start in the Common Fire"] },
   { key: "age", type: "single", q: "Which stage of life are you in? It helps us pitch things right.",
     opts: ["16–25", "26–55", "56–80+", "Rather not say"] },
   { key: "mood", type: "single", q: "How have the last couple of weeks felt, overall?",
@@ -6702,7 +6705,7 @@ function Onboarding({ profile, saveProfile, saveAnswers, persistCampfireAccess, 
   const { speak, stop, speaking, prefetch } = useVoice(voiceOn);
   const q = QS[i];
   const existingCampfireAccess = String(answers?.campfire_access ?? profile?.campfireAccess ?? "");
-  const campfireAlreadySet = existingCampfireAccess === "0" || existingCampfireAccess === "1" || existingCampfireAccess.startsWith("Men’s") || existingCampfireAccess.startsWith("Men's") || existingCampfireAccess.startsWith("Ladies’") || existingCampfireAccess.startsWith("Ladies'");
+  const campfireAlreadySet = existingCampfireAccess === "0" || existingCampfireAccess === "1" || existingCampfireAccess === "2" || existingCampfireAccess.startsWith("Men’s") || existingCampfireAccess.startsWith("Men's") || existingCampfireAccess.startsWith("Ladies’") || existingCampfireAccess.startsWith("Ladies'") || existingCampfireAccess.startsWith("Not sure");
 
   useEffect(() => {
     setText(local[q.key] || "");
@@ -6873,7 +6876,7 @@ Respond with ONLY valid JSON, no markdown fences, exactly this shape:
 
       {q.type === "single" && q.key === "campfire_access" && campfireAlreadySet && (
         <div style={{ background: "#eef7ef", border: "1px solid #cde5d1", borderRadius: 16, padding: 14, color: T.greenDk, fontSize: 13.5, lineHeight: 1.5 }}>
-          Your Campfire space has already been selected and is locked to protect everyone’s privacy. You’ll have access to that space and the Common Fire.
+          {existingCampfireAccess === "2" || existingCampfireAccess.startsWith("Not sure") ? "You’ve chosen Not sure yet, so you’ll start in the Common Fire only. Set your permanent Campfire selection in your profile whenever you’re ready; it will unlock that space alongside the Common Fire." : "Your Campfire space has already been selected and is locked to protect everyone’s privacy. You’ll have access to that space and the Common Fire."}
           <Btn onClick={() => advance()} style={{ marginTop: 12 }}>Continue</Btn>
         </div>
       )}
@@ -9362,7 +9365,7 @@ function ResourcesPage({ voiceOn, speechLang, onOpenSafety, onOpenMensShed, onOp
 }
 
 function CampfirePage({ onBack, campfireAccess = "", voiceOn = false, speechLang = "en-AU" }) {
-  const campfireRexWelcome = spokenIntro("campfire", "Hi, I’m Rex. Before you enter, here are the ways you can use the Campfire: you can simply watch and listen without joining in, join the text chat, or use voice chat when you feel ready. There is also an in-app video chat feature if you’d like to connect face to face — you choose who to talk with, and they need to accept. One gentle reminder: because the Campfire you selected is connected to your access, your Campfire choice is locked in. If you need to change your Campfire selection, contact support from the Campfire selection screen in your profile. Take your time — you’re welcome to come and go as you need.", speechLang);
+  const campfireRexWelcome = spokenIntro("campfire", "Hi, I’m Rex. Before you enter, here are the ways you can use the Campfire: you can simply watch and listen without joining in, join the text chat, or use voice chat when you feel ready. There is also an in-app video chat feature if you’d like to connect face to face — you choose who to talk with, and they need to accept. One gentle reminder: your current Campfire access is linked to your selection. If you chose Not sure yet, you can set your permanent choice in your profile at any time; once a private space is selected, that access is locked to protect everyone’s privacy. Take your time — you’re welcome to come and go as you need.", speechLang);
   const { speak: speakCampfireRex, stop: stopCampfireRex, speaking: campfireRexSpeaking, prefetch: prefetchCampfireRex } = useVoice(voiceOn);
   useEffect(() => {
     if (!voiceOn || !__autoIntroVoiceOn) return undefined;
@@ -9393,7 +9396,7 @@ function CampfirePage({ onBack, campfireAccess = "", voiceOn = false, speechLang
         <div style={{ display: "flex", alignItems: "center", gap: 7 }}><span style={{ fontSize: 10, fontWeight: 900, letterSpacing: 0.9, textTransform: "uppercase", color: "#28736f" }}>Rex · A quick guide</span>{campfireRexSpeaking && <span aria-live="polite" style={{ fontSize: 10.5, color: "#28736f" }}>Speaking…</span>}</div>
         <h2 id="campfire-rex-welcome" style={{ margin: "4px 0 5px", color: T.greenDk, fontSize: 16, lineHeight: 1.2 }}>Hi, I’m Rex — before you enter</h2>
         <p style={{ margin: 0, color: T.ink, fontSize: 13, lineHeight: 1.48 }}>Choose how you want to take part: you can simply watch, join the text chat, use voice chat, or connect through the in-app video chat feature. For video chat, choose someone to talk with and they’ll need to accept.</p>
-        <p style={{ margin: "8px 0 0", color: T.ink, fontSize: 13, lineHeight: 1.48 }}>Just a gentle reminder: your Campfire selection is linked to your access and is locked in. If you need to change your Campfire selection, contact support from the Campfire selection screen in your profile.</p>
+        <p style={{ margin: "8px 0 0", color: T.ink, fontSize: 13, lineHeight: 1.48 }}>Just a gentle reminder: your current Campfire access is linked to your selection. If you chose Not sure yet, you can set your permanent choice in your profile at any time; once a private space is selected, that access is locked to protect everyone’s privacy.</p>
         <button type="button" onClick={() => speakCampfireRex(campfireRexWelcome, CHARS.rex)} aria-label="Hear Rex explain the Campfire again" style={{ display: "inline-flex", alignItems: "center", gap: 6, marginTop: 10, border: "1px solid rgba(47,128,124,0.28)", borderRadius: 999, padding: "8px 11px", background: "rgba(255,255,255,0.78)", color: "#28736f", fontSize: 11.5, fontWeight: 800, cursor: "pointer" }}><Volume2 size={14} aria-hidden="true" /> Hear Rex explain the Campfire again</button>
       </div>
     </section>
